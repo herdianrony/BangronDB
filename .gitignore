@@ -40,7 +40,6 @@ temp/
 *.tmp
 
 # IDE
-.editorconfig
 *.swp
 *.swo
 *~
