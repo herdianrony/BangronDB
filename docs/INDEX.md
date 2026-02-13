@@ -26,70 +26,70 @@ Panduan lengkap untuk menemukan dokumentasi yang Anda butuhkan.
 
 ### Getting Started (Untuk Pemula)
 
-| File | Deskripsi | Waktu |
-|------|-----------|-------|
-| **BEGINNER_GUIDE.md** | Pengenalan super sederhana BangronDB | 15 min |
+| File                    | Deskripsi                             | Waktu   |
+| ----------------------- | ------------------------------------- | ------- |
+| **BEGINNER_GUIDE.md**   | Pengenalan super sederhana BangronDB  | 15 min  |
 | **BEGINNER_PROJECT.md** | Buat TODO App dari nol (step-by-step) | 1-2 jam |
-| **GLOSSARY.md** | Kamus istilah teknis | 10 min |
-| **FAQ.md** | Jawaban pertanyaan umum pemula | 20 min |
+| **GLOSSARY.md**         | Kamus istilah teknis                  | 10 min  |
+| **FAQ.md**              | Jawaban pertanyaan umum pemula        | 20 min  |
 
 ### Core Dokumentasi
 
-| File | Deskripsi | Level |
-|------|-----------|-------|
-| **docs/README.md** | Overview lengkap features | Beginner |
-| **docs/getting-started.md** | Setup dan quick start | Beginner |
-| **docs/CHEAT_SHEET.md** | Referensi cepat commands | All |
-| **docs/advanced.md** | Fitur advanced (indexing, optimization) | Intermediate |
-| **docs/SECURITY-ENHANCEMENTS.md** | Enkripsi dan validasi | Intermediate |
+| File                              | Deskripsi                               | Level        |
+| --------------------------------- | --------------------------------------- | ------------ |
+| **docs/README.md**                | Overview lengkap features               | Beginner     |
+| **docs/getting-started.md**       | Setup dan quick start                   | Beginner     |
+| **docs/CHEAT_SHEET.md**           | Referensi cepat commands                | All          |
+| **docs/advanced.md**              | Fitur advanced (indexing, optimization) | Intermediate |
+| **docs/SECURITY-ENHANCEMENTS.md** | Enkripsi dan validasi                   | Intermediate |
 
 ### Specialized Topics
 
-| File | Topik | Level |
-|------|-------|-------|
-| **docs/framework-integration.md** | Integasi dengan Laravel/Symfony | Advanced |
-| **docs/deployment-production.md** | Deploy ke production | Advanced |
-| **docs/performance-security.md** | Optimization dan security | Advanced |
-| **docs/migration-upgrade.md** | Migration dari database lain | Intermediate |
-| **docs/troubleshooting.md** | Solve common problems | All |
-| **docs/configuration-workflow.md** | Dynamic configuration | Intermediate |
+| File                               | Topik                           | Level        |
+| ---------------------------------- | ------------------------------- | ------------ |
+| **docs/framework-integration.md**  | Integasi dengan Laravel/Symfony | Advanced     |
+| **docs/deployment-production.md**  | Deploy ke production            | Advanced     |
+| **docs/performance-security.md**   | Optimization dan security       | Advanced     |
+| **docs/migration-upgrade.md**      | Migration dari database lain    | Intermediate |
+| **docs/troubleshooting.md**        | Solve common problems           | All          |
+| **docs/configuration-workflow.md** | Dynamic configuration           | Intermediate |
 
 ### API Reference
 
-| File | Deskripsi |
-|------|-----------|
-| **docs/api/README.md** | API overview |
-| **docs/api/Client.md** | Client class reference |
-| **docs/api/Database.md** | Database class reference |
+| File                       | Deskripsi                  |
+| -------------------------- | -------------------------- |
+| **docs/api/README.md**     | API overview               |
+| **docs/api/Client.md**     | Client class reference     |
+| **docs/api/Database.md**   | Database class reference   |
 | **docs/api/Collection.md** | Collection class reference |
-| **docs/api/Cursor.md** | Cursor class reference |
-| **docs/api/*.md** | Other classes |
+| **docs/api/Cursor.md**     | Cursor class reference     |
+| **docs/api/\*.md**         | Other classes              |
 
 ### Examples
 
-| File | Konten |
-|------|---------|
-| **examples/01-basic-crud.php** | Basic CRUD operations |
-| **examples/02-encryption.php** | Encryption demo |
-| **examples/03-schema-validation.php** | Schema validation |
-| **examples/04-soft-deletes.php** | Soft delete demo |
-| **examples/05-searchable-fields.php** | Searchable fields |
-| **examples/06-hooks.php** | Hooks & events |
-| **examples/07-relationships.php** | Populate relationships |
-| **examples/08-transactions.php** | Transactions |
-| **examples/09-multiple-databases.php** | Multiple databases |
-| **examples/10-advanced.php** | Advanced features |
-| **examples/11-query-operators.php** | All query operators |
-| **examples/12-hospital-system.php** | Real project: Hospital system |
-| **examples/13-hospital-complex.php** | Complex queries |
-| **examples/14-custom-config.php** | Dynamic configuration |
-| **examples/15-encryption-env.php** | Encryption with .env |
-| **examples/16-computer-store.php** | Real project: E-commerce |
-| **examples/17-config-schema-relationships.php** | Combined features |
-| **examples/18-dynamic-backend-schema.php** | Dynamic schema |
-| **examples/19-schema-builder.php** | Schema builder |
-| **examples/20-complete-elearning-platform.php** | Real project: E-learning |
-| **examples/21-advanced-healthcare-system.php** | Real project: Healthcare |
+| File                                            | Konten                        |
+| ----------------------------------------------- | ----------------------------- |
+| **examples/01-basic-crud.php**                  | Basic CRUD operations         |
+| **examples/02-encryption.php**                  | Encryption demo               |
+| **examples/03-schema-validation.php**           | Schema validation             |
+| **examples/04-soft-deletes.php**                | Soft delete demo              |
+| **examples/05-searchable-fields.php**           | Searchable fields             |
+| **examples/06-hooks.php**                       | Hooks & events                |
+| **examples/07-relationships.php**               | Populate relationships        |
+| **examples/08-transactions.php**                | Transactions                  |
+| **examples/09-multiple-databases.php**          | Multiple databases            |
+| **examples/10-advanced.php**                    | Advanced features             |
+| **examples/11-query-operators.php**             | All query operators           |
+| **examples/12-hospital-system.php**             | Real project: Hospital system |
+| **examples/13-hospital-complex.php**            | Complex queries               |
+| **examples/14-custom-config.php**               | Dynamic configuration         |
+| **examples/15-encryption-env.php**              | Encryption with .env          |
+| **examples/16-computer-store.php**              | Real project: E-commerce      |
+| **examples/17-config-schema-relationships.php** | Combined features             |
+| **examples/18-dynamic-backend-schema.php**      | Dynamic schema                |
+| **examples/19-schema-builder.php**              | Schema builder                |
+| **examples/20-complete-elearning-platform.php** | Real project: E-learning      |
+| **examples/21-advanced-healthcare-system.php**  | Real project: Healthcare      |
 
 ---
 
@@ -98,48 +98,63 @@ Panduan lengkap untuk menemukan dokumentasi yang Anda butuhkan.
 ### "Saya ingin..."
 
 #### ...memahami database basics
+
 → **BEGINNER_GUIDE.md** → GLOSSARY.md
 
 #### ...setup dan install
+
 → **docs/getting-started.md** → **BEGINNER_PROJECT.md**
 
 #### ...buat aplikasi TODO
+
 → **BEGINNER_PROJECT.md** (step-by-step tutorial)
 
 #### ...belajar CRUD operations
+
 → **examples/01-basic-crud.php**
 
 #### ...encrypt data sensitif
+
 → **examples/02-encryption.php** → **docs/SECURITY-ENHANCEMENTS.md**
 
 #### ...setup validasi data
+
 → **examples/03-schema-validation.php** → **docs/README.md** (Schema Validation section)
 
 #### ...soft delete (hapus reversible)
+
 → **examples/04-soft-deletes.php**
 
 #### ...query dengan kondisi complex
+
 → **examples/11-query-operators.php** → **CHEAT_SHEET.md**
 
 #### ...hubungkan data antar collection
+
 → **examples/07-relationships.php** → **docs/README.md** (Populate section)
 
 #### ...optimize performa
+
 → **docs/advanced.md** → **docs/performance-security.md**
 
 #### ...deploy ke production
+
 → **docs/deployment-production.md**
 
 #### ...solve error/problem
+
 → **docs/troubleshooting.md** → **FAQ.md**
 
 #### ...lihat real project
+
 → **examples/12-hospital-system.php** | **examples/16-computer-store.php** | **examples/20-complete-elearning-platform.php**
 
 #### ...integrate dengan framework
+
 → **docs/framework-integration.md**
 
 #### ...melihat dokumentasi lengkap
+
 → **README.md** (main documentation file, 1500+ lines)
 
 ---
@@ -149,32 +164,38 @@ Panduan lengkap untuk menemukan dokumentasi yang Anda butuhkan.
 ### By Feature
 
 #### Authentication & Security
+
 - `docs/SECURITY-ENHANCEMENTS.md` - Encryption keys validation
 - `examples/02-encryption.php` - Encryption example
 - `examples/15-encryption-env.php` - Environment variable setup
 
 #### Data Validation
+
 - `examples/03-schema-validation.php` - Schema setup
 - `docs/README.md` - Schema Validation section
 - `FAQ.md` - Validation Q&A
 
 #### Query & Filtering
+
 - `CHEAT_SHEET.md` - All operators quick ref
 - `examples/11-query-operators.php` - All operators demo
 - `docs/advanced.md` - Query optimization
 - `FAQ.md` - Common query issues
 
 #### Relationships
+
 - `examples/07-relationships.php` - Populate demo
 - `docs/README.md` - Populate & Relationships section
 - `BEGINNER_GUIDE.md` - Relationships basics
 
 #### Performance
+
 - `docs/advanced.md` - Indexing & optimization
 - `docs/performance-security.md` - Full guide
 - `CHEAT_SHEET.md` - Performance tips
 
 #### Hooks & Events
+
 - `examples/06-hooks.php` - Hooks demo
 - `docs/README.md` - Hooks & Events section
 - `BEGINNER_GUIDE.md` - Hooks basics
@@ -237,6 +258,7 @@ BangronDB/
 ## 🚀 Learning Path
 
 ### Beginner Path (Total: 3-4 hours)
+
 1. **BEGINNER_GUIDE.md** (15 min) - Understand basics
 2. **examples/01-basic-crud.php** (20 min) - See CRUD in action
 3. **BEGINNER_PROJECT.md** (2-3 hours) - Build TODO app
@@ -244,6 +266,7 @@ BangronDB/
 5. **FAQ.md** (20 min) - Answer common questions
 
 ### Intermediate Path (Total: 5-6 hours)
+
 1. Continue from beginner path
 2. **docs/README.md** (1 hour) - Read main documentation
 3. **examples/02-05** (1 hour) - Encryption, validation, soft deletes
@@ -251,6 +274,7 @@ BangronDB/
 5. **docs/advanced.md** (1 hour) - Learn optimization
 
 ### Advanced Path (Total: 8-10 hours)
+
 1. Master intermediate path
 2. **examples/12, 16, 20** (2 hours) - Study real projects
 3. **docs/deployment-production.md** (1 hour)
@@ -293,6 +317,7 @@ BangronDB/
 ## 📝 Feedback & Improvement
 
 Dokumentasi ini terus dikembangkan. Jika ada:
+
 - ❌ Bagian yang membingungkan
 - ❌ Contoh yang salah
 - ✅ Saran untuk improvement
