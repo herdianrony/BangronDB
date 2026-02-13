@@ -1,0 +1,52 @@
+# Composer
+vendor/
+composer.lock
+
+# PHP Storm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PHPUnit
+.phpunit.cache/
+.phpunit.result.cache
+phpunit.phar
+
+# Database files
+data/
+*.bangron
+*.sqlite
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE
+.editorconfig
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# Cache
+.cache/
+*.cache

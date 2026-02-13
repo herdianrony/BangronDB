@@ -1,0 +1,49 @@
+{
+    "name": "herdianrony/bangrondb",
+    "description": "SQLite-based NoSQL document database with MongoDB-like API, encryption, hooks, relationships, and enterprise features",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Rony Herdian",
+            "email": "herdianrony@gmail.com"
+        }
+    ],
+    "homepage": "https://github.com/herdianrony/BangronDB",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/herdianrony/BangronDB.git"
+    },
+    "keywords": [
+        "database",
+        "nosql",
+        "sqlite",
+        "mongodb",
+        "document-database",
+        "json",
+        "encryption",
+        "php8",
+        "php-database",
+        "lightweight-database",
+        "embedded-database"
+    ],
+    "autoload": {
+        "psr-4": {
+            "BangronDB\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BangronDB\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6"
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}
