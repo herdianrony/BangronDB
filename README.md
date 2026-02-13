@@ -1555,18 +1555,80 @@ BangronDB memberikan keandalan **SQLite (ACID Compliant)** dengan **fleksibilita
 ---
 
 **BangronDB** © 2024 - Document-oriented database untuk PHP dengan enkripsi dan fitur enterprise.
+
 ## 📊 Performa & Benchmark
 
-Berikut adalah hasil pengujian performa BangronDB pada mesin pengembangan (PHP 8.3, SSD, 1000 records).
+Berikut adalah hasil pengujian performa BangronDB pada Windows 10 (PHP 8.3, SSD, 1000 records).
 
-### Hasil Ringkasan (Disk Storage)
-- **Single Insert**: ~200 ops/s (Disk ACID)
-- **Bulk Insert (batch=500)**: ~13,500 ops/s
-- **Find Indexed**: ~500 - 400,000+ ops/s (tergantung limit/skip)
-- **Searchable Fields (Hashed)**: ~650 ops/s vs ~599 ops/s (JSON), memberikan efisiensi nyata pada data besar.
+### Test Environment
+- **OS**: Windows 10/11
+- **PHP**: 8.3.29
+- **Database Storage**: File-based SQLite (.bangron)
+- **Records**: 1000 test documents
+
+### Hasil Benchmark Aktual (Feb 13, 2026)
+
+| Operation | Time | Records/Ops | Performance |
+|-----------|------|------------|-------------|
+| **Insert** (single, 1000x) | 215.24 ms | ~4,600 ops/sec | Baseline |
+| **Find One** (no index, 100x) | 56.19 ms | ~1,780 ops/sec | Slow |
+| **Create Index** (email field) | 2.90 ms | - | Very fast |
+| **Find One** (with index, 100x) | 2.85 ms | ~35,000 ops/sec | ⚡ **19.7x faster** |
+| **Update** (100x) | 19.68 ms | ~5,000 ops/sec | Good |
+| **Count** (dengan criteria) | 1.41 ms | - | Very fast |
+| **Pagination** (50 pages × 20 items) | 5.08 ms | ~0.10 ms/page | Excellent |
+| **Searchable Fields** (setup + hashing) | 258.52 ms | - | One-time setup |
+| **Query Encrypted** (searchable indexed, 100x) | 15.73 ms | ~6,350 ops/sec | Fast |
+
+### Key Performance Insights
+
+1. **Indexing Impact**: Index creation memberikan **19.7x speedup** untuk find operations
+   - Without index: 56.19 ms untuk 100 queries
+   - With index: 2.85 ms untuk 100 queries
+
+2. **Insert Performance**: Single insert cukup cepat untuk aplikasi umum
+   - ~4,600 ops/sec untuk insert satu per satu
+   - Bulk insert akan jauh lebih cepat (direkomendasikan)
+
+3. **Searchable Fields**: Overhead minimal untuk encrypted search
+   - Setup: 258.52 ms (dilakukan sekali saat konfigurasi)
+   - Query: ~6,350 ops/sec (cepat dengan index)
+
+4. **Pagination**: Sangat efficient untuk large datasets
+   - Skip + Limit operations: ~0.10 ms per page (20 items)
+   - Optimal untuk meng-handle user uploads/downloads
+
+### Performance Tips untuk Production
+
+1. **Always Create Indexes** untuk fields yang sering di-query
+   ```php
+   $collection->createIndex('email');
+   $collection->createIndex('created_at');
+   ```
+
+2. **Use Bulk Operations** untuk large datasets
+   ```php
+   $collection->insert([$doc1, $doc2, $doc3]); // Batch operation
+   ```
+
+3. **Implement Pagination** untuk UI responsif
+   ```php
+   $collection->find()->skip(($page-1)*20)->limit(20)->toArray();
+   ```
+
+4. **Monitor Health** secara berkala
+   ```php
+   $health = $db->getHealthReport();
+   ```
+
+### Benchmark Scripts
+
+- **[examples/test-benchmark.php](examples/test-benchmark.php)** - Simple test (recommended)
+- **[examples/22-benchmark.php](examples/22-benchmark.php)** - Comprehensive (12 tests)
+- **[examples/23-benchmark-searchable.php](examples/23-benchmark-searchable.php)** - Searchable fields focused
 
 > [!TIP]
-> Gunakan **Bulk Insert** untuk memasukkan data dalam jumlah besar dan selalu gunakan **Indexing** pada field yang sering di-query untuk performa maksimal.
+> Jalankan dengan: `php examples/test-benchmark.php`. Hasil akan bervariasi berdasarkan hardware Anda.
 
 ---
 

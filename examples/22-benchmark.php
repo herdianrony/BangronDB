@@ -16,7 +16,7 @@
  * Usage: php benchmark.php
  */
 
-require_once __DIR__.'/vendor/autoload.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 use BangronDB\Client;
 use BangronDB\Database;
@@ -29,7 +29,7 @@ class BangronDBBenchmark
     private int $recordsPerTest;
     private int $iterations;
 
-    public function __construct(string $dataPath = __DIR__.'/examples/data/benchmark', int $recordsPerTest = 100000, int $iterations = 3)
+    public function __construct(string $dataPath = __DIR__.'/data/benchmark', int $recordsPerTest = 1000, int $iterations = 3)
     {
         $this->client = new Client($dataPath);
         $this->testDbName = 'benchmark_'.uniqid();
