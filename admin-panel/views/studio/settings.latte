@@ -1,0 +1,7 @@
+﻿{layout '../layouts/main.latte'}
+{block content}
+<div class="rounded-xl border border-white/10 bg-white/5 p-4">
+<h3 class="font-semibold mb-3">System Settings</h3>
+{if empty($settings)}<p class="text-sm text-gray-400">No settings found.</p>{else}<pre class="text-xs whitespace-pre-wrap break-all">{=json_encode($settings, 128)}</pre>{/if}
+</div>
+{/block}

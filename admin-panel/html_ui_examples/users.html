@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - BangronDB Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .glass-card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-item { transition: all 0.2s ease; }
+        .sidebar-item:hover { background: rgba(59, 130, 246, 0.1); }
+        .sidebar-item.active { background: rgba(59, 130, 246, 0.2); border-left: 3px solid #3b82f6; }
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .input-field { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); }
+        .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .badge { padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-admin { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .badge-editor { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+        .badge-viewer { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .badge-active { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .badge-inactive { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+        .badge-suspended { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+        .table-row { transition: all 0.15s ease; }
+        .table-row:hover { background: rgba(59, 130, 246, 0.05); }
+        .checkbox-custom { appearance: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; }
+        .checkbox-custom:checked { background: #3b82f6; border-color: #3b82f6; }
+        .toggle-switch { width: 44px; height: 24px; background: rgba(107, 114, 128, 0.5); border-radius: 12px; position: relative; cursor: pointer; transition: all 0.3s; }
+        .toggle-switch.active { background: #3b82f6; }
+        .toggle-switch::after { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: all 0.3s; }
+        .toggle-switch.active::after { left: 23px; }
+        .permission-item { padding: 12px 16px; background: rgba(15, 23, 42, 0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .tab-btn { padding: 10px 20px; border-radius: 8px; transition: all 0.2s; }
+        .tab-btn.active { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body class="bg-dark-950 text-gray-100 min-h-screen">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 glass z-50 transition-all duration-300">
+        <div class="p-6 border-b border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="database" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg">BangronDB</h1>
+                    <p class="text-xs text-gray-400">Admin Panel</p>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="p-4 space-y-1">
+            <a href="index.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="databases.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                <i data-lucide="database" class="w-5 h-5"></i>
+                <span>Databases</span>
+            </a>
+            <a href="collections.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                <i data-lucide="folder" class="w-5 h-5"></i>
+                <span>Collections</span>
+            </a>
+            <a href="documents.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                <i data-lucide="file-json" class="w-5 h-5"></i>
+                <span>Documents</span>
+            </a>
+            <a href="query-playground.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                <i data-lucide="terminal" class="w-5 h-5"></i>
+                <span>Query Playground</span>
+            </a>
+            
+            <div class="pt-4 mt-4 border-t border-white/10">
+                <p class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">System</p>
+                <a href="users.html" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-lg text-white">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Users</span>
+                </a>
+                <a href="monitoring.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Monitoring</span>
+                </a>
+                <a href="security.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="shield" class="w-5 h-5"></i>
+                    <span>Security</span>
+                </a>
+                <a href="settings.html" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </nav>
+        
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-sm font-bold">
+                    SA
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium">Super Admin</p>
+                    <p class="text-xs text-gray-400">admin@bangrondb.io</p>
+                </div>
+                <button class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4 text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="ml-64 min-h-screen">
+        <!-- Header -->
+        <header class="glass sticky top-0 z-40 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-semibold">User Management</h2>
+                        <p class="text-sm text-gray-400">Kelola pengguna dan hak akses sistem</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="openModal('inviteModal')" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+                        <i data-lucide="mail" class="w-4 h-4"></i>
+                        <span>Invite User</span>
+                    </button>
+                    <button onclick="openModal('createUserModal')" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        <span>Add User</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="p-6">
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="glass-card rounded-xl p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400 mb-1">Total Users</p>
+                            <p class="text-3xl font-bold">24</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                            <i data-lucide="users" class="w-6 h-6 text-blue-400"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 text-sm">
+                        <span class="text-green-400">+3</span>
+                        <span class="text-gray-400">bulan ini</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card rounded-xl p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400 mb-1">Active Users</p>
+                            <p class="text-3xl font-bold">21</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                            <i data-lucide="user-check" class="w-6 h-6 text-green-400"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 text-sm">
+                        <span class="text-green-400">87.5%</span>
+                        <span class="text-gray-400">dari total</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card rounded-xl p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400 mb-1">Administrators</p>
+                            <p class="text-3xl font-bold">4</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-red-400"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 text-sm">
+                        <span class="text-gray-400">Full access users</span>
+                    </div>
+                </div>
+                
+                <div class="glass-card rounded-xl p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-400 mb-1">Pending Invites</p>
+                            <p class="text-3xl font-bold">2</p>
+                        </div>
+                        <div class="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                            <i data-lucide="clock" class="w-6 h-6 text-yellow-400"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 text-sm">
+                        <span class="text-yellow-400">Awaiting response</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters & Search -->
+            <div class="glass-card rounded-xl p-4 mb-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex-1 min-w-[300px]">
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                            <input type="text" placeholder="Cari pengguna berdasarkan nama, email, atau role..." 
+                                   class="w-full pl-10 pr-4 py-2.5 input-field rounded-lg focus:outline-none text-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <select class="px-4 py-2.5 input-field rounded-lg text-sm focus:outline-none">
+                            <option value="">Semua Role</option>
+                            <option value="admin">Administrator</option>
+                            <option value="editor">Editor</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                        
+                        <select class="px-4 py-2.5 input-field rounded-lg text-sm focus:outline-none">
+                            <option value="">Semua Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                        
+                        <button class="p-2.5 input-field rounded-lg hover:bg-white/10 transition-colors">
+                            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-gray-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="glass-card rounded-xl overflow-hidden">
+                <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" class="checkbox-custom" id="selectAll">
+                        <label for="selectAll" class="text-sm text-gray-400">Select All</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-1"></i>
+                            Export
+                        </button>
+                        <button class="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i>
+                            Delete Selected
+                        </button>
+                    </div>
+                </div>
+                
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-white/10 text-left">
+                            <th class="p-4 w-12"></th>
+                            <th class="p-4 text-sm font-semibold text-gray-400">User</th>
+                            <th class="p-4 text-sm font-semibold text-gray-400">Role</th>
+                            <th class="p-4 text-sm font-semibold text-gray-400">Status</th>
+                            <th class="p-4 text-sm font-semibold text-gray-400">Last Active</th>
+                            <th class="p-4 text-sm font-semibold text-gray-400">Databases</th>
+                            <th class="p-4 text-sm font-semibold text-gray-400 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- User Row 1 -->
+                        <tr class="table-row border-b border-white/5">
+                            <td class="p-4">
+                                <input type="checkbox" class="checkbox-custom">
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar bg-gradient-to-br from-blue-500 to-purple-600 text-white">JD</div>
+                                    <div>
+                                        <p class="font-medium">John Doe</p>
+                                        <p class="text-sm text-gray-400">john.doe@example.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-admin">Administrator</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-active">Active</span>
+                            </td>
+                            <td class="p-4 text-sm text-gray-400">5 menit lalu</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm">All Access</span>
+                                    <span class="text-xs text-blue-400">(∞)</span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button onclick="openModal('viewUserModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="View">
+                                        <i data-lucide="eye" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button onclick="openModal('editUserModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button onclick="openModal('permissionsModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Permissions">
+                                        <i data-lucide="key" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- User Row 2 -->
+                        <tr class="table-row border-b border-white/5">
+                            <td class="p-4">
+                                <input type="checkbox" class="checkbox-custom">
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar bg-gradient-to-br from-pink-500 to-rose-600 text-white">AS</div>
+                                    <div>
+                                        <p class="font-medium">Alice Smith</p>
+                                        <p class="text-sm text-gray-400">alice.smith@example.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-editor">Editor</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-active">Active</span>
+                            </td>
+                            <td class="p-4 text-sm text-gray-400">1 jam lalu</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm">3 databases</span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="View">
+                                        <i data-lucide="eye" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Permissions">
+                                        <i data-lucide="key" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- User Row 3 -->
+                        <tr class="table-row border-b border-white/5">
+                            <td class="p-4">
+                                <input type="checkbox" class="checkbox-custom">
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar bg-gradient-to-br from-green-500 to-emerald-600 text-white">BW</div>
+                                    <div>
+                                        <p class="font-medium">Bob Wilson</p>
+                                        <p class="text-sm text-gray-400">bob.wilson@example.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-viewer">Viewer</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-active">Active</span>
+                            </td>
+                            <td class="p-4 text-sm text-gray-400">3 jam lalu</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm">1 database</span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="View">
+                                        <i data-lucide="eye" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Permissions">
+                                        <i data-lucide="key" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- User Row 4 - Inactive -->
+                        <tr class="table-row border-b border-white/5 opacity-60">
+                            <td class="p-4">
+                                <input type="checkbox" class="checkbox-custom">
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar bg-gradient-to-br from-gray-500 to-gray-600 text-white">CJ</div>
+                                    <div>
+                                        <p class="font-medium">Charlie Johnson</p>
+                                        <p class="text-sm text-gray-400">charlie.j@example.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-editor">Editor</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-inactive">Inactive</span>
+                            </td>
+                            <td class="p-4 text-sm text-gray-400">30 hari lalu</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm">2 databases</span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="View">
+                                        <i data-lucide="eye" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="Permissions">
+                                        <i data-lucide="key" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- User Row 5 - Suspended -->
+                        <tr class="table-row border-b border-white/5 bg-red-500/5">
+                            <td class="p-4">
+                                <input type="checkbox" class="checkbox-custom">
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar bg-gradient-to-br from-red-500 to-red-600 text-white">DK</div>
+                                    <div>
+                                        <p class="font-medium">David Kim</p>
+                                        <p class="text-sm text-gray-400">david.kim@example.com</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-editor">Editor</span>
+                            </td>
+                            <td class="p-4">
+                                <span class="badge badge-suspended">Suspended</span>
+                            </td>
+                            <td class="p-4 text-sm text-gray-400">7 hari lalu</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm text-red-400">Access Revoked</span>
+                                </div>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button class="p-2 hover:bg-white/10 rounded-lg transition-colors" title="View">
+                                        <i data-lucide="eye" class="w-4 h-4 text-gray-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-green-500/20 rounded-lg transition-colors" title="Reactivate">
+                                        <i data-lucide="user-check" class="w-4 h-4 text-green-400"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- Pagination -->
+                <div class="p-4 border-t border-white/10 flex items-center justify-between">
+                    <p class="text-sm text-gray-400">Showing 1-5 of 24 users</p>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-1.5 input-field rounded-lg text-sm hover:bg-white/10 transition-colors disabled:opacity-50" disabled>
+                            Previous
+                        </button>
+                        <button class="px-3 py-1.5 bg-blue-600 rounded-lg text-sm">1</button>
+                        <button class="px-3 py-1.5 input-field rounded-lg text-sm hover:bg-white/10 transition-colors">2</button>
+                        <button class="px-3 py-1.5 input-field rounded-lg text-sm hover:bg-white/10 transition-colors">3</button>
+                        <button class="px-3 py-1.5 input-field rounded-lg text-sm hover:bg-white/10 transition-colors">4</button>
+                        <button class="px-3 py-1.5 input-field rounded-lg text-sm hover:bg-white/10 transition-colors">5</button>
+                        <button class="px-3 py-1.5 input-field rounded-lg text-sm hover:bg-white/10 transition-colors">
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roles Overview -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <!-- Admin Role -->
+                <div class="glass-card rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="shield" class="w-5 h-5 text-red-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Administrator</h3>
+                                <p class="text-sm text-gray-400">4 users</p>
+                            </div>
+                        </div>
+                        <button onclick="openModal('editRoleModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                            <i data-lucide="settings" class="w-4 h-4 text-gray-400"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>Full database access</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>User management</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>System configuration</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>Security settings</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Editor Role -->
+                <div class="glass-card rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="edit-3" class="w-5 h-5 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Editor</h3>
+                                <p class="text-sm text-gray-400">12 users</p>
+                            </div>
+                        </div>
+                        <button class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                            <i data-lucide="settings" class="w-4 h-4 text-gray-400"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>Create & edit documents</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>Delete own documents</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>View assigned databases</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-gray-500">No system access</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Viewer Role -->
+                <div class="glass-card rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="eye" class="w-5 h-5 text-green-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">Viewer</h3>
+                                <p class="text-sm text-gray-400">8 users</p>
+                            </div>
+                        </div>
+                        <button class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                            <i data-lucide="settings" class="w-4 h-4 text-gray-400"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>View documents</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            <span>Export data</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-gray-500">No edit access</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-300">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-gray-500">No delete access</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="createUserModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('createUserModal')"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl">
+            <div class="glass-card rounded-2xl shadow-2xl">
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="user-plus" class="w-5 h-5 text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Add New User</h3>
+                            <p class="text-sm text-gray-400">Create a new user account</p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('createUserModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    <!-- Basic Info -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Basic Information</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">First Name</label>
+                                <input type="text" placeholder="John" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Last Name</label>
+                                <input type="text" placeholder="Doe" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium mb-2">Email Address</label>
+                                <input type="email" placeholder="john.doe@example.com" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Username</label>
+                                <input type="text" placeholder="johndoe" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Phone (Optional)</label>
+                                <input type="text" placeholder="+62 812 xxxx xxxx" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Role & Access -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Role & Access</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Role</label>
+                                <select class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                                    <option value="viewer">Viewer</option>
+                                    <option value="editor">Editor</option>
+                                    <option value="admin">Administrator</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Status</label>
+                                <select class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Database Access -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Database Access</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 input-field rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" class="checkbox-custom" id="db_all">
+                                    <label for="db_all" class="font-medium">All Databases</label>
+                                </div>
+                                <span class="text-xs text-blue-400">Full Access</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 input-field rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" class="checkbox-custom" id="db_app" checked>
+                                    <label for="db_app" class="font-medium">app_database</label>
+                                </div>
+                                <select class="px-3 py-1 bg-white/5 rounded text-sm border border-white/10">
+                                    <option>Read & Write</option>
+                                    <option>Read Only</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between p-3 input-field rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" class="checkbox-custom" id="db_analytics">
+                                    <label for="db_analytics" class="font-medium">analytics_db</label>
+                                </div>
+                                <select class="px-3 py-1 bg-white/5 rounded text-sm border border-white/10">
+                                    <option>Read & Write</option>
+                                    <option>Read Only</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between p-3 input-field rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" class="checkbox-custom" id="db_auth">
+                                    <label for="db_auth" class="font-medium">auth_db</label>
+                                </div>
+                                <select class="px-3 py-1 bg-white/5 rounded text-sm border border-white/10">
+                                    <option>Read & Write</option>
+                                    <option>Read Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Password -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Security</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Password</label>
+                                <div class="relative">
+                                    <input type="password" placeholder="••••••••" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none pr-10">
+                                    <button class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Confirm Password</label>
+                                <input type="password" placeholder="••••••••" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center gap-3">
+                            <input type="checkbox" class="checkbox-custom" id="send_invite">
+                            <label for="send_invite" class="text-sm text-gray-300">Send welcome email with login credentials</label>
+                        </div>
+                        <div class="mt-2 flex items-center gap-3">
+                            <input type="checkbox" class="checkbox-custom" id="force_reset">
+                            <label for="force_reset" class="text-sm text-gray-300">Require password change on first login</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                    <button onclick="closeModal('createUserModal')" class="px-6 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        Create User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View User Modal -->
+    <div id="viewUserModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('viewUserModal')"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl">
+            <div class="glass-card rounded-2xl shadow-2xl">
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-2xl font-bold text-white">
+                            JD
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-xl">John Doe</h3>
+                            <p class="text-gray-400">john.doe@example.com</p>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="badge badge-admin">Administrator</span>
+                                <span class="badge badge-active">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('viewUserModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Tabs -->
+                    <div class="flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
+                        <button class="tab-btn active" onclick="switchUserTab('profile')">Profile</button>
+                        <button class="tab-btn" onclick="switchUserTab('activity')">Activity Log</button>
+                        <button class="tab-btn" onclick="switchUserTab('sessions')">Sessions</button>
+                    </div>
+                    
+                    <!-- Profile Tab -->
+                    <div id="userTab-profile" class="space-y-6">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">Full Name</p>
+                                    <p class="font-medium">John Doe</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">Email</p>
+                                    <p class="font-medium">john.doe@example.com</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">Username</p>
+                                    <p class="font-medium">johndoe</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">Phone</p>
+                                    <p class="font-medium">+62 812 3456 7890</p>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">Role</p>
+                                    <p class="font-medium">Administrator</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">Created At</p>
+                                    <p class="font-medium">January 15, 2024</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">Last Login</p>
+                                    <p class="font-medium">5 minutes ago</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-400 mb-1">2FA Status</p>
+                                    <p class="font-medium text-green-400">Enabled</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Database Access -->
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                            <h4 class="font-semibold mb-4">Database Access</h4>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="p-3 input-field rounded-lg">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+                                        <span class="font-medium text-sm">app_database</span>
+                                    </div>
+                                    <span class="text-xs text-green-400">Full Access</span>
+                                </div>
+                                <div class="p-3 input-field rounded-lg">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i data-lucide="database" class="w-4 h-4 text-purple-400"></i>
+                                        <span class="font-medium text-sm">analytics_db</span>
+                                    </div>
+                                    <span class="text-xs text-green-400">Full Access</span>
+                                </div>
+                                <div class="p-3 input-field rounded-lg">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i data-lucide="database" class="w-4 h-4 text-yellow-400"></i>
+                                        <span class="font-medium text-sm">auth_db</span>
+                                    </div>
+                                    <span class="text-xs text-green-400">Full Access</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Tab (Hidden by default) -->
+                    <div id="userTab-activity" class="hidden">
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3 p-3 input-field rounded-lg">
+                                <div class="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="log-in" class="w-4 h-4 text-green-400"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm">Logged in from Chrome on Windows</p>
+                                    <p class="text-xs text-gray-400">5 minutes ago · IP: 192.168.1.100</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-3 input-field rounded-lg">
+                                <div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="edit" class="w-4 h-4 text-blue-400"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm">Updated document in <span class="text-blue-400">users</span> collection</p>
+                                    <p class="text-xs text-gray-400">1 hour ago</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-3 input-field rounded-lg">
+                                <div class="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="plus" class="w-4 h-4 text-purple-400"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm">Created new collection <span class="text-purple-400">products</span></p>
+                                    <p class="text-xs text-gray-400">3 hours ago</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-3 input-field rounded-lg">
+                                <div class="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="settings" class="w-4 h-4 text-yellow-400"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm">Modified schema for <span class="text-yellow-400">orders</span> collection</p>
+                                    <p class="text-xs text-gray-400">Yesterday</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sessions Tab (Hidden by default) -->
+                    <div id="userTab-sessions" class="hidden">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-4 input-field rounded-lg border-l-4 border-green-500">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="monitor" class="w-5 h-5 text-gray-400"></i>
+                                    <div>
+                                        <p class="font-medium">Chrome on Windows</p>
+                                        <p class="text-sm text-gray-400">192.168.1.100 · Current Session</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-green-400">Active Now</span>
+                            </div>
+                            <div class="flex items-center justify-between p-4 input-field rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="smartphone" class="w-5 h-5 text-gray-400"></i>
+                                    <div>
+                                        <p class="font-medium">Safari on iPhone</p>
+                                        <p class="text-sm text-gray-400">192.168.1.105</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-400">2 days ago</span>
+                                    <button class="text-red-400 hover:text-red-300 text-sm">Revoke</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t border-white/10 flex items-center justify-between">
+                    <button class="px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="user-x" class="w-4 h-4"></i>
+                        Suspend User
+                    </button>
+                    <div class="flex items-center gap-3">
+                        <button onclick="closeModal('viewUserModal')" class="px-6 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                            Close
+                        </button>
+                        <button onclick="closeModal('viewUserModal'); openModal('editUserModal')" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                            Edit User
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('editUserModal')"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl">
+            <div class="glass-card rounded-2xl shadow-2xl">
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="user-cog" class="w-5 h-5 text-yellow-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Edit User</h3>
+                            <p class="text-sm text-gray-400">Update user information</p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('editUserModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">First Name</label>
+                            <input type="text" value="John" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Last Name</label>
+                            <input type="text" value="Doe" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium mb-2">Email Address</label>
+                            <input type="email" value="john.doe@example.com" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Role</label>
+                            <select class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                                <option value="admin" selected>Administrator</option>
+                                <option value="editor">Editor</option>
+                                <option value="viewer">Viewer</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Status</label>
+                            <select class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                                <option value="active" selected>Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Reset Password -->
+                    <div class="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="key" class="w-5 h-5 text-yellow-400"></i>
+                                <div>
+                                    <p class="font-medium">Reset Password</p>
+                                    <p class="text-sm text-gray-400">Send password reset email to user</p>
+                                </div>
+                            </div>
+                            <button class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm transition-colors">
+                                Send Reset Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                    <button onclick="closeModal('editUserModal')" class="px-6 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permissions Modal -->
+    <div id="permissionsModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('permissionsModal')"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl">
+            <div class="glass-card rounded-2xl shadow-2xl">
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="key" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">User Permissions</h3>
+                            <p class="text-sm text-gray-400">Manage access rights for John Doe</p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('permissionsModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    <!-- Database Permissions -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Database Permissions</h4>
+                        <div class="space-y-3">
+                            <div class="permission-item">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">app_database</p>
+                                            <p class="text-xs text-gray-400">5 collections · 1.2k documents</p>
+                                        </div>
+                                    </div>
+                                    <select class="px-3 py-1.5 bg-white/5 rounded-lg text-sm border border-white/10">
+                                        <option selected>Full Access</option>
+                                        <option>Read & Write</option>
+                                        <option>Read Only</option>
+                                        <option>No Access</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="permission-item">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                                            <i data-lucide="database" class="w-4 h-4 text-purple-400"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">analytics_db</p>
+                                            <p class="text-xs text-gray-400">3 collections · 5.8k documents</p>
+                                        </div>
+                                    </div>
+                                    <select class="px-3 py-1.5 bg-white/5 rounded-lg text-sm border border-white/10">
+                                        <option selected>Full Access</option>
+                                        <option>Read & Write</option>
+                                        <option>Read Only</option>
+                                        <option>No Access</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feature Permissions -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Feature Permissions</h4>
+                        <div class="space-y-3">
+                            <div class="permission-item flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">User Management</p>
+                                    <p class="text-xs text-gray-400">Create, edit, delete users</p>
+                                </div>
+                                <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            </div>
+                            <div class="permission-item flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Schema Editor</p>
+                                    <p class="text-xs text-gray-400">Modify collection schemas</p>
+                                </div>
+                                <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            </div>
+                            <div class="permission-item flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Encryption Keys</p>
+                                    <p class="text-xs text-gray-400">Manage encryption settings</p>
+                                </div>
+                                <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            </div>
+                            <div class="permission-item flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">System Settings</p>
+                                    <p class="text-xs text-gray-400">Modify server configuration</p>
+                                </div>
+                                <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                            </div>
+                            <div class="permission-item flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Export Data</p>
+                                    <p class="text-xs text-gray-400">Export collections to file</p>
+                                </div>
+                                <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            </div>
+                            <div class="permission-item flex items-center justify-between">
+                                <div>
+                                    <p class="font-medium">Import Data</p>
+                                    <p class="text-xs text-gray-400">Import data from files</p>
+                                </div>
+                                <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                    <button onclick="closeModal('permissionsModal')" class="px-6 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        Save Permissions
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite User Modal -->
+    <div id="inviteModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('inviteModal')"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg">
+            <div class="glass-card rounded-2xl shadow-2xl">
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="mail" class="w-5 h-5 text-green-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Invite User</h3>
+                            <p class="text-sm text-gray-400">Send invitation via email</p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('inviteModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Email Address</label>
+                        <input type="email" placeholder="user@example.com" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Role</label>
+                        <select class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                            <option value="viewer">Viewer</option>
+                            <option value="editor">Editor</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Personal Message (Optional)</label>
+                        <textarea rows="3" placeholder="Welcome to our team!" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none resize-none"></textarea>
+                    </div>
+                    
+                    <div class="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="info" class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5"></i>
+                            <div class="text-sm text-gray-300">
+                                <p>User will receive an email with a link to set up their account. The invitation will expire in <span class="font-medium text-white">7 days</span>.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                    <button onclick="closeModal('inviteModal')" class="px-6 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button class="px-6 py-2.5 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        Send Invitation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Role Modal -->
+    <div id="editRoleModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('editRoleModal')"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl">
+            <div class="glass-card rounded-2xl shadow-2xl">
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="shield" class="w-5 h-5 text-red-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Edit Role: Administrator</h3>
+                            <p class="text-sm text-gray-400">Configure role permissions</p>
+                        </div>
+                    </div>
+                    <button onclick="closeModal('editRoleModal')" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Role Name</label>
+                        <input type="text" value="Administrator" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Description</label>
+                        <textarea rows="2" class="w-full px-4 py-2.5 input-field rounded-lg focus:outline-none resize-none">Full access to all system features and settings</textarea>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Permissions</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>View Databases</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>Create Databases</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>Delete Databases</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>View Collections</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>Manage Schema</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>CRUD Documents</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>Manage Users</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>System Settings</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>Security Settings</span>
+                            </div>
+                            <div class="permission-item flex items-center gap-3">
+                                <input type="checkbox" class="checkbox-custom" checked>
+                                <span>View Logs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                    <button onclick="closeModal('editRoleModal')" class="px-6 py-2.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        Save Role
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.ml-64');
+            sidebar.classList.toggle('-translate-x-full');
+            mainContent.classList.toggle('ml-64');
+            mainContent.classList.toggle('ml-0');
+        }
+
+        // User tab switch
+        function switchUserTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('[id^="userTab-"]').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            // Show selected tab
+            document.getElementById('userTab-' + tabName).classList.remove('hidden');
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Select all checkbox
+        document.getElementById('selectAll')?.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('tbody .checkbox-custom');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+﻿{layout '../layouts/main.latte'}
+
+{block content}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <section class="rounded-xl border border-white/10 bg-white/5 p-4">
+        <h3 class="font-semibold mb-3">Run Query</h3>
+        <form method="post" action="/query/run" class="space-y-3">
+            {=csrf_field()|noescape}
+            <input name="db" value="{$dbName ?? ''}" placeholder="Database" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm" required>
+            <input name="collection" value="{$collection ?? ''}" placeholder="Collection" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm" required>
+            <label class="text-xs text-gray-400">Criteria JSON</label>
+            <textarea name="criteria_json" rows="5" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono">{$criteriaJson ?? '{}'}</textarea>
+            <label class="text-xs text-gray-400">Sort JSON</label>
+            <textarea name="sort_json" rows="3" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono">{$sortJson ?? '{"_id":-1}'}</textarea>
+            <input type="number" name="limit" value="{$limit ?? 50}" min="1" max="200" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+            <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm">Run</button>
+        </form>
+    </section>
+
+    <section class="rounded-xl border border-white/10 bg-white/5 p-4">
+        <h3 class="font-semibold mb-3">History</h3>
+        {if empty($history)}<p class="text-sm text-gray-400">No history.</p>{else}
+            <div class="space-y-2">
+                {foreach $history as $item}
+                    <div class="rounded-lg border border-white/10 px-3 py-2">
+                        <p class="text-xs font-mono">{$item['payload']['db'] ?? '-'} / {$item['payload']['collection'] ?? '-'}</p>
+                        <p class="text-xs text-gray-400">{$item['created_at'] ?? '-'}</p>
+                    </div>
+                {/foreach}
+            </div>
+        {/if}
+    </section>
+</div>
+
+<section class="rounded-xl border border-white/10 bg-white/5 p-4 mt-6">
+    <h3 class="font-semibold mb-3">Results</h3>
+    {if empty($results)}
+        <p class="text-sm text-gray-400">No result yet.</p>
+    {else}
+        <pre class="text-xs whitespace-pre-wrap break-all">{=json_encode($results, 128)}</pre>
+    {/if}
+</section>
+{/block}

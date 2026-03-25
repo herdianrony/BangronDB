@@ -1,0 +1,39 @@
+﻿{layout '../layouts/main.latte'}
+
+{block content}
+{var $health = is_array($healthStatus ?? null) ? $healthStatus : ['status' => (string) ($healthStatus ?? 'unknown'), 'overall' => 0]}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div class="glass-card rounded-xl p-6"><p class="text-gray-400 text-sm">CPU Usage</p><p class="text-3xl font-bold mt-2">{$systemMetrics['cpu_usage'] ?? 0}%</p></div>
+    <div class="glass-card rounded-xl p-6"><p class="text-gray-400 text-sm">Memory</p><p class="text-3xl font-bold mt-2">{$systemMetrics['memory_usage'] ?? 0}%</p></div>
+    <div class="glass-card rounded-xl p-6"><p class="text-gray-400 text-sm">Disk</p><p class="text-3xl font-bold mt-2">{$systemMetrics['disk_usage'] ?? 0}%</p></div>
+    <div class="glass-card rounded-xl p-6"><p class="text-gray-400 text-sm">Connections</p><p class="text-3xl font-bold mt-2">{$databaseMetrics['connection_count'] ?? 0}</p></div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <section class="lg:col-span-2 glass-card rounded-xl p-5">
+        <h3 class="font-semibold text-lg mb-3">Health Summary</h3>
+        <div class="space-y-2 text-sm">
+            <p>Status: <span class="font-medium">{$health['status'] ?? 'unknown'}</span></p>
+            <p>Overall Score: <span class="font-medium">{$health['overall'] ?? 0}</span></p>
+            <p>Database Page Count: <span class="font-medium">{$databaseMetrics['page_count'] ?? 0}</span></p>
+            <p>Cache Hit Rate: <span class="font-medium">{$databaseMetrics['cache_hit_rate'] ?? 0}%</span></p>
+        </div>
+    </section>
+
+    <section class="glass-card rounded-xl p-5">
+        <h3 class="font-semibold text-lg mb-3">Active Alerts</h3>
+        {if empty($alerts)}
+            <p class="text-sm text-gray-400">No active alerts.</p>
+        {else}
+            <div class="space-y-2">
+                {foreach $alerts as $a}
+                    <div class="rounded-lg border border-white/10 px-3 py-2">
+                        <p class="text-sm">{$a['message'] ?? '-'}</p>
+                        <p class="text-xs text-gray-400">{$a['timestamp'] ?? '-'}</p>
+                    </div>
+                {/foreach}
+            </div>
+        {/if}
+    </section>
+</div>
+{/block}

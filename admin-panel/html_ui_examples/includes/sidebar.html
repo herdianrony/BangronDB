@@ -1,0 +1,148 @@
+<!-- ==================== SIDEBAR ==================== -->
+<!-- 
+    PHP Usage: 
+    <?php include 'includes/sidebar.php'; ?>
+    
+    Pass $currentPage variable to highlight active menu
+    Example: $currentPage = 'dashboard';
+-->
+<aside id="sidebar" class="sidebar">
+    <!-- Logo -->
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <i data-lucide="database"></i>
+        </div>
+        <div class="sidebar-brand">
+            <h1>BangronDB</h1>
+            <p>Admin Panel v1.0</p>
+        </div>
+    </div>
+    
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+        <!-- Main Menu -->
+        <div class="sidebar-section">
+            <p class="sidebar-section-title">Menu Utama</p>
+            <a href="index.html" class="sidebar-item" data-page="dashboard">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="databases.html" class="sidebar-item" data-page="databases">
+                <i data-lucide="database"></i>
+                <span>Databases</span>
+            </a>
+            <a href="collections.html" class="sidebar-item" data-page="collections">
+                <i data-lucide="folder"></i>
+                <span>Collections</span>
+            </a>
+            <a href="documents.html" class="sidebar-item" data-page="documents">
+                <i data-lucide="file-json"></i>
+                <span>Documents</span>
+            </a>
+            <a href="schema-builder.html" class="sidebar-item" data-page="schema-builder">
+                <i data-lucide="blocks"></i>
+                <span>Schema Builder</span>
+            </a>
+        </div>
+        
+        <!-- Tools -->
+        <div class="sidebar-section">
+            <p class="sidebar-section-title">Tools</p>
+            <a href="query-playground.html" class="sidebar-item" data-page="query-playground">
+                <i data-lucide="terminal"></i>
+                <span>Query Playground</span>
+            </a>
+            <a href="relationships.html" class="sidebar-item" data-page="relationships">
+                <i data-lucide="git-branch"></i>
+                <span>Relationships</span>
+            </a>
+            <a href="hooks.html" class="sidebar-item" data-page="hooks">
+                <i data-lucide="webhook"></i>
+                <span>Hooks & Events</span>
+            </a>
+            <a href="import-export.html" class="sidebar-item" data-page="import-export">
+                <i data-lucide="arrow-left-right"></i>
+                <span>Import / Export</span>
+            </a>
+        </div>
+        
+        <!-- System -->
+        <div class="sidebar-section">
+            <p class="sidebar-section-title">System</p>
+            <a href="users.html" class="sidebar-item" data-page="users">
+                <i data-lucide="users"></i>
+                <span>Users</span>
+            </a>
+            <a href="roles.html" class="sidebar-item" data-page="roles">
+                <i data-lucide="shield-check"></i>
+                <span>Roles</span>
+            </a>
+            <a href="monitoring.html" class="sidebar-item" data-page="monitoring">
+                <i data-lucide="activity"></i>
+                <span>Monitoring</span>
+            </a>
+            <a href="backup.html" class="sidebar-item" data-page="backup">
+                <i data-lucide="hard-drive-download"></i>
+                <span>Backup</span>
+            </a>
+            <a href="security.html" class="sidebar-item" data-page="security">
+                <i data-lucide="shield"></i>
+                <span>Security</span>
+            </a>
+            <a href="logs.html" class="sidebar-item" data-page="logs">
+                <i data-lucide="scroll-text"></i>
+                <span>Logs</span>
+            </a>
+            <a href="settings.html" class="sidebar-item" data-page="settings">
+                <i data-lucide="settings"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+        
+        <!-- Extras -->
+        <div class="sidebar-section">
+            <p class="sidebar-section-title">Extras</p>
+            <a href="notifications.html" class="sidebar-item" data-page="notifications">
+                <i data-lucide="bell"></i>
+                <span>Notifications</span>
+            </a>
+            <a href="terminal.html" class="sidebar-item" data-page="terminal">
+                <i data-lucide="terminal-square"></i>
+                <span>Terminal</span>
+            </a>
+            <a href="api-docs.html" class="sidebar-item" data-page="api-docs">
+                <i data-lucide="book-open"></i>
+                <span>API Docs</span>
+            </a>
+        </div>
+    </nav>
+    
+    <!-- User -->
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="sidebar-avatar">SA</div>
+            <div class="sidebar-user-info">
+                <p class="sidebar-user-name">Super Admin</p>
+                <p class="sidebar-user-email">admin@bangrondb.io</p>
+            </div>
+            <a href="login.html" class="btn btn-ghost btn-icon" title="Logout">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </div>
+</aside>
+
+<script>
+// Auto-highlight active page based on URL
+(function() {
+    const currentPath = window.location.pathname;
+    const filename = currentPath.split('/').pop() || 'index.html';
+    
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        const href = item.getAttribute('href');
+        if (href === filename) {
+            item.classList.add('active');
+        }
+    });
+})();
+</script>

@@ -1,0 +1,397 @@
+/**
+ * BangronDB Database Management Styles
+ * Specialized styles for database management interface
+ */
+
+/* Database Management Styles */
+.database-card {
+  @apply bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group;
+}
+
+.database-card:hover {
+  @apply transform translate-y-1;
+}
+
+.database-stats {
+  @apply grid grid-cols-1 md:grid-cols-4 gap-4;
+}
+
+.database-stat-item {
+  @apply bg-slate-50 p-3 rounded-lg;
+}
+
+.health-indicator {
+  @apply inline-flex items-center px-2 py-1 rounded-md text-xs font-medium;
+}
+
+.health-healthy {
+  @apply bg-emerald-100 text-emerald-800;
+}
+
+.health-warning {
+  @apply bg-amber-100 text-amber-800;
+}
+
+.health-error {
+  @apply bg-red-100 text-red-800;
+}
+
+.database-tag {
+  @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+}
+
+.tag-encrypted {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.tag-backup {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.tag-unencrypted {
+  @apply bg-slate-100 text-slate-700;
+}
+
+/* Collection Table */
+.collections-table {
+  @apply w-full text-sm;
+}
+
+.collections-table th {
+  @apply text-left py-2 text-gray-400;
+}
+
+.collections-table td {
+  @apply py-2 text-gray-300;
+}
+
+.collection-actions {
+  @apply flex gap-2;
+}
+
+/* Quick Actions Grid */
+.quick-actions-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+.quick-action-card {
+  @apply bg-white p-4 rounded-xl border border-slate-200;
+}
+
+/* Modal Enhancements */
+.modal-lg {
+  @apply max-w-4xl;
+}
+
+.modal-xl {
+  @apply max-w-6xl;
+}
+
+/* Health Monitoring */
+.health-metrics {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+}
+
+.health-metric-card {
+  @apply p-4 rounded-lg border;
+}
+
+.health-metric-connection {
+  @apply bg-green-50 border-green-200;
+}
+
+.health-metric-storage {
+  @apply bg-blue-50 border-blue-200;
+}
+
+.health-metric-performance {
+  @apply bg-purple-50 border-purple-200;
+}
+
+.health-metric-backup {
+  @apply bg-amber-50 border-amber-200;
+}
+
+/* Backup Management */
+.backup-list {
+  @apply space-y-2;
+}
+
+.backup-item {
+  @apply flex items-center justify-between p-3 bg-slate-50 rounded-lg;
+}
+
+.backup-actions {
+  @apply flex gap-2;
+}
+
+/* Permissions Management */
+.permissions-list {
+  @apply space-y-2;
+}
+
+.permission-item {
+  @apply flex items-center justify-between p-3 bg-slate-50 rounded-lg;
+}
+
+/* Search and Filter */
+.search-filter-container {
+  @apply flex flex-col md:flex-row gap-4;
+}
+
+.search-input-enhanced {
+  @apply pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all;
+}
+
+.filter-select-enhanced {
+  @apply px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all;
+}
+
+/* Performance Optimization */
+.database-optimized {
+  @apply opacity-75 pointer-events-none;
+}
+
+.loading-database {
+  @apply relative overflow-hidden;
+}
+
+.loading-database::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: loading-shimmer 2s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Responsive Database Cards */
+@media (max-width: 768px) {
+  .database-stats {
+    @apply grid-cols-2;
+  }
+
+  .quick-actions-grid {
+    @apply grid-cols-1;
+  }
+
+  .health-metrics {
+    @apply grid-cols-1;
+  }
+}
+
+/* Animation for database cards */
+.database-card-enter {
+  animation: databaseCardEnter 0.3s ease-out;
+}
+
+@keyframes databaseCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Status badges */
+.status-badge {
+  @apply inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium;
+}
+
+.status-badge i {
+  @apply w-3 h-3;
+}
+
+/* Progress indicators */
+.progress-ring {
+  @apply transform -rotate-90;
+}
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.35s;
+  stroke-dasharray: 251.2 251.2;
+}
+
+/* Enhanced hover effects */
+.database-card-enhanced {
+  @apply transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:scale-105;
+}
+
+/* Custom scrollbar for database lists */
+.database-list-scroll {
+  @apply overflow-y-auto custom-scrollbar;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Database action buttons */
+.database-action-btn {
+  @apply px-3 py-2 rounded-lg text-sm font-medium transition-colors;
+}
+
+.database-action-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white;
+}
+
+.database-action-secondary {
+  @apply bg-slate-100 hover:bg-slate-200 text-slate-700;
+}
+
+.database-action-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white;
+}
+
+.database-action-success {
+  @apply bg-green-600 hover:bg-green-700 text-white;
+}
+
+/* Loading spinner for database operations */
+.database-loading-spinner {
+  @apply animate-spin;
+}
+
+/* Focus states */
+.database-focus:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Performance optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Touch device optimizations */
+@media (hover: none) {
+  .database-card:hover {
+    @apply transform-none;
+  }
+
+  .quick-action-card:active {
+    @apply scale-95;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .sharp-text {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Print optimization for database views */
+@media print {
+  .database-card {
+    @apply border border-gray-300 shadow-none;
+  }
+
+  .database-action-btn {
+    @apply no-underline;
+  }
+
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  .health-metric-card {
+    @apply border border-gray-300;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .database-card,
+  .health-metric-card,
+  .quick-action-card {
+    transition: none;
+    animation: none;
+  }
+
+  .loading-database::after {
+    animation: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .database-card {
+    @apply bg-slate-800 border-slate-700;
+  }
+
+  .database-stat-item {
+    @apply bg-slate-700;
+  }
+
+  .health-metric-card {
+    @apply bg-slate-800 border-slate-700;
+  }
+
+  .quick-action-card {
+    @apply bg-slate-800 border-slate-700;
+  }
+
+  .backup-item,
+  .permission-item {
+    @apply bg-slate-800;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .database-card {
+    @apply border-2 border-slate-400;
+  }
+
+  .health-metric-card {
+    @apply border-2 border-slate-400;
+  }
+
+  .quick-action-card {
+    @apply border-2 border-slate-400;
+  }
+}

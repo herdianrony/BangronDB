@@ -1,0 +1,40 @@
+﻿{layout '../layouts/main.latte'}
+
+{block content}
+<div class="flex items-center justify-between mb-6">
+    <h3 class="text-lg font-semibold">Users</h3>
+    <a href="/users/create" class="rounded-lg bg-blue-600 px-3 py-2 text-sm">Create User</a>
+</div>
+
+<div class="glass-card rounded-xl overflow-hidden">
+    <table class="w-full text-sm">
+        <thead class="bg-white/5 text-gray-300">
+            <tr>
+                <th class="px-4 py-3 text-left">User</th>
+                <th class="px-4 py-3 text-left">Role</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-left">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {foreach $users as $u}
+                <tr class="border-t border-white/10">
+                    <td class="px-4 py-3">
+                        <p class="font-medium">{$u['name'] ?? (($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''))}</p>
+                        <p class="text-xs text-gray-400">{$u['email'] ?? '-'}</p>
+                    </td>
+                    <td class="px-4 py-3">{$u['role_id'] ?? '-'}</td>
+                    <td class="px-4 py-3"><span class="text-xs px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300">{$u['status'] ?? '-'}</span></td>
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2 text-xs">
+                            <a href="/users/{urlencode($u['_id'] ?? '')}" class="text-blue-400">View</a>
+                            <a href="/users/{urlencode($u['_id'] ?? '')}/edit" class="text-purple-300">Edit</a>
+                            <a href="/users/{urlencode($u['_id'] ?? '')}/permissions" class="text-amber-300">Perms</a>
+                        </div>
+                    </td>
+                </tr>
+            {/foreach}
+        </tbody>
+    </table>
+</div>
+{/block}

@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collections - BangronDB Admin Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- ==================== SIDEBAR ==================== -->
+        <aside id="sidebar" class="bg-white border-r border-slate-200 flex flex-col transition-all duration-300 z-20 w-64">
+            <div class="h-16 flex items-center px-4 border-b border-slate-100">
+                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white mr-3 shrink-0 shadow-sm shadow-brand-200">
+                    <span class="font-bold text-lg">B</span>
+                </div>
+                <div class="sidebar-text overflow-hidden whitespace-nowrap">
+                    <h1 class="font-bold text-lg tracking-tight text-slate-900">BangronDB</h1>
+                    <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Admin Console</p>
+                </div>
+            </div>
+
+            <div class="flex-1 py-6 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+                <div class="sidebar-label px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
+                <a href="index.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Dashboard</span>
+                </a>
+                <a href="databases.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-brand-50 text-brand-700">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Databases</span>
+                </a>
+                
+                <div class="sidebar-label mt-6 px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Tools</div>
+                <a href="query-playground.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Query Playground</span>
+                </a>
+                <a href="monitoring.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Monitoring</span>
+                </a>
+                <a href="security.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Security</span>
+                </a>
+                
+                <div class="sidebar-label mt-6 px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">System</div>
+                <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Settings</span>
+                </a>
+            </div>
+
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="toggleSidebar()" class="w-full flex justify-center items-center text-slate-400 hover:text-slate-600 p-2">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ==================== MAIN CONTENT ==================== -->
+        <main class="flex-1 flex flex-col min-w-0">
+            
+            <!-- ==================== HEADER ==================== -->
+            <header class="h-16 bg-white border-b border-slate-200 px-8 flex justify-between items-center shadow-sm z-10">
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden md:block group">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-[18px] h-[18px]"></i>
+                        <input type="text" placeholder="Global search..." class="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm w-64 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100 focus:border-brand-500 transition-all" />
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col items-end mr-2 hidden md:block">
+                        <span class="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                            v1.0.0 Stable
+                        </span>
+                        <span class="text-[10px] text-slate-400">PHP 8.2 • SQLite 3.39</span>
+                    </div>
+                    <button class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200">
+                        <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
+                    </button>
+                    <div class="h-8 w-px bg-slate-200 mx-1"></div>
+                    <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">A</div>
+                </div>
+            </header>
+
+            <!-- ==================== PAGE CONTENT ==================== -->
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/50">
+                <div class="space-y-6 animate-fade-in">
+                    
+                    <!-- Breadcrumbs -->
+                    <div class="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                        <a href="databases.html" class="hover:text-brand-600 cursor-pointer">Databases</a>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        <span class="font-medium text-slate-900">production_db</span>
+                    </div>
+
+                    <!-- Page Header -->
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                                <i data-lucide="database" class="w-6 h-6 text-slate-400"></i>
+                                production_db
+                            </h1>
+                            <p class="text-slate-500">Collection management</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="openModal('dbSettingsModal')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-slate-50 transition-colors">
+                                <i data-lucide="settings" class="w-4 h-4"></i> Database Settings
+                            </button>
+                            <button onclick="openModal('createCollectionModal')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors shadow-sm">
+                                <i data-lucide="plus" class="w-4 h-4"></i> New Collection
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Collections Table -->
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-4 font-semibold text-slate-700">Collection Name</th>
+                                    <th class="px-6 py-4 font-semibold text-slate-700">Documents</th>
+                                    <th class="px-6 py-4 font-semibold text-slate-700">Storage</th>
+                                    <th class="px-6 py-4 font-semibold text-slate-700">Configuration</th>
+                                    <th class="px-6 py-4 text-right font-semibold text-slate-700">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <!-- Collection Row 1 -->
+                                <tr class="hover:bg-slate-50 transition-colors group">
+                                    <td class="px-6 py-4 cursor-pointer" onclick="window.location.href='documents.html'">
+                                        <div class="flex items-center gap-3">
+                                            <div class="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                                                <i data-lucide="layers" class="w-[18px] h-[18px]"></i>
+                                            </div>
+                                            <span class="font-medium text-slate-900">users</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600">12,450</td>
+                                    <td class="px-6 py-4 text-slate-600 font-mono">4.2 MB</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
+                                                <i data-lucide="lock" class="w-2.5 h-2.5 mr-1"></i> Encrypted
+                                            </span>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                                                ID: auto
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button onclick="openModal('collectionConfigModal')" class="text-slate-400 hover:text-brand-600 p-2 hover:bg-slate-100 rounded-full transition-colors" title="Configure Collection & Schema">
+                                            <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Collection Row 2 -->
+                                <tr class="hover:bg-slate-50 transition-colors group">
+                                    <td class="px-6 py-4 cursor-pointer" onclick="window.location.href='documents.html'">
+                                        <div class="flex items-center gap-3">
+                                            <div class="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                                                <i data-lucide="layers" class="w-[18px] h-[18px]"></i>
+                                            </div>
+                                            <span class="font-medium text-slate-900">orders</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600">45,020</td>
+                                    <td class="px-6 py-4 text-slate-600 font-mono">28.1 MB</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
+                                                <i data-lucide="lock" class="w-2.5 h-2.5 mr-1"></i> Encrypted
+                                            </span>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                                                ID: prefix:ORD
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button onclick="openModal('collectionConfigModal')" class="text-slate-400 hover:text-brand-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                            <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Collection Row 3 -->
+                                <tr class="hover:bg-slate-50 transition-colors group">
+                                    <td class="px-6 py-4 cursor-pointer" onclick="window.location.href='documents.html'">
+                                        <div class="flex items-center gap-3">
+                                            <div class="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                                                <i data-lucide="layers" class="w-[18px] h-[18px]"></i>
+                                            </div>
+                                            <span class="font-medium text-slate-900">products</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600">3,500</td>
+                                    <td class="px-6 py-4 text-slate-600 font-mono">1.5 MB</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                                                ID: manual
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button onclick="openModal('collectionConfigModal')" class="text-slate-400 hover:text-brand-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                            <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Collection Row 4 -->
+                                <tr class="hover:bg-slate-50 transition-colors group">
+                                    <td class="px-6 py-4 cursor-pointer" onclick="window.location.href='documents.html'">
+                                        <div class="flex items-center gap-3">
+                                            <div class="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                                                <i data-lucide="layers" class="w-[18px] h-[18px]"></i>
+                                            </div>
+                                            <span class="font-medium text-slate-900">logs</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600">152,000</td>
+                                    <td class="px-6 py-4 text-slate-600 font-mono">85 MB</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                                                ID: auto
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button onclick="openModal('collectionConfigModal')" class="text-slate-400 hover:text-brand-600 p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                            <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ==================== DATABASE SETTINGS MODAL ==================== -->
+    <div id="dbSettingsModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-semibold text-lg text-slate-900 flex items-center gap-2">
+                    <i data-lucide="database" class="w-[18px] h-[18px] text-slate-400"></i>
+                    Settings: <span class="text-brand-600">production_db</span>
+                </h3>
+                <button onclick="closeModal('dbSettingsModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-6">
+                
+                <!-- Encryption Status -->
+                <div class="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                    <div class="flex items-start gap-3">
+                        <div class="p-2 bg-purple-100 rounded-lg text-purple-600">
+                            <i data-lucide="shield" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-purple-900">Database Encryption Active</h4>
+                            <p class="text-sm text-purple-700 mt-1">Master Key ID: <span class="font-mono bg-purple-100 px-1 rounded">mk_8f7a...9c2</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WAL Mode -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Journal Mode (WAL)</label>
+                    <select class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white" disabled>
+                        <option>Write-Ahead Logging (WAL)</option>
+                        <option>Delete</option>
+                        <option>Truncate</option>
+                    </select>
+                    <p class="text-xs text-slate-500 mt-1">BangronDB enforces WAL mode for high concurrency.</p>
+                </div>
+
+                <!-- Metadata Table -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Metadata Storage</label>
+                    <div class="flex items-center justify-between p-3 border border-slate-200 rounded-lg bg-slate-50">
+                        <span class="text-sm font-mono text-slate-600">_collection_metadata</span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">Healthy</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Stores versioning and dynamic configuration for all collections.</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-2 border-t border-slate-100 flex justify-end gap-3">
+                    <button onclick="closeModal('dbSettingsModal')" class="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CREATE COLLECTION MODAL ==================== -->
+    <div id="createCollectionModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-semibold text-lg text-slate-900">New Collection</h3>
+                <button onclick="closeModal('createCollectionModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Collection Name</label>
+                    <input type="text" placeholder="users" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">ID Generation Mode</label>
+                    <select class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                        <option value="auto">Auto (UUID v4)</option>
+                        <option value="prefix">Prefix (e.g., USR-001)</option>
+                        <option value="manual">Manual (Client provided)</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100 mt-2">
+                    <input type="checkbox" id="col_encrypt" class="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 border-gray-300" />
+                    <label for="col_encrypt" class="text-sm font-medium text-purple-900">Enable Collection Encryption</label>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 rounded-b-xl flex justify-end gap-3">
+                <button onclick="closeModal('createCollectionModal')" class="px-4 py-2 text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+                <button class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors">Create Collection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== COLLECTION CONFIG MODAL (SCHEMA, SETTINGS) ==================== -->
+    <div id="collectionConfigModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col">
+            
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div>
+                    <h3 class="font-semibold text-lg text-slate-900 flex items-center gap-2">
+                        <i data-lucide="settings" class="w-[18px] h-[18px] text-slate-400"></i>
+                        Configuration: <span class="text-brand-600">users</span>
+                    </h3>
+                </div>
+                <button onclick="closeModal('collectionConfigModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-200 shrink-0 px-6">
+                <button onclick="switchConfigTab('general')" id="tab-general" class="px-4 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-600 transition-colors">
+                    General Settings
+                </button>
+                <button onclick="switchConfigTab('schema')" id="tab-schema" class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-2">
+                    <i data-lucide="code" class="w-4 h-4"></i> Schema Validation
+                </button>
+                <button onclick="switchConfigTab('indexes')" id="tab-indexes" class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors">
+                    Indexes & Encryption
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar">
+                
+                <!-- GENERAL TAB -->
+                <div id="content-general" class="space-y-6 max-w-2xl">
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h4 class="font-medium text-slate-900 mb-4">Identity & Core Config</h4>
+                        <div class="grid gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Collection Name</label>
+                                <input type="text" value="users" disabled class="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-slate-500" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">ID Generation Mode</label>
+                                <select class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                                    <option value="auto" selected>Auto (UUID v4)</option>
+                                    <option value="prefix">Prefix (e.g. USR-001)</option>
+                                    <option value="manual">Manual</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Global Preferences -->
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h4 class="font-medium text-slate-900 mb-4">Global Preferences</h4>
+                        <div class="space-y-5">
+                            
+                            <!-- Soft Deletes -->
+                            <div class="flex items-start gap-3">
+                                <div class="mt-1">
+                                    <input type="checkbox" id="soft_delete_toggle" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" checked />
+                                </div>
+                                <div class="flex-1">
+                                    <label for="soft_delete_toggle" class="block text-sm font-medium text-slate-900">Enable Soft Deletes</label>
+                                    <p class="text-xs text-slate-500 mb-2">Documents will be marked as deleted instead of being permanently removed.</p>
+                                    
+                                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Deleted At Field Name</label>
+                                        <input type="text" value="_deleted_at" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-100" />
+
+                            <!-- Timestamps -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="timestamps_toggle" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" checked />
+                                <div>
+                                    <label for="timestamps_toggle" class="block text-sm font-medium text-slate-900">Auto Timestamps</label>
+                                    <p class="text-xs text-slate-500">Automatically manage created_at and updated_at fields.</p>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-100" />
+
+                            <!-- Collection Encryption Key -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Collection-Specific Encryption Key</label>
+                                <p class="text-xs text-slate-500 mb-2">Leave blank to use the database master key. Set a value to override.</p>
+                                <div class="relative">
+                                    <i data-lucide="key" class="absolute left-3 top-2.5 text-slate-400 w-4 h-4"></i>
+                                    <input type="password" placeholder="Enter secret key to override..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h4 class="font-medium text-slate-900 mb-4 text-red-600">Danger Zone</h4>
+                        <div class="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-100">
+                            <div>
+                                <p class="font-medium text-red-900">Drop Collection</p>
+                                <p class="text-sm text-red-700">Permanently delete this collection and all its documents.</p>
+                            </div>
+                            <button class="px-4 py-2 bg-white border border-red-200 text-red-600 font-medium rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors">
+                                Drop Collection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCHEMA TAB -->
+                <div id="content-schema" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="text-lg font-semibold text-slate-900">Schema Rules</h4>
+                            <p class="text-slate-500 text-sm">Define structure and validation for documents in this collection.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2">
+                                <i data-lucide="file-json" class="w-4 h-4"></i> Import JSON
+                            </button>
+                            <button class="px-3 py-1.5 text-sm font-medium text-brand-600 bg-brand-50 border border-brand-100 rounded-lg hover:bg-brand-100 flex items-center gap-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i> Save Schema
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add Field Form -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-1">
+                                <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Field Name</label>
+                                <input type="text" id="newFieldName" placeholder="e.g. email" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
+                            </div>
+                            <div class="w-1/4">
+                                <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Type</label>
+                                <select id="newFieldType" onchange="updateFieldTypeOptions()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                                    <option value="string">string</option>
+                                    <option value="int">int</option>
+                                    <option value="float">float</option>
+                                    <option value="boolean">boolean</option>
+                                    <option value="array">array</option>
+                                    <option value="object">object</option>
+                                    <option value="enum">enum</option>
+                                    <option value="date">date</option>
+                                    <option value="relation">relation</option>
+                                </select>
+                            </div>
+                            <div class="pt-7">
+                                <label class="flex items-center gap-2 cursor-pointer select-none">
+                                    <input type="checkbox" id="newFieldRequired" class="w-4 h-4 text-brand-600 rounded focus:ring-brand-500 border-slate-300" />
+                                    <span class="text-sm text-slate-700 font-medium">Required</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Type Configuration -->
+                        <div id="typeOptionsContainer" class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-4">
+                            <!-- String Options (Default) -->
+                            <div id="stringOptions">
+                                <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Regex Pattern</label>
+                                <input type="text" placeholder="e.g. ^[A-Z]+$" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono text-slate-600" />
+                            </div>
+                            <div id="stringLengthOptions" class="flex gap-4">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Min Length</label>
+                                    <input type="number" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Max Length</label>
+                                    <input type="number" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Number Options (Hidden by default) -->
+                        <div id="numberOptions" class="pt-3 border-t border-slate-100 hidden">
+                            <div class="flex gap-4 col-span-2">
+                                <div class="flex-1">
+                                    <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Min Value</label>
+                                    <input type="number" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Max Value</label>
+                                    <input type="number" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Enum Options (Hidden by default) -->
+                        <div id="enumOptions" class="pt-3 border-t border-slate-100 hidden">
+                            <div class="col-span-2">
+                                <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Allowed Values (Comma Separated)</label>
+                                <input type="text" placeholder="active, pending, suspended" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono text-slate-600" />
+                                <p class="text-xs text-slate-400 mt-1">Values will be trimmed automatically.</p>
+                            </div>
+                        </div>
+
+                        <!-- Array Options (Hidden by default) -->
+                        <div id="arrayOptions" class="pt-3 border-t border-slate-100 hidden">
+                            <div class="col-span-2">
+                                <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Items Type</label>
+                                <select class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                                    <option value="string">string</option>
+                                    <option value="int">int</option>
+                                    <option value="float">float</option>
+                                    <option value="boolean">boolean</option>
+                                    <option value="object">object</option>
+                                    <option value="date">date</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Relation Options (Hidden by default) -->
+                        <div id="relationOptions" class="pt-3 border-t border-slate-100 hidden">
+                            <div class="p-3 bg-slate-50/80 rounded-lg border border-slate-200 space-y-3">
+                                <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                                    <i data-lucide="link-2" class="w-3 h-3"></i> Relationship Configuration
+                                </h5>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Ref Database</label>
+                                        <select class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-brand-500 focus:border-brand-500">
+                                            <option value="">Current Database</option>
+                                            <option value="auth_db">auth_db</option>
+                                            <option value="analytics_db">analytics_db</option>
+                                            <option value="inventory_main">inventory_main</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Ref Collection</label>
+                                        <select class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-brand-500 focus:border-brand-500">
+                                            <option value="">Select Collection</option>
+                                            <option value="users">users</option>
+                                            <option value="orders">orders</option>
+                                            <option value="products">products</option>
+                                            <option value="logs">logs</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-slate-500 uppercase mb-1 block">Ref Field</label>
+                                        <input type="text" value="_id" placeholder="_id" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button onclick="addSchemaField()" class="px-6 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 flex items-center gap-2 transition-colors">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Add Field
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Schema Table -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-4 font-semibold text-slate-700 w-1/4">Field Name</th>
+                                    <th class="px-6 py-4 font-semibold text-slate-700 w-1/6">Type</th>
+                                    <th class="px-6 py-4 font-semibold text-slate-700 w-1/6">Required</th>
+                                    <th class="px-6 py-4 font-semibold text-slate-700">Constraints</th>
+                                    <th class="px-6 py-4 text-right font-semibold text-slate-700 w-20">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schemaTableBody" class="divide-y divide-slate-100">
+                                <!-- Row 1: username -->
+                                <tr class="hover:bg-slate-50 group transition-colors">
+                                    <td class="px-6 py-4 font-medium text-slate-900">username</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">string</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-red-600 font-bold text-xs flex items-center gap-1.5 bg-red-50 px-2 py-1 rounded-md w-fit">
+                                            <i data-lucide="alert-circle" class="w-3 h-3"></i> YES
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-white border border-slate-200 text-slate-600 shadow-sm">
+                                                <span class="font-semibold text-slate-400 mr-1.5 uppercase tracking-wider text-[10px]">MIN</span> 3
+                                            </span>
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-white border border-slate-200 text-slate-600 shadow-sm">
+                                                <span class="font-semibold text-slate-400 mr-1.5 uppercase tracking-wider text-[10px]">MAX</span> 20
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 2: email -->
+                                <tr class="hover:bg-slate-50 group transition-colors">
+                                    <td class="px-6 py-4 font-medium text-slate-900">email</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">string</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-red-600 font-bold text-xs flex items-center gap-1.5 bg-red-50 px-2 py-1 rounded-md w-fit">
+                                            <i data-lucide="alert-circle" class="w-3 h-3"></i> YES
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-white border border-slate-200 text-slate-600 shadow-sm">
+                                                <span class="font-semibold text-slate-400 mr-1.5 uppercase tracking-wider text-[10px]">REGEX</span> ^[^@]+@[^@]+\.[^@]+$
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 3: age -->
+                                <tr class="hover:bg-slate-50 group transition-colors">
+                                    <td class="px-6 py-4 font-medium text-slate-900">age</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">int</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-slate-400 text-xs font-medium bg-slate-100 px-2 py-1 rounded-md">Optional</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-white border border-slate-200 text-slate-600 shadow-sm">
+                                                <span class="font-semibold text-slate-400 mr-1.5 uppercase tracking-wider text-[10px]">MIN</span> 18
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 4: role (Enum) -->
+                                <tr class="hover:bg-slate-50 group transition-colors">
+                                    <td class="px-6 py-4 font-medium text-slate-900">role</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">enum</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-red-600 font-bold text-xs flex items-center gap-1.5 bg-red-50 px-2 py-1 rounded-md w-fit">
+                                            <i data-lucide="alert-circle" class="w-3 h-3"></i> YES
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-white border border-slate-200 text-slate-600 shadow-sm">
+                                                <span class="font-semibold text-slate-400 mr-1.5 uppercase tracking-wider text-[10px]">OPTIONS</span> user, admin, moderator
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 5: author_id (Relation - Same DB) -->
+                                <tr class="hover:bg-slate-50 group transition-colors">
+                                    <td class="px-6 py-4 font-medium text-slate-900">author_id</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
+                                            <i data-lucide="link-2" class="w-2.5 h-2.5 mr-1"></i> relation
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-red-600 font-bold text-xs flex items-center gap-1.5 bg-red-50 px-2 py-1 rounded-md w-fit">
+                                            <i data-lucide="alert-circle" class="w-3 h-3"></i> YES
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-purple-50 border border-purple-200 text-purple-700 shadow-sm">
+                                                <span class="font-semibold text-purple-400 mr-1.5 uppercase tracking-wider text-[10px]">REF</span> users._id
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Row 6: external_user_id (Relation - Cross DB) -->
+                                <tr class="hover:bg-slate-50 group transition-colors">
+                                    <td class="px-6 py-4 font-medium text-slate-900">external_user_id</td>
+                                    <td class="px-6 py-4">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
+                                            <i data-lucide="link-2" class="w-2.5 h-2.5 mr-1"></i> relation
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-slate-400 text-xs font-medium bg-slate-100 px-2 py-1 rounded-md">Optional</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-amber-50 border border-amber-200 text-amber-800 shadow-sm">
+                                                <span class="font-semibold text-amber-600 mr-1.5 uppercase tracking-wider text-[10px]">EXT</span>
+                                                <i data-lucide="globe" class="w-3 h-3 mr-1 text-amber-600"></i>
+                                                auth_db.users._id
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- INDEXES TAB -->
+                <div id="content-indexes" class="space-y-6 max-w-2xl hidden">
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h4 class="font-medium text-slate-900 mb-4 flex items-center gap-2">
+                            <i data-lucide="shield" class="w-[18px] h-[18px] text-purple-600"></i> Encryption
+                        </h4>
+                        <div class="p-4 bg-purple-50 rounded-lg border border-purple-100 flex items-start gap-3">
+                            <i data-lucide="lock" class="w-[18px] h-[18px] text-purple-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <p class="text-sm font-medium text-purple-900">Collection Encryption Active</p>
+                                <p class="text-sm text-purple-700 mt-1">
+                                    Data in this collection is encrypted at rest using AES-256-CBC.
+                                    Searchable fields are hashed for privacy-preserving lookups.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-medium text-slate-900">Searchable Fields</h4>
+                            <button class="text-brand-600 text-sm font-medium hover:underline">+ Add Field</button>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="key" class="w-4 h-4 text-slate-400"></i>
+                                    <span class="font-mono text-sm text-slate-700">email</span>
+                                </div>
+                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">Hashed Index</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="key" class="w-4 h-4 text-slate-400"></i>
+                                    <span class="font-mono text-sm text-slate-700">username</span>
+                                </div>
+                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">Hashed Index</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-slate-200 shrink-0 bg-white flex justify-between items-center rounded-b-xl">
+                <div class="text-sm text-slate-500">
+                    Changes are not applied until saved.
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="closeModal('collectionConfigModal')" class="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+                    <button class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Toggle Sidebar
+        let sidebarCollapsed = false;
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const texts = document.querySelectorAll('.sidebar-text');
+            const labels = document.querySelectorAll('.sidebar-label');
+            
+            sidebarCollapsed = !sidebarCollapsed;
+            
+            if (sidebarCollapsed) {
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-20');
+                texts.forEach(t => t.classList.add('hidden'));
+                labels.forEach(l => l.classList.add('hidden'));
+            } else {
+                sidebar.classList.remove('w-20');
+                sidebar.classList.add('w-64');
+                texts.forEach(t => t.classList.remove('hidden'));
+                labels.forEach(l => l.classList.remove('hidden'));
+            }
+        }
+
+        // Modal Functions
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        // Config Modal Tab Switching
+        function switchConfigTab(tab) {
+            // Hide all contents
+            document.getElementById('content-general').classList.add('hidden');
+            document.getElementById('content-schema').classList.add('hidden');
+            document.getElementById('content-indexes').classList.add('hidden');
+            
+            // Remove active state from all tabs
+            document.getElementById('tab-general').classList.remove('border-brand-600', 'text-brand-600');
+            document.getElementById('tab-general').classList.add('border-transparent', 'text-slate-500');
+            document.getElementById('tab-schema').classList.remove('border-brand-600', 'text-brand-600');
+            document.getElementById('tab-schema').classList.add('border-transparent', 'text-slate-500');
+            document.getElementById('tab-indexes').classList.remove('border-brand-600', 'text-brand-600');
+            document.getElementById('tab-indexes').classList.add('border-transparent', 'text-slate-500');
+            
+            // Show selected content and activate tab
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.remove('border-transparent', 'text-slate-500');
+            document.getElementById('tab-' + tab).classList.add('border-brand-600', 'text-brand-600');
+            
+            lucide.createIcons();
+        }
+
+        // Update Field Type Options
+        function updateFieldTypeOptions() {
+            const type = document.getElementById('newFieldType').value;
+            
+            // Hide all option containers
+            document.getElementById('typeOptionsContainer').classList.add('hidden');
+            document.getElementById('numberOptions').classList.add('hidden');
+            document.getElementById('enumOptions').classList.add('hidden');
+            document.getElementById('arrayOptions').classList.add('hidden');
+            document.getElementById('relationOptions').classList.add('hidden');
+            document.getElementById('stringOptions').classList.add('hidden');
+            document.getElementById('stringLengthOptions').classList.add('hidden');
+            
+            // Show relevant options
+            if (type === 'string') {
+                document.getElementById('typeOptionsContainer').classList.remove('hidden');
+                document.getElementById('stringOptions').classList.remove('hidden');
+                document.getElementById('stringLengthOptions').classList.remove('hidden');
+            } else if (type === 'int' || type === 'float') {
+                document.getElementById('numberOptions').classList.remove('hidden');
+            } else if (type === 'enum') {
+                document.getElementById('enumOptions').classList.remove('hidden');
+            } else if (type === 'array') {
+                document.getElementById('arrayOptions').classList.remove('hidden');
+            } else if (type === 'relation') {
+                document.getElementById('relationOptions').classList.remove('hidden');
+            }
+            
+            lucide.createIcons();
+        }
+
+        // Add Schema Field (placeholder function)
+        function addSchemaField() {
+            const fieldName = document.getElementById('newFieldName').value;
+            if (!fieldName) {
+                alert('Please enter a field name');
+                return;
+            }
+            alert('Field "' + fieldName + '" would be added to schema. (This is a demo)');
+            document.getElementById('newFieldName').value = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal - BangronDB Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%); min-height: 100vh; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .glass-dark { background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .terminal-font { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; }
+        .terminal-output { line-height: 1.6; }
+        .cursor-blink { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+        .cmd-success { color: #22c55e; }
+        .cmd-error { color: #ef4444; }
+        .cmd-warning { color: #f59e0b; }
+        .cmd-info { color: #3b82f6; }
+        .cmd-prompt { color: #a855f7; }
+        .autocomplete-item:hover { background: rgba(255,255,255,0.1); }
+        .autocomplete-item.selected { background: rgba(59, 130, 246, 0.3); }
+    </style>
+</head>
+<body class="text-white">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 glass-dark flex flex-col">
+            <div class="p-4 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i data-lucide="database" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg">BangronDB</h1>
+                        <p class="text-xs text-gray-400">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <a href="index.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="databases.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                    <span>Databases</span>
+                </a>
+                <a href="collections.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="folder" class="w-5 h-5"></i>
+                    <span>Collections</span>
+                </a>
+                <a href="documents.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="file-json" class="w-5 h-5"></i>
+                    <span>Documents</span>
+                </a>
+                <a href="schema-builder.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="blocks" class="w-5 h-5"></i>
+                    <span>Schema Builder</span>
+                </a>
+                <a href="relationships.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="git-branch" class="w-5 h-5"></i>
+                    <span>Relationships</span>
+                </a>
+                <a href="query-playground.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                    <span>Query Playground</span>
+                </a>
+                <a href="hooks.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="webhook" class="w-5 h-5"></i>
+                    <span>Hooks & Events</span>
+                </a>
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-xs font-semibold text-gray-500 uppercase">Data Management</p>
+                </div>
+                <a href="backup.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="hard-drive-download" class="w-5 h-5"></i>
+                    <span>Backup & Restore</span>
+                </a>
+                <a href="import-export.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+                    <span>Import / Export</span>
+                </a>
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-xs font-semibold text-gray-500 uppercase">System</p>
+                </div>
+                <a href="users.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Users</span>
+                </a>
+                <a href="roles.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="shield" class="w-5 h-5"></i>
+                    <span>Roles</span>
+                </a>
+                <a href="notifications.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span>Notifications</span>
+                </a>
+                <a href="monitoring.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Monitoring</span>
+                </a>
+                <a href="logs.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="scroll-text" class="w-5 h-5"></i>
+                    <span>Logs</span>
+                </a>
+                <a href="security.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                    <span>Security</span>
+                </a>
+                <a href="terminal.html" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-500/20 text-blue-400">
+                    <i data-lucide="terminal-square" class="w-5 h-5"></i>
+                    <span>Terminal</span>
+                </a>
+                <a href="api-docs.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                    <span>API Docs</span>
+                </a>
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/5">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="glass-dark border-b border-white/10 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold">Terminal</h1>
+                        <p class="text-gray-400 text-sm">Execute BangronDB commands directly</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="text-gray-400">Connected:</span>
+                            <span class="text-green-400">app_production</span>
+                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        </div>
+                        <button onclick="openNewTab()" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            New Tab
+                        </button>
+                        <button onclick="clearTerminal()" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="flex-1 flex overflow-hidden">
+                <!-- Terminal Area -->
+                <div class="flex-1 flex flex-col">
+                    <!-- Terminal Tabs -->
+                    <div class="bg-black/30 border-b border-white/10 px-4 flex items-center gap-2">
+                        <div class="flex items-center gap-1">
+                            <button class="terminal-tab active flex items-center gap-2 px-4 py-2 bg-white/10 rounded-t-lg text-sm" data-tab="1">
+                                <i data-lucide="terminal" class="w-4 h-4"></i>
+                                Terminal 1
+                                <button onclick="closeTab(1)" class="ml-2 hover:text-red-400">
+                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                </button>
+                            </button>
+                            <button class="terminal-tab flex items-center gap-2 px-4 py-2 text-gray-400 hover:bg-white/5 rounded-t-lg text-sm" data-tab="2">
+                                <i data-lucide="terminal" class="w-4 h-4"></i>
+                                Terminal 2
+                                <button onclick="closeTab(2)" class="ml-2 hover:text-red-400">
+                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                </button>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Terminal Output -->
+                    <div id="terminalOutput" class="flex-1 bg-black/50 p-4 overflow-y-auto terminal-font terminal-output text-sm" onclick="focusInput()">
+                        <!-- Welcome Message -->
+                        <div class="mb-4 text-gray-400">
+                            <pre class="text-blue-400">
+ ____                                    ____  ____  
+|  _ \                                  |  _ \|  _ \ 
+| |_) | __ _ _ __   __ _ _ __ ___  _ __ | | | | |_) |
+|  _ < / _` | '_ \ / _` | '__/ _ \| '_ \| | | |  _ < 
+| |_) | (_| | | | | (_| | | | (_) | | | | |_| | |_) |
+|____/ \__,_|_| |_|\__, |_|  \___/|_| |_|____/|____/ 
+                    __/ |                            
+                   |___/   v1.0.0 - Interactive Shell
+            </pre>
+                            <p class="mt-2">Welcome to BangronDB Interactive Terminal.</p>
+                            <p>Type <span class="text-green-400">help</span> for available commands or <span class="text-green-400">exit</span> to quit.</p>
+                            <p class="mt-2">Connected to: <span class="text-cyan-400">app_production</span> (5 collections, 12,847 documents)</p>
+                        </div>
+
+                        <!-- Command History -->
+                        <div id="commandHistory">
+                            <!-- Sample executed commands -->
+                            <div class="mb-2">
+                                <span class="cmd-prompt">bangrondb&gt;</span> <span class="text-white">show databases</span>
+                            </div>
+                            <div class="mb-2 pl-4 text-gray-300">
+                                <div>┌────────────────────┬───────────────┬───────────┐</div>
+                                <div>│ Database           │ Collections   │ Size      │</div>
+                                <div>├────────────────────┼───────────────┼───────────┤</div>
+                                <div>│ app_production     │ 5             │ 45.2 MB   │</div>
+                                <div>│ app_staging        │ 5             │ 12.8 MB   │</div>
+                                <div>│ analytics_db       │ 3             │ 156.4 MB  │</div>
+                                <div>└────────────────────┴───────────────┴───────────┘</div>
+                            </div>
+
+                            <div class="mb-2">
+                                <span class="cmd-prompt">bangrondb&gt;</span> <span class="text-white">use app_production</span>
+                            </div>
+                            <div class="mb-2 pl-4 cmd-success">
+                                Switched to database: app_production
+                            </div>
+
+                            <div class="mb-2">
+                                <span class="cmd-prompt">app_production&gt;</span> <span class="text-white">show collections</span>
+                            </div>
+                            <div class="mb-2 pl-4 text-gray-300">
+                                <div>┌────────────────┬───────────┬─────────────┬────────────┐</div>
+                                <div>│ Collection     │ Documents │ Encrypted   │ Soft Del   │</div>
+                                <div>├────────────────┼───────────┼─────────────┼────────────┤</div>
+                                <div>│ users          │ 2,450     │ ✓           │ ✓          │</div>
+                                <div>│ products       │ 8,234     │ ✗           │ ✗          │</div>
+                                <div>│ orders         │ 1,892     │ ✓           │ ✓          │</div>
+                                <div>│ categories     │ 156       │ ✗           │ ✗          │</div>
+                                <div>│ settings       │ 115       │ ✓           │ ✗          │</div>
+                                <div>└────────────────┴───────────┴─────────────┴────────────┘</div>
+                            </div>
+
+                            <div class="mb-2">
+                                <span class="cmd-prompt">app_production&gt;</span> <span class="text-white">db.users.find({ role: "admin" }).limit(2)</span>
+                            </div>
+                            <div class="mb-2 pl-4 text-gray-300">
+<pre class="text-cyan-300">[
+  {
+    "_id": "USR-000001",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "admin",
+    "created_at": "2024-01-15T10:30:00Z"
+  },
+  {
+    "_id": "USR-000002",
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "role": "admin",
+    "created_at": "2024-01-16T08:15:00Z"
+  }
+]</pre>
+                                <div class="text-gray-500 mt-1">Query time: 12ms | Returned: 2 documents</div>
+                            </div>
+                        </div>
+
+                        <!-- Current Input Line -->
+                        <div class="flex items-center">
+                            <span class="cmd-prompt">app_production&gt;</span>
+                            <div class="flex-1 ml-2 relative">
+                                <input 
+                                    type="text" 
+                                    id="terminalInput" 
+                                    class="w-full bg-transparent outline-none text-white terminal-font"
+                                    placeholder=""
+                                    autocomplete="off"
+                                    onkeydown="handleKeyDown(event)"
+                                    oninput="handleInput(event)"
+                                >
+                                <span class="cursor-blink">▌</span>
+                            </div>
+                        </div>
+
+                        <!-- Autocomplete Dropdown -->
+                        <div id="autocomplete" class="hidden absolute bg-gray-800 border border-white/10 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                            <!-- Autocomplete items will be added here -->
+                        </div>
+                    </div>
+
+                    <!-- Terminal Status Bar -->
+                    <div class="bg-black/30 border-t border-white/10 px-4 py-2 flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-4">
+                            <span class="text-gray-400">Database: <span class="text-cyan-400">app_production</span></span>
+                            <span class="text-gray-400">Collection: <span class="text-green-400">users</span></span>
+                            <span class="text-gray-400">Documents: <span class="text-white">2,450</span></span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="text-gray-400">History: <span class="text-white">15</span> commands</span>
+                            <span class="text-gray-400">Session: <span class="text-green-400">00:45:32</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Commands Reference -->
+                <div class="w-80 border-l border-white/10 glass-dark flex flex-col">
+                    <!-- Panel Header -->
+                    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                        <h3 class="font-semibold">Quick Reference</h3>
+                        <button onclick="togglePanel()" class="text-gray-400 hover:text-white">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Panel Content -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <!-- Database Commands -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Database</h4>
+                            <div class="space-y-1">
+                                <button onclick="insertCommand('show databases')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    show databases
+                                </button>
+                                <button onclick="insertCommand('use database_name')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    use &lt;database&gt;
+                                </button>
+                                <button onclick="insertCommand('db.getHealthMetrics()')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.getHealthMetrics()
+                                </button>
+                                <button onclick="insertCommand('db.vacuum()')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.vacuum()
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Collection Commands -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Collection</h4>
+                            <div class="space-y-1">
+                                <button onclick="insertCommand('show collections')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    show collections
+                                </button>
+                                <button onclick="insertCommand('db.createCollection(\"name\")')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.createCollection()
+                                </button>
+                                <button onclick="insertCommand('db.collection.drop()')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.collection.drop()
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CRUD Commands -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">CRUD Operations</h4>
+                            <div class="space-y-1">
+                                <button onclick="insertCommand('db.collection.find({})')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.col.find({})
+                                </button>
+                                <button onclick="insertCommand('db.collection.findOne({})')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.col.findOne({})
+                                </button>
+                                <button onclick="insertCommand('db.collection.insert({})')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.col.insert({})
+                                </button>
+                                <button onclick="insertCommand('db.collection.update({}, {})')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.col.update({}, {})
+                                </button>
+                                <button onclick="insertCommand('db.collection.remove({})')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.col.remove({})
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Query Operators -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Query Operators</h4>
+                            <div class="space-y-1">
+                                <button onclick="insertCommand('{ field: { $gt: value } }')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    $gt, $gte, $lt, $lte
+                                </button>
+                                <button onclick="insertCommand('{ field: { $in: [1, 2, 3] } }')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    $in, $nin
+                                </button>
+                                <button onclick="insertCommand('{ $or: [{}, {}] }')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    $or, $and
+                                </button>
+                                <button onclick="insertCommand('{ field: { $regex: \"pattern\" } }')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    $regex
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Special Commands -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Special</h4>
+                            <div class="space-y-1">
+                                <button onclick="insertCommand('db.collection.count({})')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    db.col.count({})
+                                </button>
+                                <button onclick="insertCommand('.sort({ field: 1 })')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    .sort(), .limit(), .skip()
+                                </button>
+                                <button onclick="insertCommand('.populate(\"field\", db.col)')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    .populate()
+                                </button>
+                                <button onclick="insertCommand('.withTrashed()')" class="w-full text-left px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm terminal-font">
+                                    .withTrashed()
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Keyboard Shortcuts -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Shortcuts</h4>
+                            <div class="space-y-2 text-sm text-gray-400">
+                                <div class="flex justify-between">
+                                    <span>Execute command</span>
+                                    <kbd class="bg-white/10 px-2 py-0.5 rounded text-xs">Enter</kbd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Previous command</span>
+                                    <kbd class="bg-white/10 px-2 py-0.5 rounded text-xs">↑</kbd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Next command</span>
+                                    <kbd class="bg-white/10 px-2 py-0.5 rounded text-xs">↓</kbd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Autocomplete</span>
+                                    <kbd class="bg-white/10 px-2 py-0.5 rounded text-xs">Tab</kbd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Clear screen</span>
+                                    <kbd class="bg-white/10 px-2 py-0.5 rounded text-xs">Ctrl+L</kbd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Cancel</span>
+                                    <kbd class="bg-white/10 px-2 py-0.5 rounded text-xs">Ctrl+C</kbd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Saved Commands -->
+                    <div class="p-4 border-t border-white/10">
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Saved Commands</h4>
+                        <div class="space-y-1">
+                            <button onclick="insertCommand('db.users.find({ role: \"admin\" })')" class="w-full text-left px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg text-sm terminal-font text-purple-400 flex items-center gap-2">
+                                <i data-lucide="star" class="w-3 h-3"></i>
+                                Find admins
+                            </button>
+                            <button onclick="insertCommand('db.orders.find({ status: \"pending\" }).count()')" class="w-full text-left px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 rounded-lg text-sm terminal-font text-purple-400 flex items-center gap-2">
+                                <i data-lucide="star" class="w-3 h-3"></i>
+                                Count pending
+                            </button>
+                        </div>
+                        <button onclick="saveCommand()" class="w-full mt-2 px-3 py-2 border border-dashed border-white/20 rounded-lg text-sm text-gray-400 hover:border-purple-500 hover:text-purple-400">
+                            <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>
+                            Save Current Command
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentDatabase = 'app_production';
+        let currentCollection = 'users';
+
+        const commands = [
+            'show databases', 'show collections', 'use', 'help', 'exit', 'clear',
+            'db.getHealthMetrics()', 'db.getHealthReport()', 'db.vacuum()',
+            'db.createCollection', 'db.dropCollection', 'db.getCollectionNames()',
+            'find', 'findOne', 'insert', 'update', 'remove', 'count', 'save',
+            'sort', 'limit', 'skip', 'populate', 'withTrashed', 'onlyTrashed',
+            'setSchema', 'getSchema', 'validate', 'useSoftDeletes',
+            'setIdModeAuto', 'setIdModeManual', 'setIdModePrefix',
+            'setEncryptionKey', 'setSearchableFields',
+            'on', 'off', 'createIndex'
+        ];
+
+        function focusInput() {
+            document.getElementById('terminalInput').focus();
+        }
+
+        function handleKeyDown(event) {
+            const input = document.getElementById('terminalInput');
+            
+            if (event.key === 'Enter') {
+                executeCommand(input.value);
+                input.value = '';
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    input.value = commandHistory[commandHistory.length - 1 - historyIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    input.value = commandHistory[commandHistory.length - 1 - historyIndex];
+                } else {
+                    historyIndex = -1;
+                    input.value = '';
+                }
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                autocomplete(input.value);
+            } else if (event.ctrlKey && event.key === 'l') {
+                event.preventDefault();
+                clearTerminal();
+            } else if (event.ctrlKey && event.key === 'c') {
+                event.preventDefault();
+                input.value = '';
+                appendOutput('<span class="text-gray-500">^C</span>');
+            }
+        }
+
+        function handleInput(event) {
+            // Could show live autocomplete suggestions
+        }
+
+        function executeCommand(cmd) {
+            if (!cmd.trim()) return;
+
+            commandHistory.push(cmd);
+            historyIndex = -1;
+
+            const historyDiv = document.getElementById('commandHistory');
+            
+            // Add command to output
+            historyDiv.innerHTML += `
+                <div class="mb-2">
+                    <span class="cmd-prompt">${currentDatabase}&gt;</span> <span class="text-white">${escapeHtml(cmd)}</span>
+                </div>
+            `;
+
+            // Process command and add result
+            const result = processCommand(cmd);
+            historyDiv.innerHTML += `<div class="mb-2 pl-4">${result}</div>`;
+
+            // Scroll to bottom
+            document.getElementById('terminalOutput').scrollTop = document.getElementById('terminalOutput').scrollHeight;
+        }
+
+        function processCommand(cmd) {
+            const trimmedCmd = cmd.trim().toLowerCase();
+
+            if (trimmedCmd === 'help') {
+                return `<div class="text-gray-300">
+Available commands:
+  <span class="text-green-400">show databases</span>     - List all databases
+  <span class="text-green-400">show collections</span>   - List collections in current database
+  <span class="text-green-400">use &lt;database&gt;</span>      - Switch to a database
+  <span class="text-green-400">db.col.find({})</span>    - Query documents
+  <span class="text-green-400">db.col.insert({})</span>  - Insert document
+  <span class="text-green-400">db.col.update({},{})</span> - Update documents
+  <span class="text-green-400">db.col.remove({})</span>  - Remove documents
+  <span class="text-green-400">clear</span>              - Clear terminal
+  <span class="text-green-400">exit</span>               - Exit terminal
+                </div>`;
+            } else if (trimmedCmd === 'clear') {
+                document.getElementById('commandHistory').innerHTML = '';
+                return '';
+            } else if (trimmedCmd === 'exit') {
+                return '<span class="text-amber-400">Type "exit" again to confirm exit, or continue using the terminal.</span>';
+            } else if (trimmedCmd === 'show databases') {
+                return `<div class="text-gray-300">
+<div>┌────────────────────┬───────────────┬───────────┐</div>
+<div>│ Database           │ Collections   │ Size      │</div>
+<div>├────────────────────┼───────────────┼───────────┤</div>
+<div>│ app_production     │ 5             │ 45.2 MB   │</div>
+<div>│ app_staging        │ 5             │ 12.8 MB   │</div>
+<div>│ analytics_db       │ 3             │ 156.4 MB  │</div>
+<div>└────────────────────┴───────────────┴───────────┘</div>
+                </div>`;
+            } else if (trimmedCmd === 'show collections') {
+                return `<div class="text-gray-300">
+<div>┌────────────────┬───────────┬─────────────┬────────────┐</div>
+<div>│ Collection     │ Documents │ Encrypted   │ Soft Del   │</div>
+<div>├────────────────┼───────────┼─────────────┼────────────┤</div>
+<div>│ users          │ 2,450     │ ✓           │ ✓          │</div>
+<div>│ products       │ 8,234     │ ✗           │ ✗          │</div>
+<div>│ orders         │ 1,892     │ ✓           │ ✓          │</div>
+<div>│ categories     │ 156       │ ✗           │ ✗          │</div>
+<div>│ settings       │ 115       │ ✓           │ ✗          │</div>
+<div>└────────────────┴───────────┴─────────────┴────────────┘</div>
+                </div>`;
+            } else if (trimmedCmd.startsWith('use ')) {
+                const dbName = cmd.substring(4).trim();
+                currentDatabase = dbName;
+                return `<span class="cmd-success">Switched to database: ${dbName}</span>`;
+            } else if (cmd.includes('.find(')) {
+                return `<pre class="text-cyan-300">[
+  {
+    "_id": "USR-000001",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "admin",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+]</pre>
+<div class="text-gray-500 mt-1">Query time: 8ms | Returned: 1 document</div>`;
+            } else if (cmd.includes('.insert(')) {
+                return `<span class="cmd-success">✓ Document inserted successfully</span>
+<div class="text-gray-500">Inserted ID: USR-000125</div>`;
+            } else if (cmd.includes('.update(')) {
+                return `<span class="cmd-success">✓ 1 document updated</span>`;
+            } else if (cmd.includes('.remove(')) {
+                return `<span class="cmd-warning">⚠ 1 document removed</span>`;
+            } else if (cmd.includes('.count(')) {
+                return `<span class="text-cyan-400">2450</span>`;
+            } else if (cmd.includes('getHealthMetrics')) {
+                return `<pre class="text-cyan-300">{
+  "database": {
+    "path": "/var/www/data/app_production.bangron",
+    "type": "file",
+    "encryption_enabled": true
+  },
+  "integrity": {
+    "status": "healthy"
+  },
+  "metrics": {
+    "total_collections": 5,
+    "total_documents": 12847,
+    "total_size_bytes": 47406489
+  }
+}</pre>`;
+            } else {
+                return `<span class="cmd-error">Unknown command: ${escapeHtml(cmd)}</span>
+<div class="text-gray-500">Type 'help' for available commands</div>`;
+            }
+        }
+
+        function appendOutput(html) {
+            const historyDiv = document.getElementById('commandHistory');
+            historyDiv.innerHTML += `<div class="mb-2">${html}</div>`;
+            document.getElementById('terminalOutput').scrollTop = document.getElementById('terminalOutput').scrollHeight;
+        }
+
+        function autocomplete(partial) {
+            const matches = commands.filter(c => c.startsWith(partial.toLowerCase()));
+            if (matches.length === 1) {
+                document.getElementById('terminalInput').value = matches[0];
+            } else if (matches.length > 1) {
+                appendOutput(`<span class="text-gray-400">Suggestions: ${matches.join(', ')}</span>`);
+            }
+        }
+
+        function insertCommand(cmd) {
+            document.getElementById('terminalInput').value = cmd;
+            document.getElementById('terminalInput').focus();
+        }
+
+        function clearTerminal() {
+            document.getElementById('commandHistory').innerHTML = '';
+        }
+
+        function openNewTab() {
+            // In real implementation, this would create a new terminal tab
+            alert('New terminal tab created');
+        }
+
+        function closeTab(tabId) {
+            // In real implementation, this would close the tab
+        }
+
+        function saveCommand() {
+            const cmd = document.getElementById('terminalInput').value;
+            if (cmd) {
+                alert('Command saved: ' + cmd);
+            }
+        }
+
+        function togglePanel() {
+            // Toggle right panel visibility
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Focus input on load
+        document.addEventListener('DOMContentLoaded', () => {
+            focusInput();
+        });
+    </script>
+</body>
+</html>

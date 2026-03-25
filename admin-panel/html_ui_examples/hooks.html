@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hooks & Events - BangronDB Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(75, 85, 99, 0.3); }
+        .glass-light { background: rgba(31, 41, 55, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(75, 85, 99, 0.2); }
+        .sidebar-item { transition: all 0.2s ease; }
+        .sidebar-item:hover { background: rgba(59, 130, 246, 0.1); }
+        .sidebar-item.active { background: rgba(59, 130, 246, 0.2); border-right: 3px solid #3b82f6; }
+        .gradient-border { background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(147, 51, 234, 0.5)); padding: 1px; }
+        .code-editor { background: #0d1117; font-family: 'JetBrains Mono', monospace; }
+        .hook-card { transition: all 0.3s ease; }
+        .hook-card:hover { transform: translateY(-2px); box-shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.3); }
+        .status-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .drag-handle { cursor: grab; }
+        .drag-handle:active { cursor: grabbing; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 glass border-r border-gray-800 flex flex-col transition-all duration-300">
+            <!-- Logo -->
+            <div class="p-4 border-b border-gray-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <i data-lucide="database" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg">BangronDB</h1>
+                        <p class="text-xs text-gray-500">Admin Panel</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+                <a href="index.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="databases.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                    <span>Databases</span>
+                </a>
+                <a href="collections.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="folder" class="w-5 h-5"></i>
+                    <span>Collections</span>
+                </a>
+                <a href="schema-builder.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="blocks" class="w-5 h-5"></i>
+                    <span>Schema Builder</span>
+                </a>
+                <a href="documents.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="file-json" class="w-5 h-5"></i>
+                    <span>Documents</span>
+                </a>
+                <a href="query-playground.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                    <span>Query Playground</span>
+                </a>
+                
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">System</p>
+                </div>
+                <a href="hooks.html" class="sidebar-item active flex items-center gap-3 px-3 py-2.5 rounded-lg text-white">
+                    <i data-lucide="webhook" class="w-5 h-5"></i>
+                    <span>Hooks & Events</span>
+                </a>
+                <a href="backup.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="archive" class="w-5 h-5"></i>
+                    <span>Backup & Restore</span>
+                </a>
+                <a href="import-export.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+                    <span>Import/Export</span>
+                </a>
+                <a href="logs.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="scroll-text" class="w-5 h-5"></i>
+                    <span>Logs & Audit</span>
+                </a>
+                
+                <div class="pt-4 pb-2">
+                    <p class="px-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Administration</p>
+                </div>
+                <a href="users.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Users</span>
+                </a>
+                <a href="roles.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="shield" class="w-5 h-5"></i>
+                    <span>Roles</span>
+                </a>
+                <a href="monitoring.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Monitoring</span>
+                </a>
+                <a href="security.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                    <span>Security</span>
+                </a>
+                <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <!-- User -->
+            <div class="p-3 border-t border-gray-800">
+                <a href="profile.html" class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800/50 transition-colors">
+                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=3b82f6&color=fff" class="w-9 h-9 rounded-lg" alt="Admin">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate">Admin User</p>
+                        <p class="text-xs text-gray-500 truncate">admin@bangrondb.com</p>
+                    </div>
+                    <i data-lucide="log-out" class="w-4 h-4 text-gray-500"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="glass border-b border-gray-800 sticky top-0 z-40">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <div class="flex items-center gap-4">
+                        <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                            <i data-lucide="menu" class="w-5 h-5"></i>
+                        </button>
+                        <div>
+                            <h1 class="text-xl font-bold">Hooks & Events</h1>
+                            <p class="text-sm text-gray-500">Manage event-driven hooks for all database operations</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="openCreateHookModal()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Create Hook</span>
+                        </button>
+                        <button onclick="openTemplatesModal()" class="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                            <i data-lucide="file-code" class="w-4 h-4"></i>
+                            <span>Templates</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="p-6 space-y-6">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-400">Total Hooks</p>
+                                <p class="text-2xl font-bold mt-1">24</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                                <i data-lucide="webhook" class="w-6 h-6 text-blue-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-3 text-xs">
+                            <span class="text-green-400">↑ 4</span>
+                            <span class="text-gray-500">new this week</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-400">Active Hooks</p>
+                                <p class="text-2xl font-bold mt-1">18</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-6 h-6 text-green-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-3 text-xs">
+                            <span class="text-gray-400">75%</span>
+                            <span class="text-gray-500">of total hooks</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-400">Executions Today</p>
+                                <p class="text-2xl font-bold mt-1">1,247</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                                <i data-lucide="zap" class="w-6 h-6 text-purple-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-3 text-xs">
+                            <span class="text-green-400">↑ 12%</span>
+                            <span class="text-gray-500">vs yesterday</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass rounded-xl p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-400">Failed Executions</p>
+                                <p class="text-2xl font-bold mt-1">3</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center">
+                                <i data-lucide="alert-triangle" class="w-6 h-6 text-red-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-3 text-xs">
+                            <span class="text-red-400">0.24%</span>
+                            <span class="text-gray-500">failure rate</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="glass rounded-xl p-4">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="flex-1 min-w-[200px]">
+                            <div class="relative">
+                                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                                <input type="text" placeholder="Search hooks..." class="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+                        <select class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+                            <option value="">All Databases</option>
+                            <option value="app_main">app_main</option>
+                            <option value="auth_db">auth_db</option>
+                            <option value="analytics">analytics</option>
+                        </select>
+                        <select class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+                            <option value="">All Collections</option>
+                            <option value="users">users</option>
+                            <option value="posts">posts</option>
+                            <option value="orders">orders</option>
+                        </select>
+                        <select class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+                            <option value="">All Events</option>
+                            <option value="beforeInsert">beforeInsert</option>
+                            <option value="afterInsert">afterInsert</option>
+                            <option value="beforeUpdate">beforeUpdate</option>
+                            <option value="afterUpdate">afterUpdate</option>
+                            <option value="beforeRemove">beforeRemove</option>
+                            <option value="afterRemove">afterRemove</option>
+                        </select>
+                        <select class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-sm">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Event Types Overview -->
+                <div class="glass rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Event Types</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <div class="bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-800 transition-colors" onclick="filterByEvent('beforeInsert')">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-green-500/20 flex items-center justify-center mb-3">
+                                <i data-lucide="log-in" class="w-6 h-6 text-green-400"></i>
+                            </div>
+                            <p class="text-sm font-medium">beforeInsert</p>
+                            <p class="text-xs text-gray-500 mt-1">5 hooks</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-800 transition-colors" onclick="filterByEvent('afterInsert')">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3">
+                                <i data-lucide="check" class="w-6 h-6 text-emerald-400"></i>
+                            </div>
+                            <p class="text-sm font-medium">afterInsert</p>
+                            <p class="text-xs text-gray-500 mt-1">8 hooks</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-800 transition-colors" onclick="filterByEvent('beforeUpdate')">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-blue-500/20 flex items-center justify-center mb-3">
+                                <i data-lucide="edit-3" class="w-6 h-6 text-blue-400"></i>
+                            </div>
+                            <p class="text-sm font-medium">beforeUpdate</p>
+                            <p class="text-xs text-gray-500 mt-1">4 hooks</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-800 transition-colors" onclick="filterByEvent('afterUpdate')">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-cyan-500/20 flex items-center justify-center mb-3">
+                                <i data-lucide="check-check" class="w-6 h-6 text-cyan-400"></i>
+                            </div>
+                            <p class="text-sm font-medium">afterUpdate</p>
+                            <p class="text-xs text-gray-500 mt-1">3 hooks</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-800 transition-colors" onclick="filterByEvent('beforeRemove')">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-amber-500/20 flex items-center justify-center mb-3">
+                                <i data-lucide="trash-2" class="w-6 h-6 text-amber-400"></i>
+                            </div>
+                            <p class="text-sm font-medium">beforeRemove</p>
+                            <p class="text-xs text-gray-500 mt-1">2 hooks</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer hover:bg-gray-800 transition-colors" onclick="filterByEvent('afterRemove')">
+                            <div class="w-12 h-12 mx-auto rounded-xl bg-red-500/20 flex items-center justify-center mb-3">
+                                <i data-lucide="x" class="w-6 h-6 text-red-400"></i>
+                            </div>
+                            <p class="text-sm font-medium">afterRemove</p>
+                            <p class="text-xs text-gray-500 mt-1">2 hooks</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hooks List -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">Registered Hooks</h3>
+                        <div class="flex items-center gap-2">
+                            <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="List View">
+                                <i data-lucide="list" class="w-4 h-4"></i>
+                            </button>
+                            <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Grid View">
+                                <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="divide-y divide-gray-800">
+                        <!-- Hook Item 1 -->
+                        <div class="p-4 hover:bg-gray-800/30 transition-colors">
+                            <div class="flex items-start gap-4">
+                                <div class="drag-handle p-2 hover:bg-gray-700 rounded-lg">
+                                    <i data-lucide="grip-vertical" class="w-4 h-4 text-gray-500"></i>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="log-in" class="w-5 h-5 text-green-400"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3">
+                                        <h4 class="font-semibold">Auto Timestamp</h4>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Active</span>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400">beforeInsert</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400 mt-1">Automatically adds created_at and updated_at timestamps</p>
+                                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="database" class="w-3 h-3"></i>
+                                            app_main
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="folder" class="w-3 h-3"></i>
+                                            users
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="zap" class="w-3 h-3"></i>
+                                            1,247 executions
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="clock" class="w-3 h-3"></i>
+                                            Last run: 2 min ago
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="openViewHookModal('auto-timestamp')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="View Code">
+                                        <i data-lucide="code" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="openEditHookModal('auto-timestamp')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Duplicate">
+                                        <i data-lucide="copy" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="toggleHookStatus(this)" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Toggle Status">
+                                        <i data-lucide="pause" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hook Item 2 -->
+                        <div class="p-4 hover:bg-gray-800/30 transition-colors">
+                            <div class="flex items-start gap-4">
+                                <div class="drag-handle p-2 hover:bg-gray-700 rounded-lg">
+                                    <i data-lucide="grip-vertical" class="w-4 h-4 text-gray-500"></i>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="check" class="w-5 h-5 text-emerald-400"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3">
+                                        <h4 class="font-semibold">Send Welcome Email</h4>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Active</span>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">afterInsert</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400 mt-1">Sends welcome email to new users after registration</p>
+                                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="database" class="w-3 h-3"></i>
+                                            app_main
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="folder" class="w-3 h-3"></i>
+                                            users
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="zap" class="w-3 h-3"></i>
+                                            856 executions
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="clock" class="w-3 h-3"></i>
+                                            Last run: 15 min ago
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="openViewHookModal('welcome-email')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="View Code">
+                                        <i data-lucide="code" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="openEditHookModal('welcome-email')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Duplicate">
+                                        <i data-lucide="copy" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="toggleHookStatus(this)" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Toggle Status">
+                                        <i data-lucide="pause" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hook Item 3 -->
+                        <div class="p-4 hover:bg-gray-800/30 transition-colors">
+                            <div class="flex items-start gap-4">
+                                <div class="drag-handle p-2 hover:bg-gray-700 rounded-lg">
+                                    <i data-lucide="grip-vertical" class="w-4 h-4 text-gray-500"></i>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="edit-3" class="w-5 h-5 text-blue-400"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3">
+                                        <h4 class="font-semibold">Update Timestamp</h4>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Active</span>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400">beforeUpdate</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400 mt-1">Updates the updated_at field before any update operation</p>
+                                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="database" class="w-3 h-3"></i>
+                                            * (all)
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="folder" class="w-3 h-3"></i>
+                                            * (all)
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="zap" class="w-3 h-3"></i>
+                                            3,421 executions
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="clock" class="w-3 h-3"></i>
+                                            Last run: 30 sec ago
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="openViewHookModal('update-timestamp')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="View Code">
+                                        <i data-lucide="code" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="openEditHookModal('update-timestamp')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Duplicate">
+                                        <i data-lucide="copy" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="toggleHookStatus(this)" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Toggle Status">
+                                        <i data-lucide="pause" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hook Item 4 - Inactive -->
+                        <div class="p-4 hover:bg-gray-800/30 transition-colors opacity-60">
+                            <div class="flex items-start gap-4">
+                                <div class="drag-handle p-2 hover:bg-gray-700 rounded-lg">
+                                    <i data-lucide="grip-vertical" class="w-4 h-4 text-gray-500"></i>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="trash-2" class="w-5 h-5 text-amber-400"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3">
+                                        <h4 class="font-semibold">Prevent Admin Delete</h4>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-gray-500/20 text-gray-400">Inactive</span>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-400">beforeRemove</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400 mt-1">Prevents deletion of protected admin accounts</p>
+                                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="database" class="w-3 h-3"></i>
+                                            auth_db
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="folder" class="w-3 h-3"></i>
+                                            users
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="zap" class="w-3 h-3"></i>
+                                            45 executions
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="clock" class="w-3 h-3"></i>
+                                            Last run: 5 days ago
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="openViewHookModal('prevent-admin-delete')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="View Code">
+                                        <i data-lucide="code" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="openEditHookModal('prevent-admin-delete')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Duplicate">
+                                        <i data-lucide="copy" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="toggleHookStatus(this)" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Toggle Status">
+                                        <i data-lucide="play" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hook Item 5 - Error -->
+                        <div class="p-4 hover:bg-gray-800/30 transition-colors border-l-4 border-red-500">
+                            <div class="flex items-start gap-4">
+                                <div class="drag-handle p-2 hover:bg-gray-700 rounded-lg">
+                                    <i data-lucide="grip-vertical" class="w-4 h-4 text-gray-500"></i>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="check-check" class="w-5 h-5 text-cyan-400"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3">
+                                        <h4 class="font-semibold">Sync to External API</h4>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-400">Error</span>
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-cyan-500/20 text-cyan-400">afterUpdate</span>
+                                    </div>
+                                    <p class="text-sm text-gray-400 mt-1">Syncs user data to external CRM after update</p>
+                                    <div class="flex items-center gap-2 mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+                                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-400"></i>
+                                        <span class="text-xs text-red-400">Error: Connection timeout to api.crm.example.com</span>
+                                    </div>
+                                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="database" class="w-3 h-3"></i>
+                                            app_main
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="folder" class="w-3 h-3"></i>
+                                            users
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="zap" class="w-3 h-3"></i>
+                                            523 executions
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="clock" class="w-3 h-3"></i>
+                                            Last error: 10 min ago
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="View Error Log">
+                                        <i data-lucide="bug" class="w-4 h-4 text-red-400"></i>
+                                    </button>
+                                    <button onclick="openViewHookModal('sync-external')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="View Code">
+                                        <i data-lucide="code" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="openEditHookModal('sync-external')" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Edit">
+                                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-gray-700 rounded-lg transition-colors" title="Retry">
+                                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                    </button>
+                                    <button class="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="p-4 border-t border-gray-800 flex items-center justify-between">
+                        <p class="text-sm text-gray-500">Showing 1-5 of 24 hooks</p>
+                        <div class="flex items-center gap-2">
+                            <button class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm disabled:opacity-50" disabled>Previous</button>
+                            <button class="px-3 py-1.5 bg-blue-600 rounded-lg text-sm">1</button>
+                            <button class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm">2</button>
+                            <button class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm">3</button>
+                            <button class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm">Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Execution History -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">Recent Executions</h3>
+                        <button class="text-sm text-blue-400 hover:text-blue-300">View All</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-800/50">
+                                <tr>
+                                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Hook</th>
+                                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Event</th>
+                                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Collection</th>
+                                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Status</th>
+                                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Duration</th>
+                                    <th class="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-800">
+                                <tr class="hover:bg-gray-800/30">
+                                    <td class="px-4 py-3 text-sm font-medium">Auto Timestamp</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">beforeInsert</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">app_main.users</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Success</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">0.003s</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">2 min ago</td>
+                                </tr>
+                                <tr class="hover:bg-gray-800/30">
+                                    <td class="px-4 py-3 text-sm font-medium">Send Welcome Email</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">afterInsert</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">app_main.users</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Success</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">0.245s</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">2 min ago</td>
+                                </tr>
+                                <tr class="hover:bg-gray-800/30">
+                                    <td class="px-4 py-3 text-sm font-medium">Sync to External API</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-cyan-500/20 text-cyan-400">afterUpdate</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">app_main.users</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-400">Failed</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">5.002s</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">10 min ago</td>
+                                </tr>
+                                <tr class="hover:bg-gray-800/30">
+                                    <td class="px-4 py-3 text-sm font-medium">Update Timestamp</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400">beforeUpdate</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">app_main.posts</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Success</span></td>
+                                    <td class="px-4 py-3 text-sm text-gray-400">0.001s</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">15 min ago</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Hook Modal -->
+    <div id="createHookModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex items-center justify-between">
+                <h2 class="text-xl font-bold">Create New Hook</h2>
+                <button onclick="closeCreateHookModal()" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)] space-y-6">
+                <!-- Basic Info -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Basic Information</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Hook Name *</label>
+                            <input type="text" placeholder="e.g., Auto Timestamp" class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Event Type *</label>
+                            <select id="hookEventType" onchange="updateHookPreview()" class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                                <option value="beforeInsert">beforeInsert</option>
+                                <option value="afterInsert">afterInsert</option>
+                                <option value="beforeUpdate">beforeUpdate</option>
+                                <option value="afterUpdate">afterUpdate</option>
+                                <option value="beforeRemove">beforeRemove</option>
+                                <option value="afterRemove">afterRemove</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                        <input type="text" placeholder="What does this hook do?" class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Target Selection -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Target</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Database</label>
+                            <select class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                                <option value="*">All Databases (*)</option>
+                                <option value="app_main">app_main</option>
+                                <option value="auth_db">auth_db</option>
+                                <option value="analytics">analytics</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Collection</label>
+                            <select class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                                <option value="*">All Collections (*)</option>
+                                <option value="users">users</option>
+                                <option value="posts">posts</option>
+                                <option value="orders">orders</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority & Options -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Options</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Priority</label>
+                            <select class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500">
+                                <option value="1">1 - Highest</option>
+                                <option value="5" selected>5 - Normal</option>
+                                <option value="10">10 - Lowest</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" checked class="w-5 h-5 rounded bg-gray-800 border-gray-700 text-blue-500 focus:ring-blue-500">
+                                <span class="text-sm text-gray-300">Active</span>
+                            </label>
+                        </div>
+                        <div class="flex items-end">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" class="w-5 h-5 rounded bg-gray-800 border-gray-700 text-blue-500 focus:ring-blue-500">
+                                <span class="text-sm text-gray-300">Async</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Editor -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Hook Code (PHP)</h3>
+                        <button class="text-xs text-blue-400 hover:text-blue-300">Load Template</button>
+                    </div>
+                    <div class="code-editor rounded-xl p-4 border border-gray-800">
+                        <pre id="hookCodePreview" class="text-sm text-gray-300 font-mono"><span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'beforeInsert'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$document</span>) {
+    <span class="text-gray-500">// Add created_at timestamp</span>
+    <span class="text-purple-400">$document</span>[<span class="text-green-400">'created_at'</span>] = <span class="text-blue-400">date</span>(<span class="text-green-400">'Y-m-d H:i:s'</span>);
+    <span class="text-purple-400">$document</span>[<span class="text-green-400">'updated_at'</span>] = <span class="text-purple-400">$document</span>[<span class="text-green-400">'created_at'</span>];
+    
+    <span class="text-pink-400">return</span> <span class="text-purple-400">$document</span>; <span class="text-gray-500">// Return modified document</span>
+});</pre>
+                    </div>
+                    <textarea id="hookCodeInput" class="w-full h-48 px-4 py-3 code-editor border border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 text-sm font-mono" placeholder="// Write your hook code here...
+$collection->on('beforeInsert', function($document) {
+    // Your logic here
+    return $document;
+});"></textarea>
+                </div>
+
+                <!-- Return Values Info -->
+                <div class="bg-gray-800/50 rounded-xl p-4 space-y-3">
+                    <h4 class="text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+                        Hook Return Values
+                    </h4>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <div class="flex items-start gap-2">
+                            <span class="px-2 py-0.5 text-xs rounded bg-green-500/20 text-green-400">array</span>
+                            <span class="text-gray-400">Return modified data</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400">false</span>
+                            <span class="text-gray-400">Cancel operation</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="px-2 py-0.5 text-xs rounded bg-gray-500/20 text-gray-400">true/null</span>
+                            <span class="text-gray-400">Continue unchanged</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-800 flex items-center justify-between">
+                <button class="px-4 py-2 text-gray-400 hover:text-white transition-colors">Test Hook</button>
+                <div class="flex items-center gap-3">
+                    <button onclick="closeCreateHookModal()" class="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+                    <button class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Create Hook</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Hook Code Modal -->
+    <div id="viewHookModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold">Auto Timestamp</h2>
+                    <p class="text-sm text-gray-500 mt-1">beforeInsert • app_main.users</p>
+                </div>
+                <button onclick="closeViewHookModal()" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="code-editor rounded-xl p-4 border border-gray-800 overflow-auto max-h-[400px]">
+                    <pre class="text-sm text-gray-300 font-mono"><span class="text-gray-500">&lt;?php</span>
+
+<span class="text-gray-500">/**
+ * Hook: Auto Timestamp
+ * Event: beforeInsert
+ * Target: app_main.users
+ * Created: 2024-01-15 10:30:00
+ */</span>
+
+<span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'beforeInsert'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$document</span>) {
+    <span class="text-gray-500">// Add timestamps</span>
+    <span class="text-pink-400">if</span> (!<span class="text-blue-400">isset</span>(<span class="text-purple-400">$document</span>[<span class="text-green-400">'created_at'</span>])) {
+        <span class="text-purple-400">$document</span>[<span class="text-green-400">'created_at'</span>] = <span class="text-blue-400">date</span>(<span class="text-green-400">'Y-m-d H:i:s'</span>);
+    }
+    
+    <span class="text-purple-400">$document</span>[<span class="text-green-400">'updated_at'</span>] = <span class="text-purple-400">$document</span>[<span class="text-green-400">'created_at'</span>];
+    
+    <span class="text-pink-400">return</span> <span class="text-purple-400">$document</span>;
+});</pre>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-800 flex items-center justify-between">
+                <div class="flex items-center gap-2 text-sm text-gray-500">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>1,247 executions</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        Copy Code
+                    </button>
+                    <button onclick="closeViewHookModal(); openEditHookModal('auto-timestamp');" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                        Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Modal -->
+    <div id="templatesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-800 flex items-center justify-between">
+                <h2 class="text-xl font-bold">Hook Templates</h2>
+                <button onclick="closeTemplatesModal()" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[calc(85vh-140px)]">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Template Cards -->
+                    <div class="hook-card bg-gray-800/50 border border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-500">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="clock" class="w-5 h-5 text-green-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Auto Timestamps</h4>
+                                <p class="text-sm text-gray-400 mt-1">Automatically add created_at and updated_at fields</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">beforeInsert</span>
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400">beforeUpdate</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hook-card bg-gray-800/50 border border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-500">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="mail" class="w-5 h-5 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Send Email Notification</h4>
+                                <p class="text-sm text-gray-400 mt-1">Send email after document is inserted</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">afterInsert</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hook-card bg-gray-800/50 border border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-500">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="shield-check" class="w-5 h-5 text-purple-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Data Validation</h4>
+                                <p class="text-sm text-gray-400 mt-1">Validate data before insert or update</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">beforeInsert</span>
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400">beforeUpdate</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hook-card bg-gray-800/50 border border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-500">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="ban" class="w-5 h-5 text-amber-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Prevent Protected Delete</h4>
+                                <p class="text-sm text-gray-400 mt-1">Block deletion of protected documents</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-400">beforeRemove</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hook-card bg-gray-800/50 border border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-500">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="history" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Audit Log</h4>
+                                <p class="text-sm text-gray-400 mt-1">Log all changes to separate collection</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-500/20 text-emerald-400">afterInsert</span>
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-cyan-500/20 text-cyan-400">afterUpdate</span>
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-400">afterRemove</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hook-card bg-gray-800/50 border border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-500">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="refresh-cw" class="w-5 h-5 text-red-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">Cache Invalidation</h4>
+                                <p class="text-sm text-gray-400 mt-1">Clear cache when data changes</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-cyan-500/20 text-cyan-400">afterUpdate</span>
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-red-500/20 text-red-400">afterRemove</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('w-64');
+            sidebar.classList.toggle('w-20');
+        }
+
+        // Modal functions
+        function openCreateHookModal() {
+            document.getElementById('createHookModal').classList.remove('hidden');
+            document.getElementById('createHookModal').classList.add('flex');
+        }
+
+        function closeCreateHookModal() {
+            document.getElementById('createHookModal').classList.add('hidden');
+            document.getElementById('createHookModal').classList.remove('flex');
+        }
+
+        function openViewHookModal(hookId) {
+            document.getElementById('viewHookModal').classList.remove('hidden');
+            document.getElementById('viewHookModal').classList.add('flex');
+        }
+
+        function closeViewHookModal() {
+            document.getElementById('viewHookModal').classList.add('hidden');
+            document.getElementById('viewHookModal').classList.remove('flex');
+        }
+
+        function openEditHookModal(hookId) {
+            openCreateHookModal();
+        }
+
+        function openTemplatesModal() {
+            document.getElementById('templatesModal').classList.remove('hidden');
+            document.getElementById('templatesModal').classList.add('flex');
+        }
+
+        function closeTemplatesModal() {
+            document.getElementById('templatesModal').classList.add('hidden');
+            document.getElementById('templatesModal').classList.remove('flex');
+        }
+
+        function toggleHookStatus(btn) {
+            const icon = btn.querySelector('i');
+            if (icon.dataset.lucide === 'pause') {
+                icon.dataset.lucide = 'play';
+            } else {
+                icon.dataset.lucide = 'pause';
+            }
+            lucide.createIcons();
+        }
+
+        function filterByEvent(event) {
+            console.log('Filtering by event:', event);
+        }
+
+        function updateHookPreview() {
+            const event = document.getElementById('hookEventType').value;
+            const preview = document.getElementById('hookCodePreview');
+            
+            const templates = {
+                beforeInsert: `<span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'beforeInsert'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$document</span>) {
+    <span class="text-gray-500">// Modify document before insert</span>
+    <span class="text-purple-400">$document</span>[<span class="text-green-400">'created_at'</span>] = <span class="text-blue-400">date</span>(<span class="text-green-400">'Y-m-d H:i:s'</span>);
+    
+    <span class="text-pink-400">return</span> <span class="text-purple-400">$document</span>;
+});`,
+                afterInsert: `<span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'afterInsert'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$document</span>, <span class="text-orange-400">$insertId</span>) {
+    <span class="text-gray-500">// Perform actions after insert</span>
+    <span class="text-blue-400">error_log</span>(<span class="text-green-400">"Document inserted: "</span> . <span class="text-purple-400">$insertId</span>);
+});`,
+                beforeUpdate: `<span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'beforeUpdate'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$criteria</span>, <span class="text-orange-400">$data</span>) {
+    <span class="text-gray-500">// Modify data before update</span>
+    <span class="text-purple-400">$data</span>[<span class="text-green-400">'updated_at'</span>] = <span class="text-blue-400">date</span>(<span class="text-green-400">'Y-m-d H:i:s'</span>);
+    
+    <span class="text-pink-400">return</span> [<span class="text-green-400">'criteria'</span> => <span class="text-purple-400">$criteria</span>, <span class="text-green-400">'data'</span> => <span class="text-purple-400">$data</span>];
+});`,
+                afterUpdate: `<span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'afterUpdate'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$oldDoc</span>, <span class="text-orange-400">$newDoc</span>) {
+    <span class="text-gray-500">// Perform actions after update</span>
+    <span class="text-blue-400">error_log</span>(<span class="text-green-400">"Document updated: "</span> . <span class="text-purple-400">$newDoc</span>[<span class="text-green-400">'_id'</span>]);
+});`,
+                beforeRemove: `<span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'beforeRemove'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$document</span>) {
+    <span class="text-gray-500">// Check if deletion is allowed</span>
+    <span class="text-pink-400">if</span> (<span class="text-purple-400">$document</span>[<span class="text-green-400">'protected'</span>] ?? <span class="text-orange-400">false</span>) {
+        <span class="text-pink-400">return</span> <span class="text-orange-400">false</span>; <span class="text-gray-500">// Cancel removal</span>
+    }
+});`,
+                afterRemove: `<span class="text-purple-400">$collection</span>-><span class="text-blue-400">on</span>(<span class="text-green-400">'afterRemove'</span>, <span class="text-purple-400">function</span>(<span class="text-orange-400">$document</span>) {
+    <span class="text-gray-500">// Cleanup after deletion</span>
+    <span class="text-blue-400">error_log</span>(<span class="text-green-400">"Document deleted: "</span> . <span class="text-purple-400">$document</span>[<span class="text-green-400">'_id'</span>]);
+});`
+            };
+            
+            preview.innerHTML = templates[event];
+        }
+    </script>
+</body>
+</html>

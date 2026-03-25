@@ -1,0 +1,9 @@
+﻿{layout '../layouts/main.latte'}
+{block content}
+<div class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+<h3 class="font-semibold">Role Detail</h3>
+<p><span class="text-gray-400">Name:</span> {$role['name'] ?? '-'}</p>
+<p><span class="text-gray-400">Description:</span> {$role['description'] ?? '-'}</p>
+<a href="/roles/{urlencode($role['_id'] ?? $role['id'] ?? '')}/edit" class="inline-block rounded-lg border border-white/20 px-3 py-2 text-sm">Edit</a>
+</div>
+{/block}

@@ -1,0 +1,13 @@
+﻿{layout '../layouts/main.latte'}
+{block content}
+<div class="rounded-xl border border-white/10 bg-white/5 p-4">
+<h3 class="font-semibold mb-3">Role Permissions</h3>
+<form method="post" action="/roles/{urlencode($role['_id'] ?? $role['id'] ?? '')}/permissions" class="space-y-3">
+{=csrf_field()|noescape}
+{foreach $allPermissions as $perm}
+<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="permissions[]" value="{$perm['key'] ?? $perm['_id'] ?? ''}" {if in_array(($perm['key'] ?? $perm['_id'] ?? ''), $rolePermissions ?? [])}checked{/if}> {$perm['key'] ?? $perm['_id'] ?? ''}</label>
+{/foreach}
+<button class="rounded-lg bg-blue-600 px-4 py-2 text-sm">Save</button>
+</form>
+</div>
+{/block}

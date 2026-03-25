@@ -1,0 +1,59 @@
+﻿{layout '../layouts/main.latte'}
+
+{block content}
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h3 class="text-xl font-semibold">{$db['_id']}</h3>
+        <p class="text-sm text-gray-400">{$db['label'] ?? $db['_id']}</p>
+    </div>
+    <a href="/databases/{urlencode($db['_id'])}/settings" class="rounded-lg bg-blue-600 px-3 py-2 text-sm">Database Settings</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <section class="lg:col-span-2 glass-card rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-white/10 flex items-center justify-between"><h4 class="font-semibold">Collections</h4><span class="text-xs text-gray-400">{count($collections)} items</span></div>
+        <div class="p-4 space-y-2">
+            {if empty($collections)}
+                <p class="text-sm text-gray-400">No collections.</p>
+            {else}
+                {foreach $collections as $collection}
+                    <div class="rounded-lg border border-white/10 px-3 py-2 flex items-center justify-between">
+                        <a href="/documents/{urlencode($collection)}?db={urlencode($db['_id'])}" class="font-mono text-sm text-blue-400 hover:text-blue-300">{$collection}</a>
+                        <a href="/collections/{urlencode($collection)}/settings?db={urlencode($db['_id'])}" class="text-xs text-purple-300">Configure</a>
+                    </div>
+                {/foreach}
+            {/if}
+        </div>
+    </section>
+
+    <section class="glass-card rounded-xl p-4 space-y-4">
+        <div>
+            <h4 class="font-semibold mb-2">Create Collection</h4>
+            <form method="post" action="/collections/{urlencode($db['_id'])}/create" class="space-y-2">
+                {=csrf_field()|noescape}
+                <input name="collection_name" required class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm" placeholder="collection_name">
+                <button class="rounded-lg bg-blue-600 px-3 py-2 text-sm">Create</button>
+            </form>
+        </div>
+
+        <div>
+            <h4 class="font-semibold mb-2">Rename</h4>
+            <form method="post" action="/collections/{urlencode($db['_id'])}/rename" class="space-y-2">
+                {=csrf_field()|noescape}
+                <input name="current_name" required class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm" placeholder="current">
+                <input name="new_name" required class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm" placeholder="new">
+                <button class="rounded-lg border border-white/20 px-3 py-2 text-sm">Rename</button>
+            </form>
+        </div>
+
+        <div>
+            <h4 class="font-semibold mb-2 text-red-300">Drop</h4>
+            <form method="post" action="/collections/{urlencode($db['_id'])}/drop" class="space-y-2">
+                {=csrf_field()|noescape}
+                <input name="collection_name" required class="w-full rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm" placeholder="collection_to_drop">
+                <button class="rounded-lg bg-red-600 px-3 py-2 text-sm">Drop</button>
+            </form>
+        </div>
+    </section>
+</div>
+{/block}

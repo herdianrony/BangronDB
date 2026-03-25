@@ -1,0 +1,13 @@
+﻿{layout '../layouts/main.latte'}
+{block content}
+<div class="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
+<h3 class="font-semibold mb-2">Backup Browser</h3>
+<form method="get" action="/backup" class="flex gap-2">
+<input name="db" value="{$dbName ?? ''}" placeholder="database name" class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+<button class="rounded-lg bg-blue-600 px-3 py-2 text-sm">Load</button>
+</form>
+</div>
+<div class="rounded-xl border border-white/10 bg-white/5 p-4">
+{if empty($backups)}<p class="text-sm text-gray-400">No backups.</p>{else}<pre class="text-xs whitespace-pre-wrap break-all">{=json_encode($backups, 128)}</pre>{/if}
+</div>
+{/block}

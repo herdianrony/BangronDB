@@ -1,0 +1,17 @@
+﻿{layout '../layouts/main.latte'}
+
+{block content}
+<div class="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
+    <h3 class="font-semibold">User Activity</h3>
+</div>
+<div class="rounded-xl border border-white/10 bg-white/5 overflow-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-white/5"><tr><th class="px-3 py-2 text-left">Action</th><th class="px-3 py-2 text-left">IP</th><th class="px-3 py-2 text-left">Time</th></tr></thead>
+        <tbody>
+        {foreach $logs as $log}
+            <tr class="border-t border-white/10"><td class="px-3 py-2">{$log['action'] ?? '-'}</td><td class="px-3 py-2">{$log['ip_address'] ?? '-'}</td><td class="px-3 py-2">{$log['timestamp'] ?? '-'}</td></tr>
+        {/foreach}
+        </tbody>
+    </table>
+</div>
+{/block}

@@ -1,0 +1,11 @@
+﻿{layout '../layouts/main.latte'}
+{block content}
+<div class="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+<h3 class="font-semibold">User Detail</h3>
+<p><span class="text-gray-400">Name:</span> {$target['name'] ?? (($target['first_name'] ?? '') . ' ' . ($target['last_name'] ?? ''))}</p>
+<p><span class="text-gray-400">Email:</span> {$target['email'] ?? '-'}</p>
+<p><span class="text-gray-400">Role:</span> {$target['role_id'] ?? '-'}</p>
+<p><span class="text-gray-400">Status:</span> {$target['status'] ?? '-'}</p>
+<a href="/users/{urlencode($target['_id'] ?? $target['id'] ?? '')}/edit" class="inline-block rounded-lg border border-white/20 px-3 py-2 text-sm">Edit</a>
+</div>
+{/block}

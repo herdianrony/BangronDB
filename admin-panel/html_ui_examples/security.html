@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security - BangronDB Admin Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- ==================== SIDEBAR ==================== -->
+        <aside id="sidebar" class="bg-white border-r border-slate-200 flex flex-col transition-all duration-300 z-20 w-64">
+            <div class="h-16 flex items-center px-4 border-b border-slate-100">
+                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white mr-3 shrink-0 shadow-sm shadow-brand-200">
+                    <span class="font-bold text-lg">B</span>
+                </div>
+                <div class="sidebar-text overflow-hidden whitespace-nowrap">
+                    <h1 class="font-bold text-lg tracking-tight text-slate-900">BangronDB</h1>
+                    <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Admin Console</p>
+                </div>
+            </div>
+
+            <div class="flex-1 py-6 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+                <div class="sidebar-label px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Overview</div>
+                <a href="index.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Dashboard</span>
+                </a>
+                <a href="databases.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Databases</span>
+                </a>
+                
+                <div class="sidebar-label mt-6 px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Tools</div>
+                <a href="query-playground.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Query Playground</span>
+                </a>
+                <a href="monitoring.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Monitoring</span>
+                </a>
+                <a href="security.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-brand-50 text-brand-700">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Security</span>
+                </a>
+                
+                <div class="sidebar-label mt-6 px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">System</div>
+                <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="sidebar-text">Settings</span>
+                </a>
+            </div>
+
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="toggleSidebar()" class="w-full flex justify-center items-center text-slate-400 hover:text-slate-600 p-2">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ==================== MAIN CONTENT ==================== -->
+        <main class="flex-1 flex flex-col min-w-0">
+            
+            <!-- ==================== HEADER ==================== -->
+            <header class="h-16 bg-white border-b border-slate-200 px-8 flex justify-between items-center shadow-sm z-10">
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden md:block group">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-[18px] h-[18px]"></i>
+                        <input type="text" placeholder="Global search..." class="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm w-64 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-100 focus:border-brand-500 transition-all" />
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="flex flex-col items-end mr-2 hidden md:block">
+                        <span class="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                            v1.0.0 Stable
+                        </span>
+                        <span class="text-[10px] text-slate-400">PHP 8.2 • SQLite 3.39</span>
+                    </div>
+                    <button class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200">
+                        <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
+                    </button>
+                    <div class="h-8 w-px bg-slate-200 mx-1"></div>
+                    <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">A</div>
+                </div>
+            </header>
+
+            <!-- ==================== PAGE CONTENT ==================== -->
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/50">
+                <div class="space-y-6 animate-fade-in">
+                    
+                    <!-- Page Header -->
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                            <i data-lucide="shield-check" class="w-6 h-6 text-slate-400"></i>
+                            Security Center
+                        </h1>
+                        <p class="text-slate-500">Manage encryption keys and audit security events</p>
+                    </div>
+
+                    <!-- Encryption Keys Section -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                            <h3 class="font-semibold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="key" class="w-4 h-4 text-slate-400"></i>
+                                Encryption Keys
+                            </h3>
+                            <button class="px-3 py-1.5 text-sm font-medium text-brand-600 bg-brand-50 border border-brand-100 rounded-lg hover:bg-brand-100 flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Generate New Key
+                            </button>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            <!-- Key 1 - Master -->
+                            <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                        <i data-lucide="shield" class="w-5 h-5 text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-900">Master Key</p>
+                                        <p class="text-xs text-slate-500 font-mono">mk_8f7a9c2d...4e6b</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>
+                                    <span class="text-xs text-slate-500">Created: 2024-01-01</span>
+                                    <button class="text-slate-400 hover:text-slate-600 p-2">
+                                        <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Key 2 - Collection Override -->
+                            <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                        <i data-lucide="key" class="w-5 h-5 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-900">users Collection Key</p>
+                                        <p class="text-xs text-slate-500 font-mono">ck_3e9f7a2c...8d1a</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>
+                                    <span class="text-xs text-slate-500">Created: 2024-01-10</span>
+                                    <button class="text-slate-400 hover:text-slate-600 p-2">
+                                        <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Key 3 - Rotated -->
+                            <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 bg-slate-50/50">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                                        <i data-lucide="key" class="w-5 h-5 text-slate-400"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-500">orders Collection Key (Rotated)</p>
+                                        <p class="text-xs text-slate-400 font-mono">ck_7b2e4f1a...9c3d</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600">Rotated</span>
+                                    <span class="text-xs text-slate-500">Rotated: 2024-01-12</span>
+                                    <button class="text-slate-400 hover:text-slate-600 p-2">
+                                        <i data-lucide="more-vertical" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Log Section -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                            <h3 class="font-semibold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="scroll-text" class="w-4 h-4 text-slate-400"></i>
+                                Security Audit Log
+                            </h3>
+                            <div class="flex gap-2">
+                                <select class="px-2 py-1 border border-slate-200 rounded text-xs bg-white">
+                                    <option>All Events</option>
+                                    <option>Authentication</option>
+                                    <option>Key Management</option>
+                                    <option>Data Access</option>
+                                </select>
+                                <button class="px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-50">
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-3 font-semibold text-slate-700">Timestamp</th>
+                                    <th class="px-6 py-3 font-semibold text-slate-700">Event</th>
+                                    <th class="px-6 py-3 font-semibold text-slate-700">User/Source</th>
+                                    <th class="px-6 py-3 font-semibold text-slate-700">Details</th>
+                                    <th class="px-6 py-3 font-semibold text-slate-700">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-6 py-3 font-mono text-xs text-slate-500">2024-01-15 14:32:00</td>
+                                    <td class="px-6 py-3 text-slate-900">Key Rotation</td>
+                                    <td class="px-6 py-3 text-slate-600">admin@system</td>
+                                    <td class="px-6 py-3 text-slate-500">orders collection key rotated</td>
+                                    <td class="px-6 py-3">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">Success</span>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-6 py-3 font-mono text-xs text-slate-500">2024-01-15 14:28:15</td>
+                                    <td class="px-6 py-3 text-slate-900">Decryption Access</td>
+                                    <td class="px-6 py-3 text-slate-600">api-service</td>
+                                    <td class="px-6 py-3 text-slate-500">users.find() - 125 documents</td>
+                                    <td class="px-6 py-3">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">Success</span>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 bg-red-50/50">
+                                    <td class="px-6 py-3 font-mono text-xs text-slate-500">2024-01-15 14:15:42</td>
+                                    <td class="px-6 py-3 text-slate-900">Failed Decryption</td>
+                                    <td class="px-6 py-3 text-slate-600">unknown</td>
+                                    <td class="px-6 py-3 text-slate-500">Invalid key for products collection</td>
+                                    <td class="px-6 py-3">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800">Failed</span>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-6 py-3 font-mono text-xs text-slate-500">2024-01-15 13:45:00</td>
+                                    <td class="px-6 py-3 text-slate-900">Schema Update</td>
+                                    <td class="px-6 py-3 text-slate-600">admin@console</td>
+                                    <td class="px-6 py-3 text-slate-500">users schema modified (added email regex)</td>
+                                    <td class="px-6 py-3">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">Success</span>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-6 py-3 font-mono text-xs text-slate-500">2024-01-15 12:00:00</td>
+                                    <td class="px-6 py-3 text-slate-900">Backup Created</td>
+                                    <td class="px-6 py-3 text-slate-600">cron-job</td>
+                                    <td class="px-6 py-3 text-slate-500">production_db backup completed</td>
+                                    <td class="px-6 py-3">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800">Success</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+                            <span>Showing 1-5 of 248 events</span>
+                            <div class="flex gap-1">
+                                <button class="px-2 py-1 border border-slate-200 rounded hover:bg-white">Prev</button>
+                                <button class="px-2 py-1 border border-slate-200 rounded hover:bg-white">Next</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Toggle Sidebar
+        let sidebarCollapsed = false;
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const texts = document.querySelectorAll('.sidebar-text');
+            const labels = document.querySelectorAll('.sidebar-label');
+            
+            sidebarCollapsed = !sidebarCollapsed;
+            
+            if (sidebarCollapsed) {
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-20');
+                texts.forEach(t => t.classList.add('hidden'));
+                labels.forEach(l => l.classList.add('hidden'));
+            } else {
+                sidebar.classList.remove('w-20');
+                sidebar.classList.add('w-64');
+                texts.forEach(t => t.classList.remove('hidden'));
+                labels.forEach(l => l.classList.remove('hidden'));
+            }
+        }
+    </script>
+</body>
+</html>

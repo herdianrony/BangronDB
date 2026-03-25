@@ -1,0 +1,16 @@
+﻿{layout '../layouts/main.latte'}
+{block content}
+<div class="max-w-2xl rounded-xl border border-white/10 bg-white/5 p-4">
+<h3 class="font-semibold mb-3">Edit User</h3>
+<form method="post" action="/users/{urlencode($target['_id'] ?? $target['id'] ?? '')}/edit" class="space-y-3">
+{=csrf_field()|noescape}
+<input name="first_name" value="{$target['first_name'] ?? ''}" placeholder="First name" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+<input name="last_name" value="{$target['last_name'] ?? ''}" placeholder="Last name" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+<input name="email" value="{$target['email'] ?? ''}" type="email" placeholder="Email" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+<input name="username" value="{$target['username'] ?? ''}" placeholder="Username" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+<input name="password" type="password" placeholder="Leave empty to keep" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">
+<select name="role_id" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm">{foreach $roles as $r}<option value="{$r['_id'] ?? $r['id'] ?? ''}" {if ($target['role_id'] ?? '') == ($r['_id'] ?? $r['id'] ?? '')}selected{/if}>{$r['name'] ?? ($r['_id'] ?? '')}</option>{/foreach}</select>
+<button class="rounded-lg bg-blue-600 px-4 py-2 text-sm">Update</button>
+</form>
+</div>
+{/block}
