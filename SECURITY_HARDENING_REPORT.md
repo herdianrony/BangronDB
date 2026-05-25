@@ -227,7 +227,7 @@ Comprehensive security hardening of BangronDB PHP library to prevent Remote Code
 **File**: [tests/SecurityValidationTest.php](tests/SecurityValidationTest.php)
 **Tests**: 36 comprehensive security tests
 
-### Test Categories:
+### Test Categories
 
 1. **Field Name Validation** (10 tests)
    - Valid names (alphanumeric, underscore, hyphen, dot)
@@ -265,7 +265,7 @@ Comprehensive security hardening of BangronDB PHP library to prevent Remote Code
 
 ✅ **All existing tests pass** (273 total, 237 legacy + 36 new)
 
-### Breaking Changes (Intentional):
+### Breaking Changes (Intentional)
 
 1. **`$where` operator**: Now ONLY accepts Closures, not string function names
    - Legitimate use: `['$where' => fn($doc) => condition]` ✅
@@ -279,7 +279,7 @@ Comprehensive security hardening of BangronDB PHP library to prevent Remote Code
    - Legitimate use: `['user_name' => 'john']` ✅
    - Invalid use: `['field'; DROP--' => 'value']` ❌ (blocks injection)
 
-### Migration Guide:
+### Migration Guide
 
 Users with legacy code using string function names in `$where`/`$func`:
 
@@ -324,20 +324,20 @@ OK (273 tests, 810 assertions)
 
 ## Documentation
 
-### For Library Users:
+### For Library Users
 
 - Update code using `$where`/`$func` operators to use Closures
 - Ensure field names are alphanumeric + underscore/hyphen/dot
 - Field names longer than 255 characters are rejected
 
-### For Administrators:
+### For Administrators
 
 - No additional system configuration needed
 - Strict type checking is internal - no public API changes except noted above
 - Database file encryption key is safely escaped
 - Database paths are validated against traversal attacks
 
-### For Developers:
+### For Developers
 
 - New `FieldValidator` utility available for additional security checks
 - All methods in FieldValidator are static and can be used standalone
