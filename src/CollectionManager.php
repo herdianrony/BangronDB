@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
 
 /**
@@ -262,6 +264,7 @@ class CollectionManager
         $validKeys = [
             'id_mode', 'encryption_key', 'searchable_fields', 'schema',
             'soft_deletes_enabled', 'deleted_at_field', 'created_at', 'updated_at',
+            'custom_config',
         ];
 
         foreach (array_keys($config) as $key) {

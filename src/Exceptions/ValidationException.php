@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB\Exceptions;
 
 /**
@@ -41,7 +43,7 @@ class ValidationException extends BangronDBException
      */
     public static function requiredFieldMissing(string $field, array $context = []): self
     {
-        $message = "Required field '{$field}' is missing";
+        $message = "Field '{$field}' is required";
         $context = array_merge($context, ['field' => $field]);
 
         return new self($message, 'REQUIRED_FIELD_MISSING', $context);

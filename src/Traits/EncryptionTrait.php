@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB\Traits;
 
 /**
  * Trait for handling document encryption and decryption.
- * Provides AES-256-CBC encryption with per-collection or database-level keys.
+ * Provides AES-256-GCM authenticated encryption with per-collection or database-level keys.
  */
 trait EncryptionTrait
 {
@@ -110,8 +112,8 @@ trait EncryptionTrait
 
     /**
      * Encode a document for storage. If encryption key is set, the
-     * document (except `_id`) will be encrypted with AES-256-CBC and stored as
-     * an object: { _id, encrypted_data, iv }.
+     * document (except `_id`) will be encrypted with AES-256-GCM and stored as
+     * an object: { _id, encrypted_data, iv, tag }.
      *
      * Returns JSON string ready to be stored in `document` column.
      */
@@ -140,7 +142,7 @@ trait EncryptionTrait
     }
 
     /**
-     * Encode document with AES-256-CBC encryption.
+     * Encode document with AES-256-GCM encryption.
      */
     private function encodeEncrypted(array $doc, string $key): string
     {
@@ -157,24 +159,27 @@ trait EncryptionTrait
             '_id' => $id,
             'encrypted_data' => $encryptionData['encrypted_data'],
             'iv' => $encryptionData['iv'],
+            'tag' => $encryptionData['tag'],
         ];
 
         return $this->encodeJson($store);
     }
 
     /**
-     * Encrypt data using AES-256-CBC.
+     * Encrypt data using AES-256-GCM.
      */
     private function encryptData(string $plain, string $key): array
     {
-        $rawKey = \hash('sha256', $key, true);
-        $ivLen = openssl_cipher_iv_length('AES-256-CBC');
-        $iv = openssl_random_pseudo_bytes($ivLen);
-        $cipher = openssl_encrypt($plain, 'AES-256-CBC', $rawKey, OPENSSL_RAW_DATA, $iv);
+        $rawKey = \hash_pbkdf2('sha256', $key, 'bangrondb_encryption_salt', 100000, 32, true);
+        $ivLen = 16; // AES-256-GCM always uses 16-byte IV
+        $iv = \random_bytes($ivLen);
+        $tag = '';
+        $cipher = \openssl_encrypt($plain, 'aes-256-gcm', $rawKey, OPENSSL_RAW_DATA, $iv, $tag);
 
         return [
-            'encrypted_data' => base64_encode($cipher),
-            'iv' => base64_encode($iv),
+            'encrypted_data' => \base64_encode($cipher),
+            'iv' => \base64_encode($iv),
+            'tag' => \base64_encode($tag),
         ];
     }
 
@@ -205,7 +210,7 @@ trait EncryptionTrait
      */
     private function isEncryptedFormat(array $decoded): bool
     {
-        return is_array($decoded) && isset($decoded['encrypted_data']);
+        return \is_array($decoded) && isset($decoded['encrypted_data']) && isset($decoded['tag']);
     }
 
     /**
@@ -242,15 +247,20 @@ trait EncryptionTrait
      */
     private function decryptData(array $decoded): ?string
     {
-        $rawKey = hash('sha256', $this->encryptionKey ?? $this->database->encryptionKey ?? '', true);
-
-        $cipher = base64_decode($decoded['encrypted_data'] ?? '');
-        $iv = base64_decode($decoded['iv'] ?? '');
-        if ($cipher === false || $iv === false) {
+        $key = $this->encryptionKey ?? $this->database->encryptionKey ?? null;
+        if (empty($key)) {
             return null;
         }
 
-        return openssl_decrypt($cipher, 'AES-256-CBC', $rawKey, OPENSSL_RAW_DATA, $iv);
+        $rawKey = \hash_pbkdf2('sha256', $key, 'bangrondb_encryption_salt', 100000, 32, true);
+        $cipher = \base64_decode($decoded['encrypted_data'] ?? '');
+        $iv = \base64_decode($decoded['iv'] ?? '');
+        $tag = \base64_decode($decoded['tag'] ?? '');
+        if ($cipher === false || $iv === false || $tag === false) {
+            return null;
+        }
+
+        return \openssl_decrypt($cipher, 'aes-256-gcm', $rawKey, OPENSSL_RAW_DATA, $iv, $tag);
     }
 
     /**
@@ -272,30 +282,30 @@ trait EncryptionTrait
      * Low-level decrypt helper that accepts encrypted_data and iv (base64)
      * and returns the decrypted plaintext or null on failure.
      */
-    private function _decryptToPlaintext(string $encryptedBase64, string $ivBase64): ?string
+    private function _decryptToPlaintext(string $encryptedBase64, string $ivBase64, ?string $tagBase64 = null): ?string
     {
         $key = $this->encryptionKey ?? $this->database->encryptionKey ?? null;
         if (empty($key)) {
             return null;
         }
 
-        return $this->decryptDataString($encryptedBase64, $ivBase64, $key);
+        return $this->decryptDataString($encryptedBase64, $ivBase64, $key, $tagBase64);
     }
 
     /**
      * Decrypt data using encrypted string and IV.
      */
-    private function decryptDataString(string $encryptedBase64, string $ivBase64, string $key): ?string
+    private function decryptDataString(string $encryptedBase64, string $ivBase64, string $key, ?string $tagBase64 = null): ?string
     {
-        $rawKey = hash('sha256', $key, true);
-        $cipher = base64_decode($encryptedBase64);
-        $iv = base64_decode($ivBase64);
+        $rawKey = \hash_pbkdf2('sha256', $key, 'bangrondb_encryption_salt', 100000, 32, true);
+        $cipher = \base64_decode($encryptedBase64);
+        $iv = \base64_decode($ivBase64);
+        $tag = $tagBase64 !== null ? \base64_decode($tagBase64) : '';
         if ($cipher === false || $iv === false) {
             return null;
         }
 
-        $plain = openssl_decrypt($cipher, 'AES-256-CBC', $rawKey, OPENSSL_RAW_DATA, $iv);
-
+        $plain = \openssl_decrypt($cipher, 'aes-256-gcm', $rawKey, OPENSSL_RAW_DATA, $iv, $tag);
         return $plain === false ? null : $plain;
     }
 }

@@ -1,6 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
+
+use BangronDB\Exceptions\QueryExecutionException;
 
 /**
  * QueryExecutor handles SQL query execution with enhanced features
@@ -8,11 +12,6 @@ namespace BangronDB;
  */
 class QueryExecutor
 {
-    /**
-     * Database connection instance.
-     */
-    private \PDO $connection;
-
     /**
      * Query logging enabled flag.
      */
@@ -36,9 +35,9 @@ class QueryExecutor
     /**
      * Constructor.
      */
-    public function __construct(\PDO $connection)
-    {
-        $this->connection = $connection;
+    public function __construct(
+        private readonly \PDO $connection,
+    ) {
     }
 
     /**
@@ -476,31 +475,5 @@ class QueryExecutor
         } catch (QueryExecutionException $e) {
             return false;
         }
-    }
-}
-
-/**
- * Exception thrown when query execution fails.
- */
-class QueryExecutionException extends \RuntimeException
-{
-    public string $sql;
-    public array $params;
-
-    public function __construct(string $message, string $sql, array $params = [], ?\Throwable $previous = null)
-    {
-        parent::__construct($message, 0, $previous);
-        $this->sql = $sql;
-        $this->params = $params;
-    }
-
-    public function getSql(): string
-    {
-        return $this->sql;
-    }
-
-    public function getParams(): array
-    {
-        return $this->params;
     }
 }

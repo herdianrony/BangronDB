@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
 
 /**
@@ -72,7 +74,8 @@ class DatabaseMetrics
             // Estimate size (rough calculation)
             $size = 0;
             try {
-                $stmt = $this->db->connection->query("SELECT COUNT(*) as count, SUM(LENGTH(document)) as size FROM `{$collectionName}`");
+                $quoted = $this->db->quoteIdentifier($collectionName);
+                $stmt = $this->db->connection->query("SELECT COUNT(*) as count, SUM(LENGTH(document)) as size FROM {$quoted}");
                 $stats = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : null;
                 $size = (int) ($stats['size'] ?? 0);
             } catch (\Exception $e) {
@@ -181,7 +184,8 @@ class DatabaseMetrics
 
             $size = 0;
             try {
-                $stmt = $this->db->connection->query("SELECT SUM(LENGTH(document)) as size FROM `{$name}`");
+                $quotedName = $this->db->quoteIdentifier($name);
+                $stmt = $this->db->connection->query("SELECT SUM(LENGTH(document)) as size FROM {$quotedName}");
                 $size = $stmt ? (int) $stmt->fetch(\PDO::FETCH_COLUMN) : 0;
             } catch (\Exception $e) {
                 // Skip if table doesn't have document column (like system tables)
@@ -189,11 +193,11 @@ class DatabaseMetrics
 
             $indexes = [];
             try {
-                $idxStmt = $this->db->connection->query("
-                    SELECT name FROM sqlite_master
-                    WHERE type='index' AND tbl_name='{$name}' AND name NOT LIKE 'sqlite_%'
-                ");
-                $indexes = $idxStmt ? $idxStmt->fetchAll(\PDO::FETCH_COLUMN) : [];
+                $idxStmt = $this->db->queryExecutor->executeQuery(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name = ? AND name NOT LIKE 'sqlite_%'",
+                    [$name]
+                );
+                $indexes = $idxStmt->fetchAll(\PDO::FETCH_COLUMN);
             } catch (\Exception $e) {
             }
 

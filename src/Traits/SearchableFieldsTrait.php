@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB\Traits;
 
 /**
@@ -79,8 +81,9 @@ trait SearchableFieldsTrait
     private function dropSearchableColumn(string $field): void
     {
         $col = self::$searchablePrefix . $field;
+        $table = $this->database->quoteIdentifier($this->name);
         // Check if column exists
-        $stmt = $this->database->connection->query("PRAGMA table_info(`{$this->name}`)");
+        $stmt = $this->database->connection->query("PRAGMA table_info({$table})");
         $cols = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
         $existing = [];
         foreach ($cols as $c) {
@@ -102,6 +105,7 @@ trait SearchableFieldsTrait
             }, $colsToKeep));
 
             $tmp = $this->name . '_tmp_' . uniqid();
+            $quotedTmp = $this->database->quoteIdentifier($tmp);
             // Create temp table with only the kept columns
             $createCols = [];
             foreach ($cols as $c) {
@@ -123,10 +127,10 @@ trait SearchableFieldsTrait
 
             $this->database->connection->beginTransaction();
             try {
-                $this->database->connection->exec("CREATE TABLE `{$tmp}` (" . implode(',', $createCols) . ')');
-                $this->database->connection->exec("INSERT INTO `{$tmp}` ({$colsList}) SELECT {$colsList} FROM `{$this->name}`");
-                $this->database->connection->exec("DROP TABLE `{$this->name}`");
-                $this->database->connection->exec("ALTER TABLE `{$tmp}` RENAME TO `{$this->name}`");
+                $this->database->connection->exec("CREATE TABLE {$quotedTmp} (" . implode(',', $createCols) . ')');
+                $this->database->connection->exec("INSERT INTO {$quotedTmp} ({$colsList}) SELECT {$colsList} FROM {$table}");
+                $this->database->connection->exec("DROP TABLE {$table}");
+                $this->database->connection->exec("ALTER TABLE {$quotedTmp} RENAME TO {$table}");
                 $this->database->connection->commit();
             } catch (\Throwable $e) {
                 if ($this->database->connection->inTransaction()) {
@@ -149,7 +153,9 @@ trait SearchableFieldsTrait
         // Ensure table exists
         $this->database->createCollection($this->name);
 
-        $stmt = $this->database->connection->query("PRAGMA table_info(`{$this->name}`)");
+        $table = $this->database->quoteIdentifier($this->name);
+
+        $stmt = $this->database->connection->query("PRAGMA table_info({$table})");
         $cols = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
         $existing = [];
         foreach ($cols as $c) {
@@ -159,7 +165,7 @@ trait SearchableFieldsTrait
         foreach ($this->searchableFields as $field => $cfg) {
             $col = self::$searchablePrefix . $field;
             if (!isset($existing[$col])) {
-                $this->database->connection->exec("ALTER TABLE `{$this->name}` ADD COLUMN `{$col}` TEXT NULL");
+                $this->database->connection->exec("ALTER TABLE {$table} ADD COLUMN `{$col}` TEXT NULL");
             }
         }
     }

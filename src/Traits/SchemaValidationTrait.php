@@ -1,6 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB\Traits;
+
+use BangronDB\Exceptions\ValidationException;
 
 /**
  * Trait for schema validation.
@@ -52,7 +56,7 @@ trait SchemaValidationTrait
 
             // Check required
             if (($rules['required'] ?? false) && !isset($document[$field])) {
-                throw new \Exception("Field '{$field}' is required.");
+                throw ValidationException::requiredFieldMissing($field);
             }
 
             if (!isset($document[$field])) {
@@ -66,7 +70,11 @@ trait SchemaValidationTrait
 
             // Check enum
             if (isset($rules['enum']) && !in_array($value, $rules['enum'])) {
-                throw new \Exception("Field '{$field}' must be one of: " . implode(', ', $rules['enum']));
+                throw new ValidationException(
+                    "Field '{$field}' must be one of: " . implode(', ', $rules['enum']),
+                    'ENUM_VALIDATION_FAILED',
+                    ['field' => $field, 'value' => $value, 'allowed' => $rules['enum']]
+                );
             }
 
             // Check min/max
@@ -74,7 +82,11 @@ trait SchemaValidationTrait
 
             // Check regex
             if (isset($rules['regex']) && is_string($value) && !preg_match($rules['regex'], $value)) {
-                throw new \Exception("Field '{$field}' does not match pattern.");
+                throw new ValidationException(
+                    "Field '{$field}' does not match pattern.",
+                    'PATTERN_VALIDATION_FAILED',
+                    ['field' => $field, 'pattern' => $rules['regex']]
+                );
             }
         }
 
@@ -97,7 +109,8 @@ trait SchemaValidationTrait
         };
 
         if (!$isValid) {
-            throw new \Exception("Field '{$field}' must be of type '{$type}'.");
+            $actualType = gettype($value);
+            throw ValidationException::invalidType($field, $type, $actualType);
         }
     }
 
@@ -115,12 +128,20 @@ trait SchemaValidationTrait
 
         if (isset($rules['min']) && $checkValue < $rules['min']) {
             $msg = is_numeric($value) ? "must be at least {$rules['min']}." : "length must be at least {$rules['min']}.";
-            throw new \Exception("Field '{$field}' {$msg}");
+            throw new ValidationException(
+                "Field '{$field}' {$msg}",
+                'RANGE_VALIDATION_FAILED',
+                ['field' => $field, 'value' => $value, 'min' => $rules['min']]
+            );
         }
 
         if (isset($rules['max']) && $checkValue > $rules['max']) {
             $msg = is_numeric($value) ? "must be at most {$rules['max']}." : "length must be at most {$rules['max']}.";
-            throw new \Exception("Field '{$field}' {$msg}");
+            throw new ValidationException(
+                "Field '{$field}' {$msg}",
+                'RANGE_VALIDATION_FAILED',
+                ['field' => $field, 'value' => $value, 'max' => $rules['max']]
+            );
         }
     }
 }

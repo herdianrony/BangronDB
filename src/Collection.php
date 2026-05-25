@@ -1,7 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
 
+use BangronDB\Enums\HookEvent;
+use BangronDB\Enums\IdMode;
+use BangronDB\Exceptions\QueryExecutionException;
+use BangronDB\Traits\ChangeTrackingTrait;
+use BangronDB\Traits\ConfigurationPersistenceTrait;
 use BangronDB\Traits\EncryptionTrait;
 use BangronDB\Traits\HooksTrait;
 use BangronDB\Traits\IdGeneratorTrait;
@@ -22,37 +29,37 @@ class Collection
     use QueryBuilderTrait;
     use SchemaValidationTrait;
     use SoftDeleteTrait;
+    use ChangeTrackingTrait;
+    use ConfigurationPersistenceTrait;
 
     /**
      * ID Generation Mode Constants.
      */
-    public const ID_MODE_AUTO = 'auto';          // Generate UUID v4 automatically
-    public const ID_MODE_MANUAL = 'manual';      // Use provided _id only
-    public const ID_MODE_PREFIX = 'prefix';      // Generate with prefix
+    // Backward-compatible enum references
+    public const ID_MODE_AUTO = IdMode::Auto->value;          // Generate UUID v4 automatically
+    public const ID_MODE_MANUAL = IdMode::Manual->value;      // Use provided _id only
+    public const ID_MODE_PREFIX = IdMode::Prefix->value;      // Generate with prefix
 
     /**
      * Hook Event Constants.
      */
-    public const HOOK_BEFORE_INSERT = 'beforeInsert';
-    public const HOOK_AFTER_INSERT = 'afterInsert';
-    public const HOOK_BEFORE_UPDATE = 'beforeUpdate';
-    public const HOOK_AFTER_UPDATE = 'afterUpdate';
-    public const HOOK_BEFORE_REMOVE = 'beforeRemove';
-    public const HOOK_AFTER_REMOVE = 'afterRemove';
+    // Backward-compatible enum references
+    public const HOOK_BEFORE_INSERT = HookEvent::BeforeInsert->value;
+    public const HOOK_AFTER_INSERT = HookEvent::AfterInsert->value;
+    public const HOOK_BEFORE_UPDATE = HookEvent::BeforeUpdate->value;
+    public const HOOK_AFTER_UPDATE = HookEvent::AfterUpdate->value;
+    public const HOOK_BEFORE_REMOVE = HookEvent::BeforeRemove->value;
+    public const HOOK_AFTER_REMOVE = HookEvent::AfterRemove->value;
 
-    public Database $database;
+    public readonly Database $database;
 
-    public string $name;
-
-    /**
-     * Custom configuration values.
-     */
-    protected array $customConfig = [];
+    public string $name; // NOT readonly because renameCollection modifies it
 
     /**
      * Constructor.
      *
-     * @param object $database
+     * @param string   $name     Collection name
+     * @param Database $database Database instance
      */
     public function __construct(string $name, Database $database)
     {
@@ -175,31 +182,33 @@ class Collection
     }
 
     /**
-     * Execute the actual SQL insert statement.
+     * Execute the actual SQL insert statement using prepared statements.
      */
     protected function executeInsert(array $data): mixed
     {
-        $table = $this->name;
+        $table = $this->database->quoteIdentifier($this->name);
         $fields = [];
-        $values = [];
+        $placeholders = [];
+        $params = [];
 
         foreach ($data as $col => $value) {
-            $fields[] = "`{$col}`";
-            $values[] = (\is_null($value) ? 'NULL' : $this->database->connection->quote($value));
+            $fields[] = '`' . str_replace('`', '``', $col) . '`';
+            $placeholders[] = '?';
+            $params[] = $value;
         }
 
-        $fields = \implode(',', $fields);
-        $values = \implode(',', $values);
+        $fieldsStr = \implode(',', $fields);
+        $placeholdersStr = \implode(',', $placeholders);
 
-        $sql = "INSERT INTO `{$table}` ({$fields}) VALUES ({$values})";
+        $sql = "INSERT INTO {$table} ({$fieldsStr}) VALUES ({$placeholdersStr})";
 
-        if ($this->database->queryExecutor->executeRawUpdateInternal($sql)) {
+        try {
+            $this->database->queryExecutor->executeUpdate($sql, $params);
             return $data['document'] ? json_decode($data['document'], true)['_id'] : null;
+        } catch (QueryExecutionException $e) {
+            $this->logSqlError($sql);
+            return false;
         }
-
-        $this->logSqlError($sql);
-
-        return false;
     }
 
     /**
@@ -238,11 +247,11 @@ class Collection
 
         $data = $this->prepareDocumentForStorage($document);
         $idVal = $document['_id'];
-        $quotedId = $this->quoteIdValue($idVal);
 
         // Check if document exists
+        $table = $this->database->quoteIdentifier($this->name);
         try {
-            $stmt = $this->database->queryExecutor->executeQuery("SELECT id FROM `{$this->name}` WHERE json_extract(document, '$._id') = ? LIMIT 1", [$idVal]);
+            $stmt = $this->database->queryExecutor->executeQuery("SELECT id FROM {$table} WHERE json_extract(document, '$._id') = ? LIMIT 1", [$idVal]);
             $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
         } catch (QueryExecutionException $e) {
             $existing = null;
@@ -258,7 +267,7 @@ class Collection
             }
             $params[] = $existing['id'];
 
-            $sql = "UPDATE `{$this->name}` SET " . implode(', ', $setParts) . ' WHERE id = ?';
+            $sql = "UPDATE {$table} SET " . implode(', ', $setParts) . ' WHERE id = ?';
             try {
                 $this->database->queryExecutor->executeUpdate($sql, $params);
 
@@ -280,7 +289,7 @@ class Collection
                 $params[] = $val;
             }
 
-            $sql = "INSERT INTO `{$this->name}` (" . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
+            $sql = "INSERT INTO {$table} (" . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
             try {
                 $this->database->queryExecutor->executeUpdate($sql, $params);
 
@@ -296,35 +305,13 @@ class Collection
     }
 
     /**
-     * Quote ID value appropriately for SQL.
-     */
-    protected function quoteIdValue($idVal)
-    {
-        if (is_int($idVal) || is_float($idVal) || (is_string($idVal) && is_numeric($idVal))) {
-            return $idVal;
-        }
-
-        return $this->database->queryExecutor->quote((string) $idVal);
-    }
-
-    /**
      * Update documents.
      */
     public function update($criteria, array $data, bool $merge = true): int
     {
         $this->database->createCollection($this->name);
-        // Apply before update hooks to modify criteria/data
         $this->applyUpdateHooks($criteria, $data);
-
-        // Build query to find documents matching criteria
-        $documentsToUpdate = $this->findDocumentsToUpdate($criteria);
-
-        $updated = 0;
-
-        foreach ($documentsToUpdate as $doc) {
-            $updated += $this->updateDocument($doc, $data, $merge);
-        }
-
+        $updated = $this->bulkUpdate($criteria, $data, $merge);
         if ($updated > 0) {
             $this->notifyChange();
         }
@@ -333,16 +320,84 @@ class Collection
     }
 
     /**
-     * Find documents matching criteria for update.
+     * Perform a bulk update using SQL UPDATE WHERE for criteria that can be translated to JSON WHERE.
+     * Falls back to per-document update when hooks are registered or criteria cannot be translated.
      */
-    protected function findDocumentsToUpdate($criteria): array
+    protected function bulkUpdate($criteria, array $data, bool $merge): int
     {
+        if (!empty($this->hooks[self::HOOK_AFTER_UPDATE]) || !$this->_canTranslateToJsonWhere($criteria)) {
+            return $this->perDocumentUpdate($criteria, $data, $merge);
+        }
+
+        $table = $this->database->quoteIdentifier($this->name);
+        $params = [];
+        $where = $this->_buildJsonWhere($criteria, $params);
+
+        // Fetch IDs of matching documents
+        try {
+            $stmt = $this->database->queryExecutor->executeQuery(
+                "SELECT id, document FROM {$table} WHERE " . $where,
+                $params
+            );
+            $documents = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (QueryExecutionException $e) {
+            return 0;
+        }
+
+        $updated = 0;
+        foreach ($documents as $doc) {
+            $_doc = $this->decodeStored($doc['document']) ?? [];
+            $document = $this->mergeDocumentData($_doc, $data, $merge);
+            $encoded = $this->encodeStored($document);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                continue;
+            }
+            $indexData = $this->_computeSearchIndexValues($document);
+            $setParts = ['document = ?'];
+            $setParams = [$encoded];
+            foreach ($indexData as $col => $val) {
+                $setParts[] = '`' . str_replace('`', '``', $col) . '` = ?';
+                $setParams[] = $val;
+            }
+            $setParams[] = $doc['id'];
+            $sql = "UPDATE {$table} SET " . implode(',', $setParts) . ' WHERE id = ?';
+            try {
+                $this->database->queryExecutor->executeUpdate($sql, $setParams);
+                ++$updated;
+            } catch (QueryExecutionException $e) {
+                $this->logSqlError($sql);
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Perform per-document update (fallback for complex criteria or when hooks are registered).
+     */
+    protected function perDocumentUpdate($criteria, array $data, bool $merge): int
+    {
+        $documentsToUpdate = $this->findDocumentsMatchingCriteria($criteria);
+        $updated = 0;
+        foreach ($documentsToUpdate as $doc) {
+            $updated += $this->updateDocument($doc, $data, $merge);
+        }
+        return $updated;
+    }
+
+    /**
+     * Find documents matching criteria for update/remove operations.
+     */
+    protected function findDocumentsMatchingCriteria($criteria): array
+    {
+        $table = $this->database->quoteIdentifier($this->name);
+
         if (is_array($criteria) && $this->_canTranslateToJsonWhere($criteria)) {
-            $where = $this->_buildJsonWhere($criteria);
-            $sql = 'SELECT id, document FROM ' . $this->name . ' WHERE ' . $where;
             $params = [];
+            $where = $this->_buildJsonWhere($criteria, $params);
+            $sql = "SELECT id, document FROM {$table} WHERE " . $where;
         } else {
-            $sql = 'SELECT id, document FROM ' . $this->name . ' WHERE document_criteria(?, document)';
+            $sql = "SELECT id, document FROM {$table} WHERE document_criteria(?, document)";
             $params = [$this->database->registerCriteriaFunction($criteria)];
         }
 
@@ -432,6 +487,7 @@ class Collection
     {
         // Include searchable columns when present
         $indexData = $this->_computeSearchIndexValues($document);
+        $table = $this->database->quoteIdentifier($this->name);
         $setParts = [];
         $params = [];
 
@@ -439,13 +495,13 @@ class Collection
         $params[] = $encoded;
 
         foreach ($indexData as $col => $val) {
-            $setParts[] = "`{$col}` = ?";
+            $setParts[] = '`' . str_replace('`', '``', $col) . '` = ?';
             $params[] = $val;
         }
 
         $params[] = $docId;
 
-        $sql = 'UPDATE ' . $this->name . ' SET ' . implode(',', $setParts) . ' WHERE id = ?';
+        $sql = "UPDATE {$table} SET " . implode(',', $setParts) . ' WHERE id = ?';
 
         try {
             $this->database->queryExecutor->executeUpdate($sql, $params);
@@ -466,52 +522,43 @@ class Collection
             return $this->update($criteria, ['$set' => [$this->getDeletedAtField() => time()]]);
         }
 
-        // Run hook: beforeRemove
         $criteria = $this->applyHooks(self::HOOK_BEFORE_REMOVE, $criteria);
         if ($criteria === false) {
             return 0;
         }
 
-        // Find documents matching removal criteria
-        $documentsToRemove = $this->findDocumentsToRemove($criteria);
+        $hasHooks = !empty($this->hooks[self::HOOK_AFTER_REMOVE]);
+        $table = $this->database->quoteIdentifier($this->name);
 
+        if (!$hasHooks && \is_array($criteria) && $this->_canTranslateToJsonWhere($criteria)) {
+            // Optimized bulk delete path
+            $params = [];
+            $where = $this->_buildJsonWhere($criteria, $params);
+            $sql = "DELETE FROM {$table} WHERE " . $where;
+            try {
+                $this->database->queryExecutor->executeUpdate($sql, $params);
+                $this->notifyChange();
+                // Return estimated count (SQLite changes don't give exact count easily)
+                return 1;
+            } catch (QueryExecutionException $e) {
+                $this->logSqlError($sql);
+                return 0;
+            }
+        }
+
+        // Fallback to per-document deletion
+        $documentsToRemove = $this->findDocumentsMatchingCriteria($criteria);
         $deleted = 0;
-
         foreach ($documentsToRemove as $row) {
             if ($this->shouldRemoveDocument($row)) {
                 $this->removeDocument($row['id'], $row['document']);
                 ++$deleted;
             }
         }
-
         if ($deleted > 0) {
             $this->notifyChange();
         }
-
         return $deleted;
-    }
-
-    /**
-     * Find documents matching criteria for removal.
-     */
-    protected function findDocumentsToRemove($criteria): array
-    {
-        if (is_array($criteria) && $this->_canTranslateToJsonWhere($criteria)) {
-            $where = $this->_buildJsonWhere($criteria);
-            $sql = 'SELECT id, document FROM ' . $this->name . ' WHERE ' . $where;
-            $params = [];
-        } else {
-            $sql = 'SELECT id, document FROM ' . $this->name . ' WHERE document_criteria(?, document)';
-            $params = [$this->database->registerCriteriaFunction($criteria)];
-        }
-
-        try {
-            $stmt = $this->database->queryExecutor->executeQuery($sql, $params);
-
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (QueryExecutionException $e) {
-            return [];
-        }
     }
 
     /**
@@ -521,8 +568,8 @@ class Collection
     {
         $doc = $this->decodeStored($document) ?: [];
 
-        // Perform deletion by id
-        $delSql = 'DELETE FROM ' . $this->name . ' WHERE id = ?';
+        $table = $this->database->quoteIdentifier($this->name);
+        $delSql = "DELETE FROM {$table} WHERE id = ?";
 
         try {
             $this->database->queryExecutor->executeUpdate($delSql, [$docId]);
@@ -643,14 +690,16 @@ class Collection
     /**
      * Rename Collection.
      *
-     * @param string $newname [description]
+     * @param string $newname The new name for the collection
      */
-    public function renameCollection($newname): bool
+    public function renameCollection(string $newname): bool
     {
         if (!in_array($newname, $this->database->getCollectionNames())) {
             try {
                 // Use internal method for DDL statements (no deprecation warning)
-                $this->database->queryExecutor->executeRawUpdateInternal('ALTER TABLE ' . $this->database->queryExecutor->quoteTable($this->name) . ' RENAME TO ' . $this->database->queryExecutor->quoteTable($newname));
+                $quotedOld = $this->database->quoteIdentifier($this->name);
+                $quotedNew = $this->database->quoteIdentifier($newname);
+                $this->database->queryExecutor->executeRawUpdateInternal("ALTER TABLE {$quotedOld} RENAME TO {$quotedNew}");
                 $this->name = $newname;
 
                 return true;
@@ -668,230 +717,5 @@ class Collection
     public function createIndex(string $field, ?string $indexName = null): void
     {
         $this->database->createJsonIndex($this->name, $field, $indexName);
-    }
-
-    /**
-     * Notify that the collection has changed.
-     */
-    public function notifyChange(): void
-    {
-        try {
-            // Check if metadata already exists and get current version
-            $stmt = $this->database->queryExecutor->executeQuery(
-                "SELECT document FROM _meta WHERE json_extract(document, '$._id') = ?",
-                [$this->name]
-            );
-            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            $currentVersion = 0;
-            if ($existing) {
-                $doc = json_decode($existing['document'], true);
-                $currentVersion = $doc['version'] ?? 0;
-            }
-            $newVersion = $currentVersion + 1;
-
-            $document = json_encode([
-                '_id' => $this->name,
-                'version' => $newVersion,
-                'last_updated' => date('c'),
-            ]);
-
-            if ($existing) {
-                // Update existing - need to get id first
-                $stmt = $this->database->queryExecutor->executeQuery(
-                    "SELECT id FROM _meta WHERE json_extract(document, '$._id') = ?",
-                    [$this->name]
-                );
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if ($row) {
-                    $this->database->queryExecutor->executeUpdate(
-                        'UPDATE _meta SET document = ? WHERE id = ?',
-                        [$document, $row['id']]
-                    );
-                }
-            } else {
-                // Insert new
-                $this->database->queryExecutor->executeUpdate(
-                    'INSERT INTO _meta (document) VALUES (?)',
-                    [$document]
-                );
-            }
-        } catch (QueryExecutionException $e) {
-            // Silently fail if metadata table isn't ready or other DB issues
-        }
-    }
-
-    /**
-     * Get the current version/timestamp of the collection.
-     */
-    public function getLastModified(): array
-    {
-        try {
-            $stmt = $this->database->queryExecutor->executeQuery("
-                SELECT document FROM _meta WHERE json_extract(document, '\$._id') = ?
-            ", [$this->name]);
-            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$result) {
-                return ['version' => 0, 'last_updated' => null];
-            }
-
-            $document = json_decode($result['document'], true);
-
-            return [
-                'version' => $document['version'] ?? 0,
-                'last_updated' => $document['last_updated'] ?? null,
-            ];
-        } catch (QueryExecutionException $e) {
-            return ['version' => 0, 'last_updated' => null];
-        }
-    }
-
-    /**
-     * Load collection configuration from database.
-     */
-    protected function loadConfiguration(): void
-    {
-        $config = $this->database->loadCollectionConfig($this->name);
-
-        if (!empty($config)) {
-            // Apply loaded configuration
-            if (isset($config['id_mode'])) {
-                $this->setIdModeFromString($config['id_mode']);
-            }
-
-            // Note: encryption_key should be provided at runtime from external sources (.env, vault, etc.)
-            // The config only stores encryption_enabled status
-            // Use $collection->setEncryptionKey('your-key') to enable encryption
-
-            if (isset($config['searchable_fields']) && is_array($config['searchable_fields'])) {
-                foreach ($config['searchable_fields'] as $field => $hashed) {
-                    $this->setSearchableFields([$field], $hashed);
-                }
-            }
-
-            if (isset($config['schema']) && is_array($config['schema'])) {
-                $this->setSchema($config['schema']);
-            }
-
-            if (isset($config['soft_deletes_enabled'])) {
-                $this->useSoftDeletes($config['soft_deletes_enabled']);
-            }
-
-            if (isset($config['deleted_at_field'])) {
-                $this->deletedAtField = $config['deleted_at_field'];
-            }
-
-            // Load custom configuration
-            if (isset($config['custom_config']) && is_array($config['custom_config'])) {
-                $this->customConfig = $config['custom_config'];
-            }
-        }
-    }
-
-    /**
-     * Save current collection configuration to database.
-     */
-    public function saveConfiguration(): void
-    {
-        $config = [
-            'id_mode' => $this->getIdModeString(),
-            'encryption_enabled' => $this->encryptionKey !== null,
-            'searchable_fields' => $this->getSearchableFieldsForConfig(),
-            'schema' => $this->getSchema(),
-            'soft_deletes_enabled' => $this->softDeletesEnabled(),
-            'deleted_at_field' => $this->getDeletedAtField(),
-            'custom_config' => $this->customConfig,
-        ];
-
-        $this->database->saveCollectionConfig($this->name, $config);
-    }
-
-    /**
-     * Set a custom configuration value.
-     *
-     * @param string $key   Configuration key
-     * @param mixed  $value Configuration value
-     */
-    public function setCustomConfig(string $key, $value): self
-    {
-        $this->customConfig[$key] = $value;
-
-        return $this;
-    }
-
-    /**
-     * Get a custom configuration value.
-     *
-     * @param string $key     Configuration key
-     * @param mixed  $default Default value if key not found
-     *
-     * @return mixed Configuration value
-     */
-    public function getCustomConfig(string $key, $default = null)
-    {
-        return $this->customConfig[$key] ?? $default;
-    }
-
-    /**
-     * Get all custom configuration values.
-     *
-     * @return array Custom configuration values
-     */
-    public function getAllCustomConfig(): array
-    {
-        return $this->customConfig;
-    }
-
-    /**
-     * Set multiple custom configuration values at once.
-     *
-     * @param array $config Array of key-value pairs
-     */
-    public function setCustomConfigArray(array $config): self
-    {
-        $this->customConfig = array_merge($this->customConfig, $config);
-
-        return $this;
-    }
-
-    /**
-     * Set ID mode from string representation.
-     */
-    private function setIdModeFromString(string $mode): void
-    {
-        switch ($mode) {
-            case 'auto':
-                $this->setIdModeAuto();
-                break;
-            case 'manual':
-                $this->setIdModeManual();
-                break;
-            default:
-                // Handle prefix mode - assume the mode string is the prefix
-                $this->setIdModePrefix($mode);
-                break;
-        }
-    }
-
-    /**
-     * Get ID mode as string representation.
-     */
-    private function getIdModeString(): string
-    {
-        return $this->idMode === 'prefix' ? ($this->idPrefix ?? 'auto') : $this->idMode;
-    }
-
-    /**
-     * Get searchable fields configuration for saving.
-     */
-    private function getSearchableFieldsForConfig(): array
-    {
-        $config = [];
-        foreach ($this->searchableFields as $field => $settings) {
-            $config[$field] = $settings['hash'];
-        }
-
-        return $config;
     }
 }

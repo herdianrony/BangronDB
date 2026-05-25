@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
 
 class UtilArrayQuery
@@ -78,14 +80,14 @@ class UtilArrayQuery
                     break;
 
                 case '$where':
-                    if (\is_callable($value)) {
-                        if (!$value($document)) {
-                            return false;
-                        }
+                    \BangronDB\Security\FieldValidator::validateSafeCallable($value, '$where');
+                    if (!$value($document)) {
+                        return false;
                     }
                     break;
 
                 default:
+                    \BangronDB\Security\FieldValidator::validateFieldName($key);
                     // resolve nested field value
                     $d = $document;
                     if (\strpos($key, '.') !== false) {
@@ -197,7 +199,15 @@ class UtilArrayQuery
             case '$preg':
             case '$match':
             case '$not':
-                $r = (bool) @\preg_match(isset($b[0]) && $b[0] === '/' ? $b : '/'.$b.'/iu', $a, $match);
+                // Security: Limit regex execution time to prevent ReDoS attacks
+                if (isset($b[0]) && $b[0] === '/') {
+                    // Pattern already has delimiters, use as-is
+                    $regexPattern = $b;
+                } else {
+                    // No delimiters, escape and add delimiters for literal matching
+                    $regexPattern = '/'.preg_quote($b, '/').'/iu';
+                }
+                $r = (bool) @\preg_match($regexPattern, $a, $match);
                 if ($func === '$not') {
                     $r = !$r;
                 }
@@ -220,9 +230,7 @@ class UtilArrayQuery
             case '$func':
             case '$fn':
             case '$f':
-                if (!\is_callable($b)) {
-                    throw new \InvalidArgumentException('Function should be callable');
-                }
+                \BangronDB\Security\FieldValidator::validateSafeCallable($b, $func);
                 $r = $b($a);
                 break;
 
@@ -243,7 +251,7 @@ class UtilArrayQuery
                         $distance = $b['$distance'];
                     }
 
-                    $b = $b['search'];
+                    $b = $b['$search'];
                 }
 
                 $r = self::fuzzy_search($b, $a, $distance) >= $minScore;

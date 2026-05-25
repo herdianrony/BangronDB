@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
 
 /**
@@ -14,12 +16,7 @@ class Cursor implements \IteratorAggregate
     protected ?string $criteriaSql = null;
     protected int $lastKey = -1;
 
-    // Core properties
-    public Collection $collection;
-    public $criteria;
-
     // Query modifiers
-    protected ?array $projection = null;
     protected ?int $limit = null;
     protected ?int $skip = null;
     protected ?array $sort = null;
@@ -31,6 +28,9 @@ class Cursor implements \IteratorAggregate
     protected bool $withTrashed = false;
     protected bool $onlyTrashed = false;
 
+    // Prepared statement parameters for WHERE clause
+    protected array $whereParams = [];
+
     // Memory safety configuration
     protected const DEFAULT_MAX_RESULTS = 10000;
     protected const SAFE_MAX_RESULTS = 1000;
@@ -38,11 +38,12 @@ class Cursor implements \IteratorAggregate
     /**
      * Constructor.
      */
-    public function __construct(Collection $collection, $criteria, $projection = null, ?string $criteriaSql = null)
-    {
-        $this->collection = $collection;
-        $this->criteria = $criteria;
-        $this->projection = $projection;
+    public function __construct(
+        public readonly Collection $collection,
+        public mixed $criteria,
+        protected ?array $projection = null,
+        ?string $criteriaSql = null,
+    ) {
         $this->criteriaSql = $criteriaSql;
     }
 
@@ -69,10 +70,14 @@ class Cursor implements \IteratorAggregate
         $table = $this->collection->database->quoteIdentifier($this->collection->name);
         $sql = $this->buildCountSql($table);
 
-        $stmt = $this->collection->database->connection->query($sql);
-        $row = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : null;
+        try {
+            $stmt = $this->collection->database->queryExecutor->executeQuery($sql, $this->whereParams);
+            $row = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : null;
 
-        return $row ? (int) $row['c'] : 0;
+            return $row ? (int) $row['c'] : 0;
+        } catch (QueryExecutionException $e) {
+            return 0;
+        }
     }
 
     /**
@@ -101,6 +106,8 @@ class Cursor implements \IteratorAggregate
      */
     private function buildWhereClause(): string
     {
+        $this->whereParams = [];
+
         if ($this->criteriaSql && !$this->collection->softDeletesEnabled()) {
             return $this->criteriaSql;
         }
@@ -137,7 +144,7 @@ class Cursor implements \IteratorAggregate
 
         // Try to translate to standard SQL WHERE first (faster, uses indexes)
         if (is_array($criteria) && $this->collection->_canTranslateToJsonWhere($criteria)) {
-            return $this->collection->_buildJsonWhere($criteria);
+            return $this->collection->_buildJsonWhere($criteria, $this->whereParams);
         }
 
         // Otherwise, register it as a custom function (fallback, slower)
@@ -371,7 +378,7 @@ class Cursor implements \IteratorAggregate
         $table = $this->collection->database->quoteIdentifier($this->collection->name);
         $sql = $this->buildQuerySql($table);
         try {
-            $this->stmt = $this->collection->database->queryExecutor->executeQuery($sql);
+            $this->stmt = $this->collection->database->queryExecutor->executeQuery($sql, $this->whereParams);
             $this->loadCurrentRow();
         } catch (\Throwable $e) {
             // Re-throw the exception after ensuring the statement is nullified

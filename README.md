@@ -1353,20 +1353,19 @@ Kami menyediakan contoh dashboard modern yang menggunakan **Flight PHP** (Micro-
 
 ### Cara Menjalankan:
 
-1. Masuk ke folder contoh: `cd examples/modern_dashboard`
-2. Jalankan server lokal: `php -S localhost:8000`
-3. Bukalah `http://localhost:8000` di browser Anda.
+1. Masuk ke folder contoh: `cd examples`
+2. Jalankan contoh: `php 10-advanced.php`
 
-Lihat kodenya di [examples/modern_dashboard](file:///c:/Users/Rony%20Herdian/Desktop/PocketDB/examples/modern_dashboard/index.php).
+Lihat contoh lengkap di [examples/10-advanced.php](examples/10-advanced.php).
 
 ## 🚀 Examples
 
 Kami menyediakan berbagai contoh implementasi untuk membantu Anda memulai:
 
-- **[Complete Features Demo](examples/complete_features_demo/index.php)**: Demo semua fitur (CRUD, Operators, Hooks, Encryption) dalam satu file yang rapi.
-- **[SaaS Platform Demo](examples/saas_platform_demo/index.php)**: Implementasi kompleks multi-tenant dengan database terisolasi.
-- **[Hospital Management](examples/hospital_management_system/)**: Contoh struktur data medis.
-- **[Online Store](examples/online_store_modular/)**: Implementasi e-commerce sederhana.
+- **[Complete Features Demo](examples/10-advanced.php)**: Demo semua fitur (CRUD, Operators, Hooks, Encryption) dalam satu file yang rapi.
+- **[SaaS Platform Demo](examples/20-complete-elearning-platform.php)**: Implementasi kompleks multi-tenant dengan database terisolasi.
+- **[Hospital Management](examples/13-hospital-complex.php)**: Contoh struktur data medis.
+- **[Online Store](examples/16-computer-store.php)**: Implementasi e-commerce sederhana.
 
 ## ⚙️ Dynamic Configuration
 

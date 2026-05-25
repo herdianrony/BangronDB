@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB\Traits;
 
 use BangronDB\UtilArrayQuery;
@@ -131,7 +133,7 @@ trait IdGeneratorTrait
         switch ($this->idMode) {
             case 'prefix':
                 $this->idCounter++;
-                $id = $this->idPrefix . '-' . str_pad($this->idCounter, 6, '0', STR_PAD_LEFT);
+                $id = $this->idPrefix . '-' . str_pad((string)$this->idCounter, 6, '0', STR_PAD_LEFT);
                 break;
 
             case 'manual':

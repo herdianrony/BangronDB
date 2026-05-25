@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
 
 use BangronDB\Exceptions\ValidationException;

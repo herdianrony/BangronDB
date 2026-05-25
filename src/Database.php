@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB;
 
 /**
@@ -25,9 +27,10 @@ class Database
     /**
      * @var \PDO Database connection
      */
-    public $connection;
+    public \PDO $connection;
     public ?QueryExecutor $queryExecutor = null;
     protected array $document_criterias = [];
+    private ?DatabaseMetrics $metrics = null;
 
     // Static registry for managing database instances
     protected static array $criteria_registry = [];
@@ -102,15 +105,43 @@ class Database
     {
         // Apply encryption key if set
         if ($this->encryptionKey) {
-            // Escape key to prevent injection - though simple primitives are best
-            $key = str_replace("'", "''", $this->encryptionKey);
-            $this->connection->exec("PRAGMA key = '$key'");
+            $escapedKey = \BangronDB\Security\FieldValidator::escapePragmaKey($this->encryptionKey);
+            $this->connection->exec("PRAGMA key = '{$escapedKey}'");
         }
 
-        // Prefer Write-Ahead Logging for better concurrency and reliability
-        $this->connection->exec('PRAGMA journal_mode = WAL');
-        $this->connection->exec('PRAGMA synchronous = NORMAL');
-        $this->connection->exec('PRAGMA PAGE_SIZE = 4096');
+        // Apply Config settings with whitelist validation
+        $journalMode = Config::get('journal_mode', 'WAL');
+        $synchronous = Config::get('synchronous', 'NORMAL');
+        $pageSize = Config::get('page_size', 4096);
+        $cacheSize = Config::get('cache_size', -1024);
+        $autoVacuum = Config::get('auto_vacuum', 'INCREMENTAL');
+
+        // Validate PRAGMA values against whitelists to prevent injection
+        $this->execPragma('journal_mode', $journalMode, ['DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'WAL', 'OFF']);
+        $this->execPragma('synchronous', $synchronous, ['OFF', 'NORMAL', 'FULL', 'EXTRA']);
+        $this->connection->exec('PRAGMA PAGE_SIZE = ' . (int) $pageSize);
+        $this->connection->exec('PRAGMA cache_size = ' . (int) $cacheSize);
+        $this->execPragma('auto_vacuum', $autoVacuum, ['NONE', 'INCREMENTAL', 'FULL']);
+    }
+
+    /**
+     * Execute a PRAGMA with whitelist value validation.
+     *
+     * @param string   $name       PRAGMA name (already safe - hardcoded)
+     * @param string   $value      Value to validate against whitelist
+     * @param string[] $allowed    Allowed values
+     *
+     * @throws \InvalidArgumentException If value is not in whitelist
+     */
+    private function execPragma(string $name, string $value, array $allowed): void
+    {
+        $upper = strtoupper($value);
+        if (!in_array($upper, $allowed, true)) {
+            throw new \InvalidArgumentException(
+                "Invalid PRAGMA value for {$name}: '{$value}'. Allowed: " . implode(', ', $allowed)
+            );
+        }
+        $this->connection->exec("PRAGMA {$name} = {$upper}");
     }
 
     /**
@@ -200,7 +231,8 @@ class Database
     {
         $this->cleanupCriteriaRegistry();
         $this->document_criterias = [];
-        $this->connection = null;
+        unset($this->connection);
+        $this->metrics = null;
         if (isset($this->queryExecutor)) {
             $this->queryExecutor = null;
         }
@@ -434,7 +466,8 @@ class Database
      */
     private function executeCreateCollection(string $name): void
     {
-        $sql = "CREATE TABLE IF NOT EXISTS `{$name}` ( id INTEGER PRIMARY KEY AUTOINCREMENT, document TEXT )";
+        $quoted = $this->quoteIdentifier($name);
+        $sql = "CREATE TABLE IF NOT EXISTS {$quoted} ( id INTEGER PRIMARY KEY AUTOINCREMENT, document TEXT )";
         $this->connection->exec($sql);
     }
 
@@ -453,7 +486,8 @@ class Database
      */
     private function executeDropCollection(string $name): void
     {
-        $sql = "DROP TABLE IF EXISTS `{$name}`";
+        $quoted = $this->quoteIdentifier($name);
+        $sql = "DROP TABLE IF EXISTS {$quoted}";
         $this->connection->exec($sql);
     }
 
@@ -562,8 +596,23 @@ class Database
      */
     public function dropIndex(string $indexName): void
     {
-        $sql = 'DROP INDEX IF EXISTS ' . $indexName;
+        // Validate index name to prevent SQL injection
+        if (!preg_match(self::IDENTIFIER_REGEX, $indexName)) {
+            throw new \InvalidArgumentException('Invalid index name: ' . $indexName);
+        }
+        $sql = 'DROP INDEX IF EXISTS `' . str_replace('`', '``', $indexName) . '`';
         $this->connection->exec($sql);
+    }
+
+    /**
+     * Get or create cached DatabaseMetrics instance.
+     */
+    private function getMetrics(): DatabaseMetrics
+    {
+        if ($this->metrics === null) {
+            $this->metrics = new DatabaseMetrics($this);
+        }
+        return $this->metrics;
     }
 
     /**
@@ -571,7 +620,7 @@ class Database
      */
     public function getHealthMetrics(): array
     {
-        return (new DatabaseMetrics($this))->getHealthMetrics();
+        return $this->getMetrics()->getHealthMetrics();
     }
 
     /**
@@ -579,7 +628,7 @@ class Database
      */
     public function checkIntegrity(): array
     {
-        return (new DatabaseMetrics($this))->checkIntegrity();
+        return $this->getMetrics()->checkIntegrity();
     }
 
     /**
@@ -587,7 +636,7 @@ class Database
      */
     public function getDataMetrics(): array
     {
-        return (new DatabaseMetrics($this))->getDataMetrics();
+        return $this->getMetrics()->getDataMetrics();
     }
 
     /**
@@ -595,7 +644,7 @@ class Database
      */
     public function getPerformanceMetrics(): array
     {
-        return (new DatabaseMetrics($this))->getPerformanceMetrics();
+        return $this->getMetrics()->getPerformanceMetrics();
     }
 
     /**
@@ -603,7 +652,7 @@ class Database
      */
     public function getIndexMetrics(): array
     {
-        return (new DatabaseMetrics($this))->getIndexMetrics();
+        return $this->getMetrics()->getIndexMetrics();
     }
 
     /**
@@ -630,7 +679,7 @@ class Database
      */
     public function getCollectionMetrics(): array
     {
-        return (new DatabaseMetrics($this))->getCollectionMetrics();
+        return $this->getMetrics()->getCollectionMetrics();
     }
 
     /**

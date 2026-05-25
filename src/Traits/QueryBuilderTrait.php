@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BangronDB\Traits;
 
 /**
@@ -64,13 +66,18 @@ trait QueryBuilderTrait
 
     /**
      * Build SQL WHERE clause using json_extract for simple equality criteria.
+     *
+     * @param array $criteria Query criteria
+     * @param array &$params  Parameters collected for prepared statements
+     *
+     * @return string SQL WHERE clause with ? placeholders
      */
-    public function _buildJsonWhere(array $criteria): string
+    public function _buildJsonWhere(array $criteria, array &$params = []): string
     {
         $parts = [];
         foreach ($criteria as $key => $value) {
             $expr = $this->buildExpressionForKey($key, $value);
-            $condition = $this->buildConditionForValue($expr, $value);
+            $condition = $this->buildConditionForValue($expr, $value, $params);
             $parts[] = $condition;
         }
 
@@ -94,25 +101,33 @@ trait QueryBuilderTrait
 
     /**
      * Build condition for a given expression and value.
+     *
+     * @param string $expr   SQL expression for the field
+     * @param mixed  $value  Condition value or operator array
+     * @param array  &$params Parameters collected for prepared statements
      */
-    private function buildConditionForValue(string $expr, $value): string
+    private function buildConditionForValue(string $expr, $value, array &$params): string
     {
         if (is_array($value)) {
-            return $this->buildOperatorCondition($expr, $value);
+            return $this->buildOperatorCondition($expr, $value, $params);
         }
 
-        return $this->buildEqualityCondition($expr, $value);
+        return $this->buildEqualityCondition($expr, $value, $params);
     }
 
     /**
      * Build condition for operators ($gt, $gte, $lt, $lte, $in, $nin, $exists).
+     *
+     * @param string $expr      SQL expression for the field
+     * @param array  $operators Operator-value pairs
+     * @param array  &$params   Parameters collected for prepared statements
      */
-    private function buildOperatorCondition(string $expr, array $operators): string
+    private function buildOperatorCondition(string $expr, array $operators, array &$params): string
     {
         $conditions = [];
 
         foreach ($operators as $op => $v) {
-            $condition = $this->buildSingleOperatorCondition($expr, $op, $v);
+            $condition = $this->buildSingleOperatorCondition($expr, $op, $v, $params);
             if ($condition) {
                 $conditions[] = $condition;
             }
@@ -123,27 +138,32 @@ trait QueryBuilderTrait
 
     /**
      * Build condition for a single operator.
+     *
+     * @param string $expr   SQL expression for the field
+     * @param string $op     Operator name (e.g. '$gt')
+     * @param mixed  $value  Operator value
+     * @param array  &$params Parameters collected for prepared statements
      */
-    private function buildSingleOperatorCondition(string $expr, string $op, $value): ?string
+    private function buildSingleOperatorCondition(string $expr, string $op, $value, array &$params): ?string
     {
         switch ($op) {
             case '$gt':
-                return $this->buildComparisonCondition($expr, '>', $value);
+                return $this->buildComparisonCondition($expr, '>', $value, $params);
             case '$gte':
-                return $this->buildComparisonCondition($expr, '>=', $value);
+                return $this->buildComparisonCondition($expr, '>=', $value, $params);
             case '$lt':
-                return $this->buildComparisonCondition($expr, '<', $value);
+                return $this->buildComparisonCondition($expr, '<', $value, $params);
             case '$lte':
-                return $this->buildComparisonCondition($expr, '<=', $value);
+                return $this->buildComparisonCondition($expr, '<=', $value, $params);
             case '$in':
-                return $this->buildInCondition($expr, $value, false);
+                return $this->buildInCondition($expr, $value, false, $params);
             case '$nin':
-                return $this->buildInCondition($expr, $value, true);
+                return $this->buildInCondition($expr, $value, true, $params);
             case '$exists':
                 return $value ? "{$expr} IS NOT NULL" : "{$expr} IS NULL";
             default:
                 // unsupported operator - fallback to strict equality check
-                return $this->buildEqualityCondition($expr, $value);
+                return $this->buildEqualityCondition($expr, $value, $params);
         }
     }
 
@@ -164,9 +184,14 @@ trait QueryBuilderTrait
     }
 
     /**
-     * Build comparison condition (>, >=, <, <=).
+     * Build comparison condition (>, >=, <, <=) using prepared statement placeholder.
+     *
+     * @param string $expr     SQL expression for the field
+     * @param string $operator Comparison operator
+     * @param mixed  $value    Value to compare against
+     * @param array  &$params  Parameters collected for prepared statements
      */
-    private function buildComparisonCondition(string $expr, string $operator, $value): string
+    private function buildComparisonCondition(string $expr, string $operator, $value, array &$params): string
     {
         // If this is a searchable field, normalize for case-insensitive search
         if ($this->isSearchableExpression($expr, $field)) {
@@ -176,15 +201,20 @@ trait QueryBuilderTrait
             }
         }
 
-        $val = is_numeric($value) ? $value : $this->database->connection->quote((string) $value);
+        $params[] = $value;
 
-        return "{$expr} {$operator} {$val}";
+        return "{$expr} {$operator} ?";
     }
 
     /**
-     * Build IN/NOT IN condition.
+     * Build IN/NOT IN condition using prepared statement placeholders.
+     *
+     * @param string $expr   SQL expression for the field
+     * @param array  $values Values to match against
+     * @param bool   $notIn  Whether to use NOT IN instead of IN
+     * @param array  &$params Parameters collected for prepared statements
      */
-    private function buildInCondition(string $expr, array $values, bool $notIn): ?string
+    private function buildInCondition(string $expr, array $values, bool $notIn, array &$params): ?string
     {
         if (empty($values)) {
             return $notIn ? null : '0'; // Return false condition for empty IN
@@ -202,20 +232,25 @@ trait QueryBuilderTrait
             }, $values);
         }
 
-        $vals = [];
+        $placeholders = [];
         foreach ($values as $item) {
-            $vals[] = is_numeric($item) ? $item : $this->database->connection->quote((string) $item);
+            $params[] = $item;
+            $placeholders[] = '?';
         }
 
         $operator = $notIn ? 'NOT IN' : 'IN';
 
-        return "{$expr} {$operator} (" . implode(',', $vals) . ')';
+        return "{$expr} {$operator} (" . implode(',', $placeholders) . ')';
     }
 
     /**
-     * Build equality condition.
+     * Build equality condition using prepared statement placeholder.
+     *
+     * @param string $expr   SQL expression for the field
+     * @param mixed  $value  Value to compare against
+     * @param array  &$params Parameters collected for prepared statements
      */
-    private function buildEqualityCondition(string $expr, $value): string
+    private function buildEqualityCondition(string $expr, $value, array &$params): string
     {
         // If this is a searchable field, normalize for case-insensitive search
         if ($this->isSearchableExpression($expr, $field)) {
@@ -225,15 +260,13 @@ trait QueryBuilderTrait
             }
         }
 
-        if (is_int($value) || is_float($value) || (is_string($value) && is_numeric($value))) {
-            $val = $value;
-        } elseif (is_bool($value)) {
-            // Use numeric boolean representation for comparison
-            $val = $value ? '1' : '0';
-        } else {
-            $val = $this->database->connection->quote((string) $value);
+        // Convert booleans to integer for SQL comparison
+        if (is_bool($value)) {
+            $value = $value ? 1 : 0;
         }
 
-        return "{$expr} = {$val}";
+        $params[] = $value;
+
+        return "{$expr} = ?";
     }
 }

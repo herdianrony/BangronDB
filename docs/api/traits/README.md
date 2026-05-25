@@ -4,15 +4,17 @@ Dokumentasi lengkap untuk semua trait yang digunakan di BangronDB.
 
 ## Daftar Traits
 
-| Trait                                                    | Deskripsi                        | File                      |
-| -------------------------------------------------------- | -------------------------------- | ------------------------- |
-| [EncryptionTrait](traits/EncryptionTrait.md)             | Enkripsi data dengan AES-256-CBC | EncryptionTrait.php       |
-| [HooksTrait](traits/HooksTrait.md)                       | Sistem event hooks               | HooksTrait.php            |
-| [IdGeneratorTrait](traits/IdGeneratorTrait.md)           | Generasi ID dokumen              | IdGeneratorTrait.php      |
-| [QueryBuilderTrait](traits/QueryBuilderTrait.md)         | Query builder MongoDB-like       | QueryBuilderTrait.php     |
-| [SchemaValidationTrait](traits/SchemaValidationTrait.md) | Validasi schema dokumen          | SchemaValidationTrait.php |
-| [SearchableFieldsTrait](traits/SearchableFieldsTrait.md) | Field pencarian dengan hashing   | SearchableFieldsTrait.php |
-| [SoftDeleteTrait](traits/SoftDeleteTrait.md)             | Soft delete dengan restore       | SoftDeleteTrait.php       |
+| Trait                                                                    | Deskripsi                          | File                              |
+| ------------------------------------------------------------------------ | ---------------------------------- | --------------------------------- |
+| [EncryptionTrait](traits/EncryptionTrait.md)                             | Enkripsi data dengan AES-256-CBC   | EncryptionTrait.php               |
+| [HooksTrait](traits/HooksTrait.md)                                       | Sistem event hooks                 | HooksTrait.php                    |
+| [IdGeneratorTrait](traits/IdGeneratorTrait.md)                           | Generasi ID dokumen                | IdGeneratorTrait.php              |
+| [QueryBuilderTrait](traits/QueryBuilderTrait.md)                         | Query builder MongoDB-like         | QueryBuilderTrait.php             |
+| [SchemaValidationTrait](traits/SchemaValidationTrait.md)                 | Validasi schema dokumen            | SchemaValidationTrait.php         |
+| [SearchableFieldsTrait](traits/SearchableFieldsTrait.md)                 | Field pencarian dengan hashing     | SearchableFieldsTrait.php         |
+| [ChangeTrackingTrait](traits/ChangeTrackingTrait.md)                     | Pelacakan versi collection         | ChangeTrackingTrait.php           |
+| [ConfigurationPersistenceTrait](traits/ConfigurationPersistenceTrait.md) | Persistensi konfigurasi collection | ConfigurationPersistenceTrait.php |
+| [SoftDeleteTrait](traits/SoftDeleteTrait.md)                             | Soft delete dengan restore         | SoftDeleteTrait.php               |
 
 ---
 
@@ -29,7 +31,9 @@ class Collection
     use IdGeneratorTrait;    // Generasi ID
     use QueryBuilderTrait;   // Query builder
     use SchemaValidationTrait; // Validasi schema
-    use SoftDeleteTrait;     // Soft delete
+    use SoftDeleteTrait;           // Soft delete
+    use ChangeTrackingTrait;        // Pelacakan versi
+    use ConfigurationPersistenceTrait; // Persistensi konfigurasi
 
     // ...
 }
@@ -300,6 +304,90 @@ $users->setIdMode('user:');
 
 // Simpan konfigurasi
 $users->saveConfiguration();
+```
+
+---
+
+## ChangeTrackingTrait
+
+Menyediakan pelacakan versi collection menggunakan tabel metadata `_meta`, memungkinkan deteksi perubahan data oleh sistem eksternal.
+
+### Metode Utama
+
+```php
+// Notify collection changed (auto-called on write ops)
+public function notifyChange(): void
+
+// Get current version/timestamp
+public function getLastModified(): array
+```
+
+**Contoh:**
+
+```php
+// Cek versi terakhir
+$info = $users->getLastModified();
+echo "Version: {$info['version']}";
+echo "Last updated: {$info['last_updated']}";
+
+// Version naik otomatis saat ada operasi write
+$users->insert(['name' => 'John']);
+
+// Cek perubahan
+$latest = $users->getLastModified();
+if ($latest['version'] > $info['version']) {
+    echo "Data telah berubah!";
+}
+```
+
+---
+
+## ConfigurationPersistenceTrait
+
+Menyediakan penyimpanan dan pemuatan konfigurasi collection ke/dari database, termasuk custom config values.
+
+### Metode Utama
+
+```php
+// Load config dari database (auto-called on collection creation)
+protected function loadConfiguration(): void
+
+// Save config ke database
+public function saveConfiguration(): void
+
+// Set custom config value
+public function setCustomConfig(string $key, $value): self
+
+// Get custom config value
+public function getCustomConfig(string $key, $default = null): mixed
+
+// Get all custom config values
+public function getAllCustomConfig(): array
+
+// Set multiple custom config values
+public function setCustomConfigArray(array $config): self
+```
+
+**Contoh:**
+
+```php
+// Set konfigurasi collection
+$users->setSchema(['email' => ['required' => true]]);
+$users->useSoftDeletes(true);
+
+// Custom config
+$users->setCustomConfig('max_documents', 10000);
+$users->setCustomConfigArray([
+    'owner' => 'team-backend',
+    'cache_ttl' => 3600,
+]);
+
+// Simpan semua konfigurasi
+$users->saveConfiguration();
+
+// Konfigurasi otomatis dimuat saat collection dibuat
+$users = $db->selectCollection('users');
+echo $users->getCustomConfig('max_documents'); // 10000
 ```
 
 ---
