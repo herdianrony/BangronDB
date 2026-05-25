@@ -19,8 +19,7 @@ use BangronDB\Client;
 
 echo "=== Contoh 17: Schema dengan Relasi Data ===\n\n";
 
-// Setup client
-$client = createIsolatedClient('schema_relationships_demo');
+$client = new Client(__DIR__ . '/data');
 
 // ============================================
 // 1. Multi-Database Architecture

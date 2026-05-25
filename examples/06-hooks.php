@@ -8,10 +8,11 @@
 
 require_once __DIR__.'/bootstrap.php';
 
+use BangronDB\Client;
+
 echo "=== Contoh 06: Hooks ===\n\n";
 
-// Buat client dengan database isolated
-$client = createIsolatedClient('hooks_demo');
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('app');
 $users = $db->users;
 

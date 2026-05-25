@@ -13,24 +13,16 @@ use BangronDB\Client;
 
 echo "=== Contoh 15: Encryption dengan .env ===\n\n";
 
-// Simulasi: Load dari .env (dalam aplikasi nyata gunakan vlucas/phpdotenv)
-$_ENV['DB_ENCRYPTION_KEY'] = 'ini-key-rahasia-dari-env-32char!';
-
-// Setup
-$path = __DIR__ . '/data/encryption_demo_env';
-if (!is_dir($path)) {
-    mkdir($path, 0755, true);
-}
-
-// Key dari .env - TIDAK disimpan di database
-$encryptionKey = $_ENV['DB_ENCRYPTION_KEY'] ?? null;
-
-$client = new Client($path, ['encryption_key' => $encryptionKey]);
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('app');
 $users = $db->users;
 
 echo "1. Insert Data Terenkripsi\n";
 echo "---------------------------\n";
+
+// Set encryption key (simulasi dari .env)
+$encryptionKey = 'ini-key-rahasia-dari-env-32char!';
+$users->setEncryptionKey($encryptionKey);
 
 $userId = $users->insert([
     'name' => 'John Doe',
@@ -62,7 +54,7 @@ echo "-----------------------------\n";
 $client->close();
 
 // Coba reconnect dengan key SALAH
-$client2 = new Client($path); // Tanpa key
+$client2 = new Client(__DIR__ . '/data'); // Tanpa key
 $db2 = $client2->selectDB('app');
 $users2 = $db2->users;
 
@@ -73,7 +65,7 @@ print_r($user2); // Akan null karena tidak bisa decrypt
 echo "\n5. Reconnect dengan Key BENAR\n";
 echo "-----------------------------\n";
 
-$client3 = new Client($path, ['encryption_key' => $encryptionKey]);
+$client3 = new Client(__DIR__ . '/data', ['encryption_key' => $encryptionKey]);
 $db3 = $client3->selectDB('app');
 $users3 = $db3->users;
 

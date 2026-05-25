@@ -20,7 +20,7 @@ use BangronDB\Client;
 echo "🏥 Advanced Healthcare Management System\n";
 echo str_repeat("=", 70) . "\n\n";
 
-$client = new Client(__DIR__ . '/data/healthcare', [
+$client = new Client(__DIR__ . '/data', [
     'query_logging' => true,
     'performance_monitoring' => true
 ]);

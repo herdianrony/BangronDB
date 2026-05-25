@@ -11,7 +11,7 @@ use BangronDB\Client;
 
 echo "=== Searchable Fields Performance Test ===\n\n";
 
-$client = new Client(__DIR__.'/examples/data/benchmark');
+$client = new Client(__DIR__.'/data/benchmark');
 $db = $client->selectDB('test');
 $collection = $db->users;
 

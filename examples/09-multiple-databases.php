@@ -12,13 +12,7 @@ use BangronDB\Client;
 
 echo "=== Contoh 09: Multiple Databases ===\n\n";
 
-// Buat client dengan path database lokal
-$path = __DIR__ . '/data/multi_db_demo';
-// Create directory if it doesn't exist
-if (!is_dir($path)) {
-    mkdir($path, 0755, true);
-}
-$client = new Client($path);
+$client = new Client(__DIR__ . '/data');
 
 echo "1. Create multiple databases\n";
 echo "-----------------------------\n";

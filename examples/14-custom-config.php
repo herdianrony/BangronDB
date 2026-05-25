@@ -14,13 +14,7 @@ use BangronDB\Collection;
 
 echo "=== Contoh 14: Custom Configuration ===\n\n";
 
-// Use fixed path for persistence testing
-$path = __DIR__ . '/data/custom_config_demo_fixed';
-// Create directory if it doesn't exist
-if (!is_dir($path)) {
-    mkdir($path, 0755, true);
-}
-$client = new Client($path);
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('app');
 $users = $db->users;
 
@@ -142,7 +136,7 @@ echo "----------------------------\n";
 $client->close();
 
 // Reconnect using the SAME path
-$client2 = new Client($path);
+$client2 = new Client(__DIR__ . '/data');
 $db2 = $client2->selectDB('app');
 $users2 = $db2->users;
 

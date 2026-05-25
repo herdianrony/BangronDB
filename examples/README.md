@@ -4,7 +4,7 @@ Kumpulan contoh penggunaan BangronDB untuk berbagai skenario.
 
 ## Struktur
 
-```
+```text
 examples/
 ├── bootstrap.php              # Setup common
 ├── 01-basic-crud.php         # Operasi CRUD dasar

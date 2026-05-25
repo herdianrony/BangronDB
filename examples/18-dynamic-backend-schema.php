@@ -11,9 +11,11 @@
 
 require_once __DIR__.'/bootstrap.php';
 
+use BangronDB\Client;
+
 echo "=== Contoh 18: Dynamic Backend Schema ===\n\n";
 
-$client = createIsolatedClient('dynamic_backend_demo');
+$client = new Client(__DIR__ . '/data');
 
 // ============================================
 // 1. Define Schema dengan Reverse Relationships

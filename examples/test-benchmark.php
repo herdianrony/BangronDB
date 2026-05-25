@@ -7,7 +7,7 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 use BangronDB\Client;
 
-$dataDir = 'C:\\temp\\bangrondb_benchmark';
+$dataDir = __DIR__ . '/data';
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }

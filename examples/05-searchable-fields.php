@@ -9,10 +9,11 @@
 
 require_once __DIR__ . '/bootstrap.php';
 
+use BangronDB\Client;
+
 echo "=== Contoh 05: Searchable Fields ===\n\n";
 
-// Buat client dengan database isolated
-$client = createIsolatedClient('searchable_demo', ['query_logging' => true]);
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('app');
 $users = $db->users;
 

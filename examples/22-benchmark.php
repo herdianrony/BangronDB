@@ -909,5 +909,5 @@ class BangronDBBenchmark
 }
 
 // Run benchmark
-$benchmark = new BangronDBBenchmark(__DIR__.'/examples/data/benchmark', 1000, 3);
+$benchmark = new BangronDBBenchmark(__DIR__.'/data/benchmark', 1000, 3);
 $benchmark->runAll();

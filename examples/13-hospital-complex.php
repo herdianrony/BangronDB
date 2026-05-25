@@ -13,44 +13,10 @@
 require_once __DIR__ . '/bootstrap.php';
 
 use BangronDB\Client;
-use BangronDB\Database;
 
 echo "=== Sistem Manajemen Rumah Sakit - Complex Relations ===\n\n";
 
-// ============================================
-// Setup Multiple Databases
-// ============================================
-
-echo "1. Setup Multiple Databases\n";
-echo "----------------------------\n";
-
-// Master database untuk data utama (patients, doctors, departments)
-$masterPath = __DIR__ . '/data/hospital_master';
-if (!is_dir($masterPath)) {
-    mkdir($masterPath, 0755, true);
-}
-$masterClient = new Client($masterPath);
-$masterDb = $masterClient->selectDB('master');
-
-// Transaction database untuk data operasional (appointments, medical records, billing)
-$transactionPath = __DIR__ . '/data/hospital_transaction';
-if (!is_dir($transactionPath)) {
-    mkdir($transactionPath, 0755, true);
-}
-$transactionClient = new Client($transactionPath);
-$transactionDb = $transactionClient->selectDB('transaction');
-
-// HR database untuk staff management
-$hrPath = __DIR__ . '/data/hospital_hr';
-if (!is_dir($hrPath)) {
-    mkdir($hrPath, 0755, true);
-}
-$hrClient = new Client($hrPath);
-$hrDb = $hrClient->selectDB('hr');
-
-echo "- Master DB: Patients, Departments, Rooms\n";
-echo "- Transaction DB: Appointments, Medical Records, Billing\n";
-echo "- HR DB: Staff, Schedules, Payroll\n\n";
+$client = new Client(__DIR__ . '/data');
 
 // ============================================
 // Setup Master Database Collections

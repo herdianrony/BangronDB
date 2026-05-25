@@ -14,32 +14,16 @@
 require_once __DIR__ . '/bootstrap.php';
 
 use BangronDB\Client;
-use BangronDB\Database;
 
 echo "=== Computer Store & Service Center ===\n\n";
 
-// ============================================
-// Setup Multiple Databases
-// ============================================
+$client = new Client(__DIR__ . '/data');
 
 echo "1. Setup Databases\n";
 echo "------------------\n";
 
-// Master database for products and catalog
-$masterPath = __DIR__ . '/data/computer_store_master';
-if (!is_dir($masterPath)) {
-    mkdir($masterPath, 0755, true);
-}
-$masterClient = new Client($masterPath);
-$masterDb = $masterClient->selectDB('store');
-
-// Transaction database for sales and orders
-$transactionPath = __DIR__ . '/data/computer_store_transaction';
-if (!is_dir($transactionPath)) {
-    mkdir($transactionPath, 0755, true);
-}
-$transactionClient = new Client($transactionPath);
-$transactionDb = $transactionClient->selectDB('transaction');
+$masterDb = $client->selectDB('store');
+$transactionDb = $client->selectDB('transaction');
 
 echo "- Master DB: Products, Categories, Customers\n";
 echo "- Transaction DB: Sales, Service Orders\n\n";
@@ -423,9 +407,7 @@ echo "  - Services: {$services->count()}\n";
 echo "  - Service Parts: {$service_parts->count()}\n\n";
 
 echo "=== Cleanup ===\n";
-@Database::closeAll();
-@$transactionDb->drop();
 @$masterDb->drop();
-@$transactionClient->close();
-@$masterClient->close();
+@$transactionDb->drop();
+$client->close();
 echo "All databases cleaned.\n";

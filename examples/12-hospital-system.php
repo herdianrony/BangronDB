@@ -18,12 +18,7 @@ use BangronDB\Client;
 
 echo "=== Sistem Manajemen Rumah Sakit ===\n\n";
 
-// Setup database path lokal
-$path = __DIR__ . '/data/hospital_demo';
-if (!is_dir($path)) {
-    mkdir($path, 0755, true);
-}
-$client = new Client($path);
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('hospital');
 
 // ============================================

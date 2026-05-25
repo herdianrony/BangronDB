@@ -8,10 +8,11 @@
 
 require_once __DIR__.'/bootstrap.php';
 
+use BangronDB\Client;
+
 echo "=== Contoh 11: Query Operators ===\n\n";
 
-// Buat client dengan database isolated
-$client = createIsolatedClient('query_demo');
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('app');
 $products = $db->products;
 

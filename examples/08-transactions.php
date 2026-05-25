@@ -8,10 +8,11 @@
 
 require_once __DIR__.'/bootstrap.php';
 
+use BangronDB\Client;
+
 echo "=== Contoh 08: Transactions ===\n\n";
 
-// Buat client dengan database isolated
-$client = createIsolatedClient('transaction_demo');
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('app');
 $accounts = $db->accounts;
 $transactions = $db->transactions;

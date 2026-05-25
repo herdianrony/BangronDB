@@ -19,7 +19,7 @@ use BangronDB\Exceptions\ValidationException;
 
 echo "=== Contoh 19: Schema Builder - Headless CMS ===\n\n";
 
-$client = createIsolatedClient('cms_demo');
+$client = new Client(__DIR__ . '/data');
 
 // ============================================
 // 1. Schema Builder Class

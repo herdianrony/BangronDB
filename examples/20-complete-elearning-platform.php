@@ -38,7 +38,7 @@ Config::set('synchronous', 'NORMAL');
 Config::set('page_size', 4096);
 
 // Create client with performance monitoring
-$client = new Client(__DIR__ . '/data/elearning', [
+$client = new Client(__DIR__ . '/data', [
     'query_logging' => true,
     'performance_monitoring' => true
 ]);

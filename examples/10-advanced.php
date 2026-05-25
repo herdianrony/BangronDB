@@ -9,10 +9,11 @@
 
 require_once __DIR__ . '/bootstrap.php';
 
+use BangronDB\Client;
+
 echo "=== Contoh 10: Advanced - Full Features Combined ===\n\n";
 
-// Buat client dengan database isolated
-$client = createIsolatedClient('advanced_demo');
+$client = new Client(__DIR__ . '/data');
 $db = $client->selectDB('app');
 $users = $db->users;
 
