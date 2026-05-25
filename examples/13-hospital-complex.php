@@ -10,13 +10,14 @@
  * - Comprehensive audit trail
  */
 
-require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__.'/bootstrap.php';
 
 use BangronDB\Client;
+use BangronDB\Database;
 
 echo "=== Sistem Manajemen Rumah Sakit - Complex Relations ===\n\n";
 
-$client = new Client(__DIR__ . '/data');
+$client = new Client(__DIR__.'/data');
 
 // ============================================
 // Setup Master Database Collections
@@ -24,6 +25,9 @@ $client = new Client(__DIR__ . '/data');
 
 echo "2. Setup Master Database\n";
 echo "------------------------\n";
+
+// Master DB for Departments, Rooms, Patients
+$masterDb = $client->master;
 
 // Departments
 $departments = $masterDb->departments;
@@ -73,6 +77,9 @@ echo "- Master collections: Departments, Rooms, Patients\n\n";
 echo "3. Setup HR Database\n";
 echo "--------------------\n";
 
+// HR DB for Doctors, Nurses
+$hrDb = $client->hr;
+
 // Doctors (HR database - karena ini staff)
 $doctors = $hrDb->doctors;
 $doctors->setSchema([
@@ -107,8 +114,11 @@ echo "- HR collections: Doctors, Nurses\n\n";
 echo "4. Setup Transaction Database\n";
 echo "------------------------------\n";
 
+// Transaction DB for Appointments, Medical Records, Billing
+$txDb = $client->transactions;
+
 // Appointments
-$appointments = $transactionDb->appointments;
+$appointments = $txDb->appointments;
 $appointments->setSchema([
     'patient_id' => ['type' => 'string', 'required' => true], // Reference to master DB
     'doctor_id' => ['type' => 'string', 'required' => true], // Reference to HR DB
@@ -123,7 +133,7 @@ $appointments->setSchema([
 $appointments->saveConfiguration();
 
 // Medical Records (with references ke multiple databases)
-$medicalRecords = $transactionDb->medical_records;
+$medicalRecords = $txDb->medical_records;
 $medicalRecords->setEncryptionKey('medical-records-encryption-key-32-chars!!');
 $medicalRecords->setSchema([
     'patient_id' => ['type' => 'string', 'required' => true], // master DB
@@ -141,7 +151,7 @@ $medicalRecords->setSchema([
 $medicalRecords->saveConfiguration();
 
 // Billing
-$billing = $transactionDb->billing;
+$billing = $txDb->billing;
 $billing->setSchema([
     'patient_id' => ['type' => 'string', 'required' => true], // master DB
     'record_id' => ['type' => 'string', 'required' => true], // Transaction DB
@@ -369,7 +379,7 @@ $appointmentsWithPatients = $appointments->find()->toArray();
 foreach ($appointmentsWithPatients as $apt) {
     $patient = $patients->findOne(['_id' => $apt['patient_id']]);
     echo "  - {$apt['appointment_date']} {$apt['appointment_time']}: \n";
-    echo '    Patient: ' . ($patient['name'] ?? 'Unknown') . "\n";
+    echo '    Patient: '.($patient['name'] ?? 'Unknown')."\n";
 }
 
 // Population: Medical Records dengan Doctor
@@ -379,8 +389,8 @@ foreach ($records as $rec) {
     $doctor = $doctors->findOne(['_id' => $rec['doctor_id']]);
     $patient = $patients->findOne(['_id' => $rec['patient_id']]);
     echo "  - Diagnosis: {$rec['diagnosis']}\n";
-    echo '    Doctor: ' . ($doctor['name'] ?? 'Unknown') . "\n";
-    echo '    Patient: ' . ($patient['name'] ?? 'Unknown') . "\n";
+    echo '    Doctor: '.($doctor['name'] ?? 'Unknown')."\n";
+    echo '    Patient: '.($patient['name'] ?? 'Unknown')."\n";
 }
 
 // Population: Billing dengan Patient
@@ -388,8 +398,8 @@ echo "\nc. Billing dengan Patient:\n";
 $bills = $billing->find()->toArray();
 foreach ($bills as $bill) {
     $patient = $patients->findOne(['_id' => $bill['patient_id']]);
-    echo '  - Amount: Rp ' . number_format($bill['final_amount'], 0, ',', '.') . "\n";
-    echo '    Patient: ' . ($patient['name'] ?? 'Unknown') . "\n";
+    echo '  - Amount: Rp '.number_format($bill['final_amount'], 0, ',', '.')."\n";
+    echo '    Patient: '.($patient['name'] ?? 'Unknown')."\n";
     echo "    Status: {$bill['status']}\n";
 }
 
@@ -434,18 +444,18 @@ foreach ($availableRooms as $r) {
 
 echo "\n=== Summary Statistics ===\n";
 echo "Master DB:\n";
-echo '  - Patients: ' . $patients->count() . "\n";
-echo '  - Departments: ' . $departments->count() . "\n";
-echo '  - Rooms: ' . $rooms->count() . "\n\n";
+echo '  - Patients: '.$patients->count()."\n";
+echo '  - Departments: '.$departments->count()."\n";
+echo '  - Rooms: '.$rooms->count()."\n\n";
 
 echo "HR DB:\n";
-echo '  - Doctors: ' . $doctors->count() . "\n";
-echo '  - Nurses: ' . $nurses->count() . "\n\n";
+echo '  - Doctors: '.$doctors->count()."\n";
+echo '  - Nurses: '.$nurses->count()."\n\n";
 
 echo "Transaction DB:\n";
-echo '  - Appointments: ' . $appointments->count() . "\n";
-echo '  - Medical Records: ' . $medicalRecords->count() . "\n";
-echo '  - Billing Records: ' . $billing->count() . "\n\n";
+echo '  - Appointments: '.$appointments->count()."\n";
+echo '  - Medical Records: '.$medicalRecords->count()."\n";
+echo '  - Billing Records: '.$billing->count()."\n\n";
 
 // ============================================
 // Cleanup
@@ -453,15 +463,12 @@ echo '  - Billing Records: ' . $billing->count() . "\n\n";
 
 echo "=== Cleanup ===\n";
 // Close connections first to release file locks
-@Database::closeAll();
+Database::closeAll();
 
-// Try to drop databases (suppress Windows file lock warnings)
-@$masterDb->drop();
-@$transactionDb->drop();
-@$hrDb->drop();
-
-@$masterClient->close();
-@$transactionClient->close();
-@$hrClient->close();
+// Drop each database file manually (suppress Windows file lock warnings)
+foreach ($client->listDBs() as $dbName) {
+    $db = $client->selectDB($dbName);
+    @$db->drop();
+}
 
 echo "All databases cleaned.\n";
