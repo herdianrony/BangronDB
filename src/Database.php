@@ -19,7 +19,10 @@ class Database
     // Instance properties
     public string $path;
     public ?Client $client = null;
-    public ?string $encryptionKey = null;
+    /**
+     * @var string|null Encryption key (protected to prevent direct external access)
+     */
+    protected ?string $encryptionKey = null;
     protected array $options = [];
     protected array $collections = [];
 
@@ -198,6 +201,51 @@ class Database
     }
 
     /**
+     * Get the database-level encryption key (for internal library use only).
+     * Used by EncryptionTrait in Collection to access the database-level key.
+     *
+     * @internal This method is for internal library use only. Do not expose in public API.
+     */
+    public function getEncryptionKey(): ?string
+    {
+        return $this->encryptionKey;
+    }
+
+    /**
+     * Set the database-level encryption key.
+     *
+     * @param string|null $key Encryption key (minimum 32 characters)
+     */
+    public function setEncryptionKey(?string $key): self
+    {
+        $this->encryptionKey = $key;
+
+        // Clear derived key cache since the key changed
+        EncryptionTrait::clearDerivedKeyCache();
+
+        return $this;
+    }
+
+    /**
+     * Check if database-level encryption is enabled.
+     */
+    public function isEncryptionEnabled(): bool
+    {
+        return $this->encryptionKey !== null;
+    }
+
+    /**
+     * Get the database-level encryption key status (does not expose the key itself).
+     */
+    public function getEncryptionKeyStatus(): array
+    {
+        return [
+            'enabled' => $this->encryptionKey !== null,
+            'key_length' => $this->encryptionKey !== null ? strlen($this->encryptionKey) : 0,
+        ];
+    }
+
+    /**
      * Close all known Database instances (best-effort).
      */
     public static function closeAll(): void
@@ -263,10 +311,11 @@ class Database
 
     /**
      * Register Criteria function.
+     * Uses random_bytes for unpredictable IDs instead of uniqid.
      */
     public function registerCriteriaFunction($criteria): ?string
     {
-        $id = uniqid('criteria');
+        $id = 'criteria_' . bin2hex(random_bytes(8));
 
         if (is_callable($criteria)) {
             return $this->registerCallableCriteria($id, $criteria);
@@ -557,14 +606,26 @@ class Database
 
     /**
      * Create an index for a JSON field using json_extract(document, '$.field').
+     *
+     * Security: Collection name and field path are validated and properly quoted.
      */
     public function createJsonIndex(string $collection, string $field, ?string $indexName = null): void
     {
         $this->validateCollectionName($collection);
 
+        // Validate field name to prevent injection
+        \BangronDB\Security\FieldValidator::validateFieldName($field);
+
         $indexName = $indexName ?? $this->generateIndexName($collection, $field);
+
+        // Validate index name
+        if (!preg_match(self::IDENTIFIER_REGEX, $indexName)) {
+            throw new \InvalidArgumentException('Invalid index name: ' . $indexName);
+        }
+
+        $quotedCollection = $this->quoteIdentifier($collection);
         $path = '$.' . str_replace("'", "\\'", $field);
-        $sql = 'CREATE INDEX IF NOT EXISTS ' . $indexName . ' ON ' . $collection .
+        $sql = 'CREATE INDEX IF NOT EXISTS `' . str_replace('`', '``', $indexName) . '` ON ' . $quotedCollection .
             " (json_extract(document, '" . $path . "'))";
 
         $this->connection->exec($sql);
@@ -662,7 +723,8 @@ class Database
     public function tableHasColumn(string $tableName, string $columnName): bool
     {
         try {
-            $stmt = $this->connection->query("PRAGMA table_info(`{$tableName}`)");
+            $quotedTable = $this->quoteIdentifier($tableName);
+            $stmt = $this->connection->query("PRAGMA table_info({$quotedTable})");
             $columns = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
             foreach ($columns as $column) {
                 if ($column['name'] === $columnName) {

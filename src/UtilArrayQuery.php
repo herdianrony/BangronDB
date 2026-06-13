@@ -192,7 +192,7 @@ class UtilArrayQuery
                 if (!\is_array($b)) {
                     throw new \InvalidArgumentException('Invalid argument for $all option must be array');
                 }
-                $r = \count(\array_intersect_key($a, $b)) === \count($b);
+                $r = \count(\array_intersect($a, $b)) === \count($b);
                 break;
 
             case '$regex':
