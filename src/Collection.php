@@ -178,7 +178,7 @@ class Collection
         }
 
         $data = $this->prepareDocumentForStorage($doc);
-        $insertId = $this->executeInsert($data);
+        $insertId = $this->executeInsert($data, $doc['_id'] ?? null);
 
         if ($insertId) {
             $this->applyAfterInsertHooks($doc, $insertId);
@@ -209,7 +209,7 @@ class Collection
     /**
      * Execute the actual SQL insert statement using prepared statements.
      */
-    protected function executeInsert(array $data): mixed
+    protected function executeInsert(array $data, ?string $insertId = null): mixed
     {
         $table = $this->database->quoteIdentifier($this->name);
         $fields = [];
@@ -229,7 +229,7 @@ class Collection
 
         try {
             $this->database->queryExecutor->executeUpdate($sql, $params);
-            return $data['document'] ? json_decode($data['document'], true)['_id'] : null;
+            return $insertId ?? ($data['document'] ? json_decode($data['document'], true)['_id'] : null);
         } catch (QueryExecutionException $e) {
             $this->logSqlError($sql);
             return false;
@@ -241,8 +241,9 @@ class Collection
      */
     protected function logSqlError(string $sql): void
     {
-        // Log error internally without exposing SQL details to end users
-        error_log('BangronDB SQL Error: ' . \implode(', ', $this->database->connection->errorInfo()) . ' | Query: ' . $sql);
+        // Log error without exposing full SQL details to prevent information leakage
+        $errorInfo = $this->database->connection->errorInfo();
+        error_log('BangronDB SQL Error: ' . ($errorInfo[2] ?? 'Unknown error') . ' | Query type: ' . strtoupper(explode(' ', trim($sql))[0]));
     }
 
     /**
@@ -612,6 +613,20 @@ class Collection
      */
     public function count($criteria = null): int
     {
+        $this->ensureCollectionExists();
+
+        // Fast path for no criteria without soft deletes
+        if ($criteria === null && !$this->softDeletesEnabled) {
+            $table = $this->database->quoteIdentifier($this->name);
+            try {
+                $stmt = $this->database->queryExecutor->executeQuery("SELECT COUNT(*) as c FROM {$table}");
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                return $row ? (int) $row['c'] : 0;
+            } catch (QueryExecutionException $e) {
+                return 0;
+            }
+        }
+
         return $this->find($criteria)->count();
     }
 
@@ -740,6 +755,23 @@ class Collection
     /**
      * Create a JSON index for a field on this collection.
      */
+    /**
+     * Prevent sensitive data from being exposed via var_dump/print_r.
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'name' => $this->name,
+            'database' => $this->database->path,
+            'encryption' => $this->getDebugEncryptionInfo(),
+            'idMode' => $this->idMode,
+            'softDeletesEnabled' => $this->softDeletesEnabled,
+            'schema' => $this->schema,
+            'searchableFields' => array_keys($this->searchableFields),
+            'hooks' => array_map('count', $this->hooks),
+        ];
+    }
+
     public function createIndex(string $field, ?string $indexName = null): void
     {
         $this->database->createJsonIndex($this->name, $field, $indexName);

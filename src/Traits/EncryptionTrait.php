@@ -30,6 +30,45 @@ trait EncryptionTrait
     private const MAX_DERIVED_KEY_CACHE_SIZE = 16;
 
     /**
+     * Maximum document nesting depth to prevent stack overflow.
+     */
+    private const MAX_DOCUMENT_DEPTH = 64;
+
+    /**
+     * Prevent encryption key from being exposed via var_dump/print_r.
+     * This is called by Collection's __debugInfo.
+     */
+    protected function getDebugEncryptionInfo(): array
+    {
+        return [
+            'encryptionEnabled' => $this->encryptionKey !== null,
+            'encryptionKeyLength' => $this->encryptionKey !== null ? strlen($this->encryptionKey) : 0,
+        ];
+    }
+
+    /**
+     * Validate document nesting depth.
+     *
+     * @param array $document Document to validate
+     * @param int $depth Current depth
+     * @throws \RuntimeException If depth exceeds limit
+     */
+    private function validateDocumentDepth(array $document, int $depth = 0): void
+    {
+        if ($depth > self::MAX_DOCUMENT_DEPTH) {
+            throw new \RuntimeException(
+                sprintf('Document nesting depth exceeds maximum allowed depth of %d', self::MAX_DOCUMENT_DEPTH)
+            );
+        }
+
+        foreach ($document as $value) {
+            if (is_array($value)) {
+                $this->validateDocumentDepth($value, $depth + 1);
+            }
+        }
+    }
+
+    /**
      * Clear the derived key cache (e.g., when encryption key changes).
      */
     public static function clearDerivedKeyCache(): void
@@ -180,6 +219,9 @@ trait EncryptionTrait
      */
     private function encodeJson(array $doc): string
     {
+        // Validate document depth
+        $this->validateDocumentDepth($doc);
+
         $json = \json_encode($doc, JSON_UNESCAPED_UNICODE);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \RuntimeException('JSON encode error: ' . json_last_error_msg());
@@ -259,10 +301,14 @@ trait EncryptionTrait
         $tag = '';
         $cipher = \openssl_encrypt($plain, 'aes-256-gcm', $rawKey, OPENSSL_RAW_DATA, $iv, $tag);
 
+        // Generate HMAC for additional integrity verification
+        $hmac = \hash_hmac('sha256', $cipher . $iv, $rawKey);
+
         return [
             'encrypted_data' => \base64_encode($cipher),
             'iv' => \base64_encode($iv),
             'tag' => \base64_encode($tag),
+            'hmac' => $hmac,
         ];
     }
 
@@ -341,6 +387,14 @@ trait EncryptionTrait
         $tag = \base64_decode($decoded['tag'] ?? '');
         if ($cipher === false || $iv === false || $tag === false) {
             return null;
+        }
+
+        // Verify HMAC if present (for tamper detection)
+        if (isset($decoded['hmac'])) {
+            $expectedHmac = \hash_hmac('sha256', $cipher . $iv, $rawKey);
+            if (!\hash_equals($expectedHmac, $decoded['hmac'])) {
+                return null; // Data has been tampered with
+            }
         }
 
         return \openssl_decrypt($cipher, 'aes-256-gcm', $rawKey, OPENSSL_RAW_DATA, $iv, $tag);

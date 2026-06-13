@@ -33,6 +33,17 @@ class QueryExecutor
     private array $queryStats = [];
 
     /**
+     * Prepared statement cache for frequently executed queries.
+     * @var array<string, \PDOStatement>
+     */
+    private array $statementCache = [];
+
+    /**
+     * Maximum number of cached prepared statements.
+     */
+    private const MAX_STATEMENT_CACHE_SIZE = 50;
+
+    /**
      * Constructor.
      */
     public function __construct(
@@ -95,7 +106,7 @@ class QueryExecutor
         $startTime = $this->performanceMonitoring ? microtime(true) : 0;
 
         try {
-            $stmt = $this->connection->prepare($sql);
+            $stmt = $this->getPreparedStatement($sql);
 
             if (!$stmt) {
                 throw new QueryExecutionException('Failed to prepare statement: '.implode(', ', $this->connection->errorInfo()), $sql, $params);
@@ -128,7 +139,7 @@ class QueryExecutor
         $startTime = $this->performanceMonitoring ? microtime(true) : 0;
 
         try {
-            $stmt = $this->connection->prepare($sql);
+            $stmt = $this->getPreparedStatement($sql);
 
             if (!$stmt) {
                 throw new QueryExecutionException('Failed to prepare statement: '.implode(', ', $this->connection->errorInfo()), $sql, $params);
@@ -296,6 +307,32 @@ class QueryExecutor
     public function quote(string $string): string
     {
         return $this->connection->quote($string);
+    }
+
+    /**
+     * Get a prepared statement, using cache if available.
+     */
+    private function getPreparedStatement(string $sql): \PDOStatement|false
+    {
+        if (isset($this->statementCache[$sql])) {
+            return $this->statementCache[$sql];
+        }
+
+        $stmt = $this->connection->prepare($sql);
+
+        if ($stmt && count($this->statementCache) < self::MAX_STATEMENT_CACHE_SIZE) {
+            $this->statementCache[$sql] = $stmt;
+        }
+
+        return $stmt;
+    }
+
+    /**
+     * Clear the prepared statement cache.
+     */
+    public function clearStatementCache(): void
+    {
+        $this->statementCache = [];
     }
 
     /**

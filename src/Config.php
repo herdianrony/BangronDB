@@ -23,6 +23,7 @@ class Config
         'page_size' => 4096,
         'cache_size' => -1024, // KB
         'auto_vacuum' => 'INCREMENTAL',
+        'wal_autocheckpoint' => 1000,
     ];
 
     /**
@@ -41,6 +42,7 @@ class Config
         'page_size',
         'cache_size',
         'auto_vacuum',
+        'wal_autocheckpoint',
     ];
 
     /**
@@ -176,6 +178,10 @@ class Config
             case 'cache_size':
                 self::validateCacheSize($value);
                 break;
+
+            case 'wal_autocheckpoint':
+                self::validateWalAutocheckpoint($value);
+                break;
         }
     }
 
@@ -274,6 +280,26 @@ class Config
             throw new \InvalidArgumentException(
                 "Config 'cache_size' must be non-zero and within reasonable bounds " .
                 "(-1048576 to 1048576, where negative values are in KB)"
+            );
+        }
+    }
+
+    /**
+     * Validate wal_autocheckpoint value.
+     *
+     * @throws \InvalidArgumentException If value is invalid
+     */
+    private static function validateWalAutocheckpoint($value): void
+    {
+        if (!is_int($value)) {
+            throw new \InvalidArgumentException(
+                "Config 'wal_autocheckpoint' must be an integer"
+            );
+        }
+
+        if ($value < 0) {
+            throw new \InvalidArgumentException(
+                "Config 'wal_autocheckpoint' must be a non-negative integer"
             );
         }
     }
