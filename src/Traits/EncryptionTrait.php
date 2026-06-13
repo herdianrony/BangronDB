@@ -17,6 +17,27 @@ trait EncryptionTrait
     protected ?string $encryptionKey = null;
 
     /**
+     * Cached derived key to avoid expensive PBKDF2 recomputation.
+     * Keyed by a hash of the original key + salt.
+     *
+     * @var array<string, string>
+     */
+    private static array $derivedKeyCache = [];
+
+    /**
+     * Maximum number of derived keys to cache.
+     */
+    private const MAX_DERIVED_KEY_CACHE_SIZE = 16;
+
+    /**
+     * Clear the derived key cache (e.g., when encryption key changes).
+     */
+    public static function clearDerivedKeyCache(): void
+    {
+        self::$derivedKeyCache = [];
+    }
+
+    /**
      * Minimum encryption key length in characters.
      */
     private const MIN_KEY_LENGTH = 32;
@@ -111,6 +132,31 @@ trait EncryptionTrait
     }
 
     /**
+     * Maximum document size in bytes (default 10MB).
+     * Prevents storing excessively large documents that could cause memory issues.
+     */
+    protected int $maxDocumentSize = 10485760;
+
+    /**
+     * Set maximum document size in bytes.
+     *
+     * @param int $bytes Maximum document size (0 = unlimited)
+     */
+    public function setMaxDocumentSize(int $bytes): self
+    {
+        $this->maxDocumentSize = $bytes;
+        return $this;
+    }
+
+    /**
+     * Get maximum document size.
+     */
+    public function getMaxDocumentSize(): int
+    {
+        return $this->maxDocumentSize;
+    }
+
+    /**
      * Encode a document for storage. If encryption key is set, the
      * document (except `_id`) will be encrypted with AES-256-GCM and stored as
      * an object: { _id, encrypted_data, iv, tag }.
@@ -119,7 +165,7 @@ trait EncryptionTrait
      */
     protected function encodeStored(array $doc): string
     {
-        $key = $this->encryptionKey ?? $this->database->encryptionKey ?? null;
+        $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
 
         if (empty($key)) {
             return $this->encodeJson($doc);
@@ -130,12 +176,21 @@ trait EncryptionTrait
 
     /**
      * Encode document as JSON (no encryption).
+     * Validates document size before encoding.
      */
     private function encodeJson(array $doc): string
     {
         $json = \json_encode($doc, JSON_UNESCAPED_UNICODE);
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \RuntimeException('JSON encode error: ' . json_last_error_msg());
+        }
+
+        // Validate document size
+        if ($this->maxDocumentSize > 0 && strlen($json) > $this->maxDocumentSize) {
+            throw new \RuntimeException(
+                sprintf('Document size (%d bytes) exceeds maximum allowed size (%d bytes)',
+                    strlen($json), $this->maxDocumentSize)
+            );
         }
 
         return $json;
@@ -166,11 +221,39 @@ trait EncryptionTrait
     }
 
     /**
+     * Get or compute the PBKDF2-derived encryption key.
+     * Caches the derived key to avoid expensive recomputation on every operation.
+     *
+     * @param string $key The original encryption key
+     *
+     * @return string The 32-byte derived key
+     */
+    private function getDerivedKey(string $key): string
+    {
+        $cacheKey = md5($key);
+
+        if (isset(self::$derivedKeyCache[$cacheKey])) {
+            return self::$derivedKeyCache[$cacheKey];
+        }
+
+        $rawKey = \hash_pbkdf2('sha256', $key, 'bangrondb_encryption_salt', 100000, 32, true);
+
+        // Limit cache size to prevent memory leaks
+        if (count(self::$derivedKeyCache) >= self::MAX_DERIVED_KEY_CACHE_SIZE) {
+            array_shift(self::$derivedKeyCache);
+        }
+
+        self::$derivedKeyCache[$cacheKey] = $rawKey;
+
+        return $rawKey;
+    }
+
+    /**
      * Encrypt data using AES-256-GCM.
      */
     private function encryptData(string $plain, string $key): array
     {
-        $rawKey = \hash_pbkdf2('sha256', $key, 'bangrondb_encryption_salt', 100000, 32, true);
+        $rawKey = $this->getDerivedKey($key);
         $ivLen = 16; // AES-256-GCM always uses 16-byte IV
         $iv = \random_bytes($ivLen);
         $tag = '';
@@ -218,7 +301,7 @@ trait EncryptionTrait
      */
     private function decryptDocument(array $decoded): ?array
     {
-        $key = $this->encryptionKey ?? $this->database->encryptionKey ?? null;
+        $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
         if (empty($key)) {
             // Cannot decrypt without key
             return null;
@@ -247,12 +330,12 @@ trait EncryptionTrait
      */
     private function decryptData(array $decoded): ?string
     {
-        $key = $this->encryptionKey ?? $this->database->encryptionKey ?? null;
+        $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
         if (empty($key)) {
             return null;
         }
 
-        $rawKey = \hash_pbkdf2('sha256', $key, 'bangrondb_encryption_salt', 100000, 32, true);
+        $rawKey = $this->getDerivedKey($key);
         $cipher = \base64_decode($decoded['encrypted_data'] ?? '');
         $iv = \base64_decode($decoded['iv'] ?? '');
         $tag = \base64_decode($decoded['tag'] ?? '');
@@ -270,7 +353,7 @@ trait EncryptionTrait
      */
     private function _encryptPlaintext(string $plain): array
     {
-        $key = $this->encryptionKey ?? $this->database->encryptionKey ?? null;
+        $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
         if (empty($key)) {
             throw new \RuntimeException('No encryption key available');
         }
@@ -284,7 +367,7 @@ trait EncryptionTrait
      */
     private function _decryptToPlaintext(string $encryptedBase64, string $ivBase64, ?string $tagBase64 = null): ?string
     {
-        $key = $this->encryptionKey ?? $this->database->encryptionKey ?? null;
+        $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
         if (empty($key)) {
             return null;
         }
@@ -297,7 +380,7 @@ trait EncryptionTrait
      */
     private function decryptDataString(string $encryptedBase64, string $ivBase64, string $key, ?string $tagBase64 = null): ?string
     {
-        $rawKey = \hash_pbkdf2('sha256', $key, 'bangrondb_encryption_salt', 100000, 32, true);
+        $rawKey = $this->getDerivedKey($key);
         $cipher = \base64_decode($encryptedBase64);
         $iv = \base64_decode($ivBase64);
         $tag = $tagBase64 !== null ? \base64_decode($tagBase64) : '';

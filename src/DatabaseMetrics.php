@@ -25,7 +25,7 @@ class DatabaseMetrics
             'database' => [
                 'path' => $this->db->path,
                 'type' => $this->db->path === Database::DSN_PATH_MEMORY ? 'memory' : 'file',
-                'encryption_enabled' => $this->db->encryptionKey !== null,
+                'encryption_enabled' => $this->db->isEncryptionEnabled(),
             ],
             'integrity' => $this->checkIntegrity(),
             'metrics' => $this->getDataMetrics(),

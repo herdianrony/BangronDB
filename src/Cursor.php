@@ -277,14 +277,12 @@ class Cursor implements \IteratorAggregate
      * - toArraySafe() for automatic memory protection
      * - Iterator interface for memory-efficient processing
      *
-     * Default maximum: 10,000 documents. Use toArraySafe() for stricter limits.
-     *
      * @throws \RuntimeException If result set exceeds safe limits without explicit limit
      * @return array Array of documents
      */
     public function toArray(): array
     {
-        // Apply default limit if none set and count is high
+        // If no limit is set, check count for safety
         if ($this->limit === null) {
             $count = $this->count();
             if ($count > self::DEFAULT_MAX_RESULTS) {
@@ -292,6 +290,10 @@ class Cursor implements \IteratorAggregate
                     "Query would return {$count} documents, exceeding safe limit of " .
                     self::DEFAULT_MAX_RESULTS . ". Use limit() or toArraySafe() instead."
                 );
+            }
+            // If count is 0, return early without executing another query
+            if ($count === 0) {
+                return [];
             }
         }
 
@@ -414,6 +416,7 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Build ORDER BY clause for sort criteria.
+     * Validates field names to prevent injection.
      */
     private function buildOrderByClause(): string
     {
@@ -423,6 +426,8 @@ class Cursor implements \IteratorAggregate
 
         $orders = [];
         foreach ($this->sort as $field => $direction) {
+            // Validate field name to prevent injection
+            \BangronDB\Security\FieldValidator::validateFieldName((string) $field);
             $direction = $direction == -1 ? 'DESC' : 'ASC';
             // Escape field name to prevent SQL injection
             $escapedField = json_encode($field, JSON_UNESCAPED_UNICODE);

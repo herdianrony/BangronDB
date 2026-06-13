@@ -17,13 +17,17 @@ trait ChangeTrackingTrait
      *
      * Increments the version counter in the _meta table for this collection,
      * allowing external systems to detect data modifications.
+     *
+     * Optimized to use 2 queries instead of the original 3:
+     * 1. SELECT id + document in a single query
+     * 2. UPDATE or INSERT based on result
      */
     public function notifyChange(): void
     {
         try {
-            // Check if metadata already exists and get current version
+            // Single query to get both id and current version
             $stmt = $this->database->queryExecutor->executeQuery(
-                "SELECT document FROM _meta WHERE json_extract(document, '$._id') = ?",
+                "SELECT id, document FROM _meta WHERE json_extract(document, '$._id') = ?",
                 [$this->name]
             );
             $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -42,20 +46,13 @@ trait ChangeTrackingTrait
             ]);
 
             if ($existing) {
-                // Update existing - need to get id first
-                $stmt = $this->database->queryExecutor->executeQuery(
-                    "SELECT id FROM _meta WHERE json_extract(document, '$._id') = ?",
-                    [$this->name]
+                // Update existing row using its primary key
+                $this->database->queryExecutor->executeUpdate(
+                    'UPDATE _meta SET document = ? WHERE id = ?',
+                    [$document, $existing['id']]
                 );
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if ($row) {
-                    $this->database->queryExecutor->executeUpdate(
-                        'UPDATE _meta SET document = ? WHERE id = ?',
-                        [$document, $row['id']]
-                    );
-                }
             } else {
-                // Insert new
+                // Insert new entry
                 $this->database->queryExecutor->executeUpdate(
                     'INSERT INTO _meta (document) VALUES (?)',
                     [$document]

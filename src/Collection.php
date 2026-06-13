@@ -56,6 +56,12 @@ class Collection
     public string $name; // NOT readonly because renameCollection modifies it
 
     /**
+     * Whether the collection table has been verified to exist.
+     * Caches the result to avoid repeated CREATE TABLE IF NOT EXISTS calls.
+     */
+    private bool $collectionVerified = false;
+
+    /**
      * Constructor.
      *
      * @param string   $name     Collection name
@@ -136,12 +142,31 @@ class Collection
     }
 
     /**
+     * Ensure collection table exists (cached to avoid repeated CREATE TABLE).
+     */
+    protected function ensureCollectionExists(): void
+    {
+        if (!$this->collectionVerified) {
+            $this->database->createCollection($this->name);
+            $this->collectionVerified = true;
+        }
+    }
+
+    /**
+     * Mark collection as needing re-verification (e.g., after rename or drop).
+     */
+    public function invalidateCollectionCache(): void
+    {
+        $this->collectionVerified = false;
+    }
+
+    /**
      * Insert document.
      */
     protected function _insert(array $document): mixed
     {
         $this->validate($document);
-        $this->database->createCollection($this->name);
+        $this->ensureCollectionExists();
         $doc = $this->applyBeforeInsertHooks($document);
         if ($doc === false) {
             return false;
@@ -216,7 +241,8 @@ class Collection
      */
     protected function logSqlError(string $sql): void
     {
-        trigger_error('SQL Error: ' . \implode(', ', $this->database->connection->errorInfo()) . ":\n" . $sql);
+        // Log error internally without exposing SQL details to end users
+        error_log('BangronDB SQL Error: ' . \implode(', ', $this->database->connection->errorInfo()) . ' | Query: ' . $sql);
     }
 
     /**
@@ -243,7 +269,7 @@ class Collection
         }
 
         $this->validate($document);
-        $this->database->createCollection($this->name);
+        $this->ensureCollectionExists();
 
         $data = $this->prepareDocumentForStorage($document);
         $idVal = $document['_id'];
@@ -309,7 +335,7 @@ class Collection
      */
     public function update($criteria, array $data, bool $merge = true): int
     {
-        $this->database->createCollection($this->name);
+        $this->ensureCollectionExists();
         $this->applyUpdateHooks($criteria, $data);
         $updated = $this->bulkUpdate($criteria, $data, $merge);
         if ($updated > 0) {
@@ -517,7 +543,7 @@ class Collection
      */
     public function remove($criteria): int
     {
-        $this->database->createCollection($this->name);
+        $this->ensureCollectionExists();
         if ($this->softDeletesEnabled) {
             return $this->update($criteria, ['$set' => [$this->getDeletedAtField() => time()]]);
         }
