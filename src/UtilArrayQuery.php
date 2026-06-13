@@ -7,6 +7,19 @@ namespace BangronDB;
 class UtilArrayQuery
 {
     /**
+     * Maximum allowed regex pattern length to prevent ReDoS.
+     */
+    private const MAX_REGEX_LENGTH = 500;
+
+    /**
+     * Dangerous regex patterns that can cause catastrophic backtracking.
+     */
+    private const REDOS_PATTERNS = [
+        '/(\+|\*)\s*(\+|\*)/',           // Nested quantifiers like a++ or a*+
+        '/(\+|\*)\s*\{/',                 // Quantifier followed by another quantifier
+        '/\([^)]*[+*][^)]*\)\s*[+*]/',    // Group with quantifier followed by quantifier
+    ];
+    /**
      * Get a value from an array using dot notation.
      *
      * @param array  $data    The array to search
@@ -199,13 +212,11 @@ class UtilArrayQuery
             case '$preg':
             case '$match':
             case '$not':
-                // Security: Limit regex execution time to prevent ReDoS attacks
-                if (isset($b[0]) && $b[0] === '/') {
-                    // Pattern already has delimiters, use as-is
-                    $regexPattern = $b;
-                } else {
-                    // No delimiters, escape and add delimiters for literal matching
-                    $regexPattern = '/'.preg_quote($b, '/').'/iu';
+                // Security: Limit regex complexity to prevent ReDoS attacks
+                $regexPattern = self::buildSafeRegexPattern($b);
+                if ($regexPattern === null) {
+                    $r = false;
+                    break;
                 }
                 $r = (bool) @\preg_match($regexPattern, $a, $match);
                 if ($func === '$not') {
@@ -263,6 +274,31 @@ class UtilArrayQuery
         }
 
         return $r;
+    }
+
+    /**
+     * Build a safe regex pattern from user input.
+     * Returns null if the pattern is potentially dangerous.
+     */
+    private static function buildSafeRegexPattern(string $pattern): ?string
+    {
+        // Check pattern length
+        if (strlen($pattern) > self::MAX_REGEX_LENGTH) {
+            return null;
+        }
+
+        if (isset($pattern[0]) && $pattern[0] === '/') {
+            // Pattern already has delimiters - validate it for ReDoS patterns
+            foreach (self::REDOS_PATTERNS as $dangerPattern) {
+                if (preg_match($dangerPattern, $pattern)) {
+                    return null;
+                }
+            }
+            return $pattern;
+        }
+
+        // No delimiters, escape and add delimiters for safe literal matching
+        return '/'.preg_quote($pattern, '/').'/iu';
     }
 
     /**

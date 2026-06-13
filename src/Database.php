@@ -113,6 +113,9 @@ class Database
             $this->connection->exec("PRAGMA key = '{$escapedKey}'");
         }
 
+        // Set busy timeout for concurrent access (5 seconds)
+        $this->connection->exec('PRAGMA busy_timeout = 5000');
+
         // Apply Config settings with whitelist validation
         $journalMode = Config::get('journal_mode', 'WAL');
         $synchronous = Config::get('synchronous', 'NORMAL');
@@ -122,10 +125,16 @@ class Database
 
         // Validate PRAGMA values against whitelists to prevent injection
         $this->execPragma('journal_mode', $journalMode, ['DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'WAL', 'OFF']);
-        $this->execPragma('synchronous', $synchronous, ['OFF', 'NORMAL', 'FULL', 'EXTRA']);
         $this->connection->exec('PRAGMA PAGE_SIZE = ' . (int) $pageSize);
         $this->connection->exec('PRAGMA cache_size = ' . (int) $cacheSize);
         $this->execPragma('auto_vacuum', $autoVacuum, ['NONE', 'INCREMENTAL', 'FULL']);
+        $this->execPragma('synchronous', $synchronous, ['OFF', 'NORMAL', 'FULL', 'EXTRA']);
+
+        // WAL auto-checkpoint threshold (in pages) for better write performance
+        if (strtoupper($journalMode) === 'WAL') {
+            $walAutocheckpoint = Config::get('wal_autocheckpoint', 1000);
+            $this->connection->exec('PRAGMA wal_autocheckpoint = ' . (int) $walAutocheckpoint);
+        }
     }
 
     /**
@@ -205,10 +214,25 @@ class Database
      * Used by EncryptionTrait in Collection to access the database-level key.
      *
      * @internal This method is for internal library use only. Do not expose in public API.
+     * @deprecated Will be made private in a future version. Use getEncryptionKeyStatus() instead.
      */
     public function getEncryptionKey(): ?string
     {
         return $this->encryptionKey;
+    }
+
+    /**
+     * Prevent encryption key from being exposed via var_dump/print_r.
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'path' => $this->path,
+            'encryptionEnabled' => $this->encryptionKey !== null,
+            'encryptionKeyLength' => $this->encryptionKey !== null ? strlen($this->encryptionKey) : 0,
+            'collections' => array_keys($this->collections),
+            'options' => array_diff_key($this->options, ['encryption_key' => '']),
+        ];
     }
 
     /**

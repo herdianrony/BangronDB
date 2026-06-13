@@ -204,9 +204,9 @@ trait SearchableFieldsTrait
             if ($val !== null) {
                 if ($cfg['hash']) {
                     $val = hash('sha256', $val);
-                } else {
-                    $val = strtolower($val);
                 }
+                // Note: strtolower already applied above for non-array values,
+                // no need to apply it again here
             }
 
             $out[self::$searchablePrefix . $field] = $val;
