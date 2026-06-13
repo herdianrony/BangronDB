@@ -93,9 +93,10 @@ class Database
     private function setupDatabaseFunctions(): void
     {
         $conn = $this->connection;
-        // Use call_user_func to bypass static analysis warnings for driver-specific methods
-        \call_user_func([$conn, 'sqliteCreateFunction'], 'document_key', [$this, 'createDocumentKeyFunction'], 2);
-        \call_user_func([$conn, 'sqliteCreateFunction'], 'document_criteria', ['\\BangronDB\\Database', 'staticCallCriteria'], 2);
+        // PHP 8.5+ deprecated PDO::sqliteCreateFunction() in favor of Pdo\Sqlite::createFunction()
+        // Use @ to suppress deprecation warnings on PHP 8.5+ while maintaining compatibility
+        @\call_user_func([$conn, 'sqliteCreateFunction'], 'document_key', [$this, 'createDocumentKeyFunction'], 2);
+        @\call_user_func([$conn, 'sqliteCreateFunction'], 'document_criteria', ['\\BangronDB\\Database', 'staticCallCriteria'], 2);
     }
 
     /**
