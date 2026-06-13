@@ -1,164 +1,61 @@
 # BangronDB Examples
 
-Kumpulan contoh penggunaan BangronDB untuk berbagai skenario.
+Kumpulan contoh penggunaan BangronDB yang mencakup semua fitur dan berbagai skenario.
 
-## Struktur
+## Daftar Contoh
 
-```text
-examples/
-├── bootstrap.php              # Setup common
-├── 01-basic-crud.php         # Operasi CRUD dasar
-├── 02-encryption.php          # Enkripsi data (.env)
-├── 03-schema-validation.php  # Validasi schema
-├── 04-soft-deletes.php       # Soft deletes
-├── 05-searchable-fields.php  # Searchable fields
-├── 06-hooks.php              # Event hooks
-├── 07-relationships.php      # Relasi & population
-├── 08-transactions.php       # Transaksi
-├── 09-multiple-databases.php # Multiple databases
-├── 10-advanced.php           # Semua fitur digabungkan
-├── 11-query-operators.php    # Query operators
-├── 12-hospital-system.php    # Sistem rumah sakit
-├── 13-hospital-complex.php   # Sistem RS multi-database
-├── 14-custom-config.php      # Custom config (permissions)
-├── 15-encryption-env.php     # Encryption dengan .env
-├── 16-computer-store.php     # Computer store & service center
-├── 17-config-schema.php       # _Config schema dengan relasi data
-└── 18-dynamic-backend.php     # Dynamic backend dengan hasMany/belongsTo
-```
+| # | File | Topik | Fitur yang Dicover |
+|---|------|-------|--------------------|
+| 01 | `01-quick-start-crud.php` | Quick Start & CRUD | insert, find, update, delete, pagination, sorting, projection, save/upsert |
+| 02 | `02-query-operators.php` | Query Operators | $gt, $gte, $lt, $lte, $ne, $in, $nin, $and, $or, $has, $all, $size, $regex, $not, $exists, $where, $func, $fuzzy, dot notation |
+| 03 | `03-encryption-searchable.php` | Enkripsi & Searchable | AES-256 encryption, searchable fields (hashed/plain), encryption key dari .env |
+| 04 | `04-schema-validation.php` | Schema Validation | type, required, enum, regex, min/max, array constraints, validate(), update validation |
+| 05 | `05-soft-deletes.php` | Soft Deletes | soft delete, restore, force delete, withTrashed, onlyTrashed |
+| 06 | `06-hooks.php` | Hooks (Events) | beforeInsert, afterInsert, beforeUpdate, afterUpdate, beforeRemove, afterRemove, veto, chaining |
+| 07 | `07-relationships-populate.php` | Relationships | single populate, array references, multi-level, cross-database, cursor-based |
+| 08 | `08-transactions.php` | Transactions | beginTransaction, commit, rollback, batch insert, atomic operations |
+| 09 | `09-indexing-health-monitoring.php` | Indexing & Monitoring | createIndex, dropIndex, health metrics, health report, performance, VACUUM, change notification |
+| 10 | `10-dynamic-configuration.php` | Dynamic Configuration | saveConfiguration, custom config, permissions, auto-load, persistence |
+| 11 | `11-multiple-databases.php` | Multiple Databases | multi-DB, data isolation, cross-DB populate, attach/detach |
+| 12 | `12-id-modes-collection-management.php` | ID Modes & Management | UUID auto, manual ID, prefix ID, renameCollection, dropCollection |
+| 13 | `13-security-features.php` | Security | Closure-only $where/$func, field validation, path traversal, PRAGMA escaping, FieldValidator |
+| 14 | `14-ecommerce-app.php` | Real-World App | E-commerce: schema, hooks, encryption, searchable, soft deletes, transactions, populate, monitoring |
 
-## Menjalankan Contoh
+## Menjalankan
 
 ```bash
-# Install dependencies
 composer install
 
-# Jalankan contoh
-php examples/01-basic-crud.php
-php examples/02-encryption.php
-# ... dan seterusnya
+# Jalankan satu contoh
+php examples/01-quick-start-crud.php
+
+# Atau dengan FrankenPHP
+frankenphp php-cli examples/01-quick-start-crud.php
 ```
 
-## Deskripsi Contoh
+## Catatan Penting
 
-### 01-basic-crud.php
-
-Demonstrasi operasi Create, Read, Update, Delete dasar.
-
-### 02-encryption.php
-
-Enkripsi AES-256-CBC untuk data sensitif per-collection.
-**Key dari .env - TIDAK disimpan di database.**
-
-### 03-schema-validation.php
-
-Validasi schema dokumen dengan berbagai rules.
-**Wajib panggil `saveConfiguration()` agar schema persist.**
-
-### 04-soft-deletes.php
-
-Soft delete dengan kemampuan restore dan force delete.
-
-### 05-searchable-fields.php
-
-Field pencarian dengan hashing untuk privasi.
-
-### 06-hooks.php
-
-Event hooks untuk intercept operasi (before/after).
-**Hooks tidak persist - daftar ulang setiap session.**
-
-### 07-relationships.php
-
-Relasi antar collections dengan populate.
-
-### 08-transactions.php
-
-Transaksi untuk atomic operations.
-
-### 09-multiple-databases.php
-
-Pengelolaan multiple databases dalam satu client.
-
-### 10-advanced.php
-
-Kombinasi semua fitur dalam satu contoh.
-
-### 11-query-operators.php
-
-Semua query operators MongoDB-like.
-
-### 12-hospital-system.php
-
-Sistem manajemen rumah sakit dengan:
-
-- Enkripsi data medis
-- Schema validation
-- Soft deletes
-- Hooks untuk audit trail
-- Searchable fields
-
-### 13-hospital-complex.php
-
-Sistem rumah sakit multi-database:
-
-- Master DB: Patients, Departments, Rooms
-- HR DB: Doctors, Nurses
-- Transaction DB: Appointments, Medical Records, Billing
-
-### 14-custom-config.php
-
-Custom configuration untuk:
-
-- Role-based permissions
-- Settings kustom
-- Persistence ke database
-
-### 15-encryption-env.php
-
-Enkripsi dengan key dari environment variable (.env).
-
-## saveConfiguration()
-
-Untuk fitur berikut, **WAJIB** panggil `saveConfiguration()` agar tersimpan:
-
-| Fitur              | Contoh                                                             |
-| ------------------ | ------------------------------------------------------------------ |
-| Schema validation  | `$users->setSchema([...]); $users->saveConfiguration();`           |
-| Encryption enabled | `$users->setEncryptionKey($key); $users->saveConfiguration();`     |
-| Searchable fields  | `$users->setSearchableFields([...]); $users->saveConfiguration();` |
-| Soft deletes       | `$users->useSoftDeletes(true); $users->saveConfiguration();`       |
-| Custom config      | `$users->setCustomConfig(...); $users->saveConfiguration();`       |
-
-**Catatan:**
-
-- `saveConfiguration()` menyimpan ke tabel `_config` di database
-- Encryption key TIDAK disimpan - harus dari .env/vault eksternal
-- Hooks TIDAK persist - daftar ulang di bootstrap
-
-## Database Isolation
-
-Setiap contoh menggunakan database isolated dengan path unik:
+### saveConfiguration()
+Untuk fitur berikut, **WAJIB** panggil `saveConfiguration()` agar konfigurasi tersimpan di database:
 
 ```php
-$client = createIsolatedClient('nama_contoh');
+$collection->setSchema([...]);
+$collection->setSearchableFields([...]);
+$collection->useSoftDeletes(true);
+$collection->saveConfiguration(); // WAJIB
 ```
 
-Database akan otomatis dibersihkan setelah contoh selesai (kecuali contoh yang menggunakan path tetap untuk testing persistence).
-
-## Production Usage
-
-Untuk production, setup collection di file terpisah dan jalankan sekali:
+### Encryption Key
+Encryption key **TIDAK** disimpan di database. Selalu sediakan dari `.env` atau secret manager:
 
 ```php
-// setup.php - jalankan saat deploy
-$client = new Client($path, ['encryption_key' => $_ENV['DB_ENCRYPTION_KEY']]);
-$db = $client->selectDB('app');
-
-$users = $db->users;
-$users->setSchema([...]);
-$users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
-$users->saveConfiguration(); // WAJIB
+$collection->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
 ```
 
-Lihat [`docs/configuration-workflow.md`](../docs/configuration-workflow.md) untuk detail lebih lanjut.
+### Hooks Tidak Persist
+Hooks harus didaftarkan ulang setiap session (tidak disimpan di database):
+
+```php
+// Daftar di bootstrap/setiap request
+$collection->on('beforeInsert', function($doc) { ... });
+```

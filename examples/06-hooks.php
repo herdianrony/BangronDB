@@ -1,137 +1,125 @@
 <?php
 
 /**
- * Contoh 06: Hooks (Events).
+ * Contoh 06: Hooks (Event System)
  *
- * Demonstrasi event hooks untuk intercept dan modifikasi operasi.
+ * Event hooks untuk intercept operasi: beforeInsert, afterInsert,
+ * beforeUpdate, afterUpdate, beforeRemove, afterRemove.
+ * Hook chaining, veto operation, dan auto-timestamps.
  */
 
-require_once __DIR__.'/bootstrap.php';
+require_once __DIR__ . '/bootstrap.php';
 
 use BangronDB\Client;
 
-echo "=== Contoh 06: Hooks ===\n\n";
+sep('Contoh 06: Hooks (Event System)');
 
 $client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('app');
+$db = $client->selectDB('hooked_app');
 $users = $db->users;
 
-echo "1. Before Insert Hook - Auto timestamps\n";
-echo "---------------------------------------\n";
+// ── beforeInsert: Auto timestamps & defaults ──────────────
+sub('beforeInsert - Auto Timestamps & Defaults');
 
 $users->on('beforeInsert', function ($doc) {
-    // Set created_at jika belum ada
-    if (!isset($doc['created_at'])) {
-        $doc['created_at'] = date('c');
-    }
-    // Set default status
-    if (!isset($doc['status'])) {
-        $doc['status'] = 'pending';
-    }
-
+    $doc['created_at'] = date('c');
+    $doc['updated_at'] = date('c');
+    $doc['status'] = $doc['status'] ?? 'pending';
     return $doc;
 });
 
 $users->on('afterInsert', function ($doc, $id) {
-    echo "  -> After insert: User '$id' created\n";
+    echo "  [afterInsert] Created: {$id}\n";
 });
 
-$userId = $users->insert(['name' => 'User 1']);
-$user = $users->findOne(['_id' => $userId]);
-echo "Inserted user:\n";
-print_r($user);
+$id = $users->insert(['name' => 'User 1', 'email' => 'u1@test.com']);
+$user = $users->findOne(['_id' => $id]);
+echo "Has auto created_at: " . isset($user['created_at']) . "\n";
+echo "Has default status: {$user['status']}\n";
 
-echo "\n2. Before Update Hook - Audit trail\n";
-echo "------------------------------------\n";
+// ── beforeUpdate: Auto updated_at ─────────────────────────
+sub('beforeUpdate - Auto Updated At');
 
 $users->on('beforeUpdate', function ($criteria, $data) {
-    // Tambah updated_at
     if (!isset($data['$set'])) {
         $data['$set'] = [];
     }
     $data['$set']['updated_at'] = date('c');
-    $data['$set']['updated_by'] = 'system';
-
-    echo "  -> Before update: Adding timestamp\n";
-
     return [$criteria, $data];
 });
 
-$users->update(['_id' => $userId], ['$set' => ['status' => 'active']]);
-$user = $users->findOne(['_id' => $userId]);
-echo "Updated user:\n";
-print_r($user);
+$users->update(['_id' => $id], ['$set' => ['status' => 'active']]);
+$updated = $users->findOne(['_id' => $id]);
+echo "updated_at changed: " . ($updated['updated_at'] !== $updated['created_at'] ? 'yes' : 'no') . "\n";
 
-echo "\n3. Before Remove Hook - Prevent delete\n";
-echo "---------------------------------------\n";
+// ── beforeRemove: Veto delete (protect admin) ─────────────
+sub('beforeRemove - Veto Delete');
 
 $users->on('beforeRemove', function ($doc) {
-    // Cegah hapus admin
-    if (isset($doc['role']) && $doc['role'] === 'admin') {
-        echo "  -> Cannot delete admin user!\n";
-
-        return false; // Cancel delete
+    if (($doc['role'] ?? '') === 'admin') {
+        echo "  [VETO] Cannot delete admin: {$doc['name']}\n";
+        return false; // Cancel deletion
     }
-    echo "  -> Delete allowed\n";
-
     return true;
 });
 
-$adminId = $users->insert(['name' => 'Admin', 'role' => 'admin']);
-$normalId = $users->insert(['name' => 'Normal', 'role' => 'user']);
+$adminId = $users->insert(['name' => 'Admin', 'email' => 'admin@test.com', 'role' => 'admin']);
+$userId2 = $users->insert(['name' => 'Normal', 'email' => 'normal@test.com', 'role' => 'user']);
 
-echo "Attempt to delete admin:\n";
-$users->remove(['_id' => $adminId]);
+echo "Attempt delete admin:\n";
+$users->remove(['_id' => $adminId]); // Vetoed
 
-echo "Attempt to delete normal user:\n";
-$users->remove(['_id' => $normalId]);
+echo "Attempt delete normal user:\n";
+$users->remove(['_id' => $userId2]); // OK
 
-$allUsers = $users->find()->toArray();
-echo "Remaining users:\n";
-print_r($allUsers);
+echo "Remaining users: " . $users->count() . "\n";
 
-echo "\n4. After Insert Hook - Trigger actions\n";
-echo "----------------------------------------\n";
+// ── Hook Chaining (multiple hooks per event) ──────────────
+sub('Hook Chaining - Multiple Hooks');
 
-// Simulasi: Kirim email welcome
-$users->on('afterInsert', function ($doc, $id) {
-    // Simulasi email send
-    echo "  -> SIMULASI: Sending welcome email to {$doc['email']}\n";
-});
-
-$users->insert([
-    'name' => 'New User',
-    'email' => 'newuser@example.com',
-]);
-
-echo "\n5. Hook chaining\n";
-echo "----------------\n";
-
-// Multiple hooks pada event yang sama
 $logs = [];
 
 $users->on('beforeInsert', function ($doc) use (&$logs) {
-    $logs[] = 'Hook 1: Normalizing name';
+    $logs[] = 'Hook A: Normalize name';
     $doc['name'] = trim(ucwords(strtolower($doc['name'])));
-
     return $doc;
 });
 
 $users->on('beforeInsert', function ($doc) use (&$logs) {
-    $logs[] = 'Hook 2: Adding metadata';
-    $doc['meta'] = ['inserted_via' => 'hook'];
-
+    $logs[] = 'Hook B: Add metadata';
+    $doc['_source'] = 'web_form';
     return $doc;
 });
 
-$userId = $users->insert(['name' => '  test name  ']);
-$user = $users->findOne(['_id' => $userId]);
-echo "After hook chaining:\n";
-print_r($user);
-echo "Logs:\n";
-print_r($logs);
+$id2 = $users->insert(['name' => '  test USER  ']);
+$result = $users->findOne(['_id' => $id2]);
+echo "Name normalized: '{$result['name']}'\n";
+echo "Metadata added: {$result['_source']}\n";
+echo "Hooks executed: " . implode(', ', $logs) . "\n";
 
-echo "\n=== Cleanup ===\n";
-@$db->drop();
-$client->close();
-echo "Database dibersihkan.\n";
+// ── Remove Hook ───────────────────────────────────────────
+sub('Remove Hook');
+
+$users->off('beforeInsert');
+echo "All beforeInsert hooks removed\n";
+
+// ── All Hook Events ───────────────────────────────────────
+sub('All Hook Events Reference');
+
+$events = [
+    'beforeInsert',
+    'afterInsert',
+    'beforeUpdate',
+    'afterUpdate',
+    'beforeRemove',
+    'afterRemove',
+];
+echo "Available events: " . implode(', ', $events) . "\n";
+
+echo "\nHook Return Values:\n";
+echo "  - Return array → modify data\n";
+echo "  - Return false → cancel operation (veto)\n";
+echo "  - Return true/null → continue without change\n";
+
+@$client->close();
+echo "\nDone!\n";

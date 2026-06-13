@@ -1,138 +1,107 @@
 <?php
 
 /**
- * Contoh 08: Transactions.
+ * Contoh 08: Transactions & Batch Operations
  *
- * Demonstrasi transaksi untuk atomic operations.
+ * Transaksi untuk atomic operations, batch insert,
+ * dan error handling dengan rollback.
  */
 
-require_once __DIR__.'/bootstrap.php';
+require_once __DIR__ . '/bootstrap.php';
 
 use BangronDB\Client;
 
-echo "=== Contoh 08: Transactions ===\n\n";
+sep('Contoh 08: Transactions & Batch Operations');
 
 $client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('app');
+$db = $client->selectDB('bank');
 $accounts = $db->accounts;
-$transactions = $db->transactions;
+$transfers = $db->transfers;
 
-echo "1. Setup accounts\n";
-echo "------------------\n";
+// ── Setup Accounts ────────────────────────────────────────
+sub('Setup Accounts');
 
-$account1 = $accounts->insert([
-    'name' => 'Account 1',
-    'balance' => 1000.00,
-]);
+$a1 = $accounts->insert(['owner' => 'Alice', 'balance' => 1000.00]);
+$a2 = $accounts->insert(['owner' => 'Bob',   'balance' => 500.00]);
+echo "Alice: 1000.00, Bob: 500.00\n";
 
-$account2 = $accounts->insert([
-    'name' => 'Account 2',
-    'balance' => 500.00,
-]);
+// ── Successful Transaction ────────────────────────────────
+sub('Successful Transfer (Commit)');
 
-echo "Account 1 balance: 1000.00\n";
-echo "Account 2 balance: 500.00\n\n";
-
-echo "2. Transfer dengan transaction\n";
-echo "-----------------------------\n";
-
-// Mulai transaction
 $db->connection->beginTransaction();
 
 try {
-    // Kurangi dari account 1
     $amount = 300.00;
-    $accounts->update(
-        ['_id' => $account1],
-        ['$set' => ['balance' => 700.00]]
-    );
 
-    // Tambah ke account 2
-    $accounts->update(
-        ['_id' => $account2],
-        ['$set' => ['balance' => 800.00]]
-    );
+    // Kurangi Alice
+    $accounts->update(['_id' => $a1], ['$set' => ['balance' => 700.00]]);
 
-    // Record transaksi
-    $transactions->insert([
-        'from' => $account1,
-        'to' => $account2,
+    // Tambah Bob
+    $accounts->update(['_id' => $a2], ['$set' => ['balance' => 800.00]]);
+
+    // Record transfer
+    $transfers->insert([
+        'from'   => $a1,
+        'to'     => $a2,
         'amount' => $amount,
         'status' => 'completed',
     ]);
 
-    // Commit transaction
     $db->connection->commit();
-    echo "Transfer completed!\n";
+    echo "Transfer committed: 300 from Alice to Bob\n";
 } catch (Exception $e) {
-    // Rollback jika ada error
     $db->connection->rollBack();
-    echo 'Transfer failed: '.$e->getMessage()."\n";
+    echo "Transfer failed: {$e->getMessage()}\n";
 }
 
-echo "\nAccount 1 balance: ".$accounts->findOne(['_id' => $account1])['balance']."\n";
-echo 'Account 2 balance: '.$accounts->findOne(['_id' => $account2])['balance']."\n";
+echo "Alice: " . $accounts->findOne(['_id' => $a1])['balance'] . "\n";
+echo "Bob: " . $accounts->findOne(['_id' => $a2])['balance'] . "\n";
 
-echo "\n3. Transfer yang gagal (rollback)\n";
-echo "------------------------------------\n";
+// ── Failed Transaction (Rollback) ─────────────────────────
+sub('Failed Transfer (Rollback)');
 
 $db->connection->beginTransaction();
 
 try {
-    // Kurangi dari account 2
-    $amount = 1000.00;
-    $accounts->update(
-        ['_id' => $account2],
-        ['$set' => ['balance' => -200.00]] // Saldo negatif
-    );
+    // Mencoba transfer yang akan gagal
+    $accounts->update(['_id' => $a2], ['$set' => ['balance' => -200.00]]);
 
-    // Tambah ke account 1
-    $accounts->update(
-        ['_id' => $account1],
-        ['$set' => ['balance' => 1700.00]]
-    );
-
-    // Check saldo - jika negatif, throw exception
-    $account2Data = $accounts->findOne(['_id' => $account2]);
-    if ($account2Data['balance'] < 0) {
-        throw new Exception('Insufficient balance!');
+    // Validasi saldo
+    $bobAccount = $accounts->findOne(['_id' => $a2]);
+    if ($bobAccount['balance'] < 0) {
+        throw new RuntimeException('Insufficient balance! Transfer cancelled.');
     }
 
     $db->connection->commit();
-    echo "Transfer completed!\n";
 } catch (Exception $e) {
     $db->connection->rollBack();
-    echo 'Transfer failed: '.$e->getMessage()."\n";
-    echo "Rolling back...\n";
+    echo "Rollback: {$e->getMessage()}\n";
 }
 
-echo "\nAccount 1 balance: ".$accounts->findOne(['_id' => $account1])['balance']."\n";
-echo 'Account 2 balance: '.$accounts->findOne(['_id' => $account2])['balance']."\n";
+// Verifikasi saldo tidak berubah setelah rollback
+echo "Alice after rollback: " . $accounts->findOne(['_id' => $a1])['balance'] . "\n";
+echo "Bob after rollback: " . $accounts->findOne(['_id' => $a2])['balance'] . "\n";
 
-echo "\n4. Batch insert dengan transaction\n";
-echo "-------------------------------------\n";
+// ── Batch Insert with Transaction ─────────────────────────
+sub('Batch Insert with Transaction');
 
+// Insert batch one by one (batch insert uses internal transaction)
 $db->connection->beginTransaction();
 
 try {
-    for ($i = 1; $i <= 100; ++$i) {
-        $accounts->insert([
-            'name' => "Batch Account $i",
-            'balance' => 100.00,
-        ]);
+    for ($i = 1; $i <= 50; $i++) {
+        $accounts->insert(['owner' => "Customer {$i}", 'balance' => 100.00]);
     }
 
     $db->connection->commit();
-    echo "Batch insert completed!\n";
+    echo "Batch committed: 50 accounts inserted\n";
 } catch (Exception $e) {
     $db->connection->rollBack();
-    echo 'Batch insert failed: '.$e->getMessage()."\n";
+    echo "Batch failed: {$e->getMessage()}\n";
 }
 
-$totalAccounts = $accounts->count();
-echo "Total accounts: $totalAccounts\n";
+echo "Total accounts: " . $accounts->count() . "\n";
+echo "Total transfers: " . $transfers->count() . "\n";
 
-echo "\n=== Cleanup ===\n";
-@$db->drop();
-$client->close();
-echo "Database dibersihkan.\n";
+@$client->close();
+echo "\nDone!\n";
