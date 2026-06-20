@@ -74,6 +74,8 @@ Validasi ini juga relevan untuk searchable fields dan field yang dipakai dalam s
 
 ## 3. Path database perlu dijaga
 
+BangronDB sekarang memvalidasi path database dan directory path lebih awal pada entry point utama seperti `Client` dan `Database`.
+
 Gunakan path yang eksplisit dan berada di direktori aplikasi Anda.
 
 ### Aman
@@ -110,6 +112,8 @@ $db = new Database(__DIR__ . '/secure.bangron', [
 
 - key di-escape saat dipakai pada PRAGMA
 - key collection-level tidak otomatis dipersist
+- BangronDB kini menggunakan salt per-database untuk derivasi key baru
+- data terenkripsi lama tetap didukung lewat fallback kompatibilitas
 - ganti key secara hati-hati dan uji data terenkripsi setelah rotasi
 
 ## 5. Searchable fields untuk data terenkripsi
@@ -130,7 +134,7 @@ $users->saveConfiguration();
 
 ## 6. Regex dan fuzzy search
 
-BangronDB menerapkan pembatasan dasar untuk membantu mengurangi risiko ReDoS. Meski begitu, tetap hindari pola regex yang terlalu kompleks.
+BangronDB menerapkan pembatasan tambahan untuk membantu mengurangi risiko ReDoS, termasuk penolakan terhadap beberapa pola recursive, lookbehind, backreference, dan nested quantifier yang berbahaya. Meski begitu, tetap hindari pola regex yang terlalu kompleks.
 
 ### Lebih aman
 

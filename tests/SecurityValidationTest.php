@@ -129,6 +129,18 @@ class SecurityValidationTest extends TestCase
         FieldValidator::validateDatabasePath('');
     }
 
+    public function testValidateDatabasePathRejectsTraversalSegments(): void
+    {
+        $this->expectException(ValidationException::class);
+        FieldValidator::validateDatabasePath('../etc/passwd');
+    }
+
+    public function testValidateDatabaseDirectoryPathRejectsTraversalSegments(): void
+    {
+        $this->expectException(ValidationException::class);
+        FieldValidator::validateDatabaseDirectoryPath('../tmp');
+    }
+
     // ==================== Regex Sanitization Tests ====================
 
     public function testSanitizeRegexPatternEscapesSpecialChars(): void
@@ -303,6 +315,26 @@ class SecurityValidationTest extends TestCase
         $result = UtilArrayQuery::match($criteria, $doc);
         // The pattern becomes /test\/value/iu which matches the literal string
         $this->assertTrue($result);
+    }
+
+    public function testRegexOperatorRejectsRecursivePattern(): void
+    {
+        $doc = ['name' => 'aaaaaaaaaaaaaaaa'];
+        $criteria = [
+            'name' => ['$regex' => '/^(a(?1)?)+$/'],
+        ];
+        $result = UtilArrayQuery::match($criteria, $doc);
+        $this->assertFalse($result);
+    }
+
+    public function testRegexOperatorRejectsLookbehindPattern(): void
+    {
+        $doc = ['name' => 'test'];
+        $criteria = [
+            'name' => ['$regex' => '/(?<=te)st/'],
+        ];
+        $result = UtilArrayQuery::match($criteria, $doc);
+        $this->assertFalse($result);
     }
 
     public function testJsonDecodeErrorHandling(): void

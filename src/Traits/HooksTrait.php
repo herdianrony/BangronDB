@@ -13,13 +13,10 @@ trait HooksTrait
     /**
      * Hooks storage: event name => list of callables.
      *
-     * @var array<string,array<int,callable>>
+     * @var array<string,array<int,\Closure>>
      */
     protected array $hooks = [];
 
-    /**
-     * Get hooks configuration.
-     */
     public function getHooks(): array
     {
         return $this->hooks;
@@ -29,7 +26,7 @@ trait HooksTrait
      * Register an event hook for this collection.
      * Events: beforeInsert, afterInsert, beforeUpdate, afterUpdate, beforeRemove, afterRemove.
      */
-    public function on(string $event, callable $fn): void
+    public function on(string $event, \Closure $fn): void
     {
         if (!isset($this->hooks[$event])) {
             $this->hooks[$event] = [];
@@ -40,7 +37,7 @@ trait HooksTrait
     /**
      * Remove hooks for an event. If $fn is null removes all listeners.
      */
-    public function off(string $event, ?callable $fn = null): void
+    public function off(string $event, ?\Closure $fn = null): void
     {
         if (!isset($this->hooks[$event])) {
             return;
@@ -58,9 +55,6 @@ trait HooksTrait
         $this->hooks[$event] = array_values($this->hooks[$event]);
     }
 
-    /**
-     * Apply hooks for a specific event.
-     */
     protected function applyHooks(string $event, $data, $id = null): mixed
     {
         if (!empty($this->hooks[$event])) {
@@ -76,9 +70,7 @@ trait HooksTrait
                         $data = $result;
                     }
                 } catch (\Throwable $e) {
-                    // Log hook exception but don't let it prevent the operation
                     error_log("Hook exception in {$event}: " . $e->getMessage());
-                    // Continue with other hooks
                 }
             }
         }
@@ -86,25 +78,16 @@ trait HooksTrait
         return $data;
     }
 
-    /**
-     * Apply before insert hooks to the document.
-     */
     protected function applyBeforeInsertHooks(array $document): mixed
     {
         return $this->applyHooks('beforeInsert', $document);
     }
 
-    /**
-     * Apply after insert hooks with the document and insert ID.
-     */
     protected function applyAfterInsertHooks(array $document, mixed $insertId): void
     {
         $this->applyHooks('afterInsert', $document, $insertId);
     }
 
-    /**
-     * Apply before update hooks to modify criteria/data.
-     */
     protected function applyUpdateHooks(&$criteria, array &$data): void
     {
         if (!empty($this->hooks['beforeUpdate'])) {
@@ -117,7 +100,6 @@ trait HooksTrait
                     if (isset($ret['data'])) {
                         $data = $ret['data'];
                     }
-                    // also support numeric-indexed [criteria,data]
                     if (isset($ret[0])) {
                         $criteria = $ret[0];
                     }
@@ -129,9 +111,6 @@ trait HooksTrait
         }
     }
 
-    /**
-     * Trigger after update hooks with original and updated document.
-     */
     protected function triggerAfterUpdateHooks(array $originalDoc, array $updatedDocument): void
     {
         if (!empty($this->hooks['afterUpdate'])) {
@@ -139,20 +118,15 @@ trait HooksTrait
                 try {
                     $hook($originalDoc, $updatedDocument);
                 } catch (\Throwable $e) {
-                    // Ignore hook errors
                 }
             }
         }
     }
 
-    /**
-     * Check if document should be removed based on before-remove hooks.
-     */
     protected function shouldRemoveDocument(array $row): bool
     {
         $doc = $this->decodeStored($row['document']) ?: [];
 
-        // Before remove hooks can veto by returning false
         if (!empty($this->hooks['beforeRemove'])) {
             foreach ($this->hooks['beforeRemove'] as $hook) {
                 try {
@@ -161,7 +135,6 @@ trait HooksTrait
                         return false;
                     }
                 } catch (\Throwable $e) {
-                    // Ignore hook errors
                 }
             }
         }
@@ -169,9 +142,6 @@ trait HooksTrait
         return true;
     }
 
-    /**
-     * Trigger after remove hooks with the removed document.
-     */
     protected function triggerAfterRemoveHooks(array $document): void
     {
         if (!empty($this->hooks['afterRemove'])) {
@@ -179,7 +149,6 @@ trait HooksTrait
                 try {
                     $hook($document);
                 } catch (\Throwable $e) {
-                    // Ignore hook errors
                 }
             }
         }

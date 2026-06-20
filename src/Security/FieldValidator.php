@@ -13,18 +13,29 @@ use BangronDB\Exceptions\ValidationException;
 class FieldValidator
 {
     /**
+     * Maximum regex pattern length for trusted regex configuration.
+     */
+    private const MAX_REGEX_LENGTH = 500;
+
+    /**
+     * High-risk regex constructs to reject from persisted config.
+     */
+    private const DANGEROUS_REGEX_PATTERNS = [
+        '/([+*?]|\{[^}]*\})\s*([+*?]|\{)/',
+        '/\((?:[^()\\]|\\.)*([+*?]|\{[^}]*\})(?:[^()\\]|\\.)*\)\s*(?:[+*?]|\{)/',
+        '/\\[1-9][0-9]*/',
+        '/\(\?(?:R|[0-9]|&)/',
+        '/\(\?<(?=[=!])/',
+    ];
+
+    /**
      * Whitelist pattern for valid field names.
-     * Allows: alphanumeric, underscore, hyphen, dot
-     * Blocks: quotes, semicolons, parentheses, wildcards, etc.
-     *
-     * @var string
+     * Allows: alphanumeric, underscore, hyphen, dot.
      */
     private const FIELD_NAME_PATTERN = '/^[a-zA-Z0-9_\-\.]+$/';
 
     /**
      * Maximum length for field names to prevent memory exhaustion.
-     *
-     * @var int
      */
     private const MAX_FIELD_LENGTH = 255;
 
@@ -37,33 +48,24 @@ class FieldValidator
 
     /**
      * Validate a single field name against security whitelist.
-     *
-     * @param string $fieldName The field name to validate
-     *
-     * @return bool True if valid, false otherwise
      */
     public static function isValidFieldName(string $fieldName): bool
     {
-        // Check length
         if (empty($fieldName) || strlen($fieldName) > self::MAX_FIELD_LENGTH) {
             return false;
         }
 
-        // Check for forbidden characters
         foreach (self::FORBIDDEN_CHARS as $char) {
             if (strpos($fieldName, $char) !== false) {
                 return false;
             }
         }
 
-        // Check whitelist pattern
         return (bool) preg_match(self::FIELD_NAME_PATTERN, $fieldName);
     }
 
     /**
      * Validate a field name and throw exception if invalid.
-     *
-     * @param string $fieldName The field name to validate
      *
      * @throws ValidationException If field name is invalid
      */
@@ -92,10 +94,40 @@ class FieldValidator
     }
 
     /**
-     * Validate database file path to prevent directory traversal attacks.
+     * Validate a database directory path to prevent directory traversal attacks.
      *
-     * @param string      $path     The database file path
-     * @param string|null $basePath Optional base directory to restrict paths to
+     * @return string Validated absolute directory path
+     *
+     * @throws ValidationException If path is invalid or attempts traversal
+     */
+    public static function validateDatabaseDirectoryPath(string $path, ?string $basePath = null): string
+    {
+        if (empty($path)) {
+            throw new ValidationException('Database path cannot be empty');
+        }
+
+        if ($path === ':memory:') {
+            return $path;
+        }
+
+        self::assertNoTraversalSegments($path);
+
+        if (!is_dir($path)) {
+            throw new ValidationException("Database directory does not exist: {$path}");
+        }
+
+        $realPath = realpath($path);
+        if ($realPath === false) {
+            throw new ValidationException("Failed to resolve database directory: {$path}");
+        }
+
+        self::assertPathWithinBase($realPath, $basePath, $path);
+
+        return $realPath;
+    }
+
+    /**
+     * Validate database file path to prevent directory traversal attacks.
      *
      * @return string The validated absolute path
      *
@@ -107,35 +139,26 @@ class FieldValidator
             throw new ValidationException('Database path cannot be empty');
         }
 
-        // Handle special case for in-memory databases
         if ($path === ':memory:') {
             return $path;
         }
 
-        // Resolve to absolute path
-        $realPath = realpath($path);
+        self::assertNoTraversalSegments($path);
 
-        // If file doesn't exist yet, realpath fails - try parent directory
+        $realPath = realpath($path);
         if ($realPath === false) {
             $directory = dirname($path);
             if (!is_dir($directory)) {
                 throw new ValidationException("Database directory does not exist: {$directory}");
             }
-            $realPath = realpath($directory).DIRECTORY_SEPARATOR.basename($path);
+            $resolvedDirectory = realpath($directory);
+            if ($resolvedDirectory === false) {
+                throw new ValidationException("Failed to resolve database directory: {$directory}");
+            }
+            $realPath = $resolvedDirectory . DIRECTORY_SEPARATOR . basename($path);
         }
 
-        // If basePath is specified, ensure the database path is within it
-        if ($basePath !== null) {
-            $basePath = realpath($basePath);
-            if ($basePath === false) {
-                throw new ValidationException("Base path does not exist: {$basePath}");
-            }
-
-            // Ensure $realPath starts with $basePath
-            if (strpos($realPath, $basePath) !== 0) {
-                throw new ValidationException("Database path '{$path}' is outside allowed base directory '{$basePath}'");
-            }
-        }
+        self::assertPathWithinBase($realPath, $basePath, $path);
 
         return $realPath;
     }
@@ -143,11 +166,6 @@ class FieldValidator
     /**
      * Sanitize regex pattern to prevent regex denial of service (ReDoS).
      * Uses preg_quote() to escape special regex characters.
-     *
-     * @param string $pattern   The regex pattern to sanitize
-     * @param string $delimiter Optional regex delimiter (default: '/')
-     *
-     * @return string The quoted pattern ready for use in preg_* functions
      */
     public static function sanitizeRegexPattern(string $pattern, string $delimiter = '/'): string
     {
@@ -155,10 +173,50 @@ class FieldValidator
     }
 
     /**
+     * Sanitize a persisted schema regex pattern while preserving safe regexes.
+     * Dangerous or invalid patterns are downgraded to literal matching.
+     */
+    public static function sanitizeSchemaRegexPattern(string $pattern): string
+    {
+        if (strlen($pattern) > self::MAX_REGEX_LENGTH) {
+            return '/' . self::sanitizeRegexPattern($pattern) . '/u';
+        }
+
+        if ($pattern === '') {
+            return $pattern;
+        }
+
+        if ($pattern[0] !== '/') {
+            return '/' . self::sanitizeRegexPattern($pattern) . '/u';
+        }
+
+        if (str_contains($pattern, '\\g') || str_contains($pattern, '\\k<')) {
+            return '/' . self::sanitizeRegexPattern($pattern) . '/u';
+        }
+
+        foreach (self::DANGEROUS_REGEX_PATTERNS as $dangerPattern) {
+            if (preg_match($dangerPattern, $pattern)) {
+                return '/' . self::sanitizeRegexPattern($pattern) . '/u';
+            }
+        }
+
+        set_error_handler(static fn () => true, E_WARNING);
+        try {
+            $compiled = preg_match($pattern, '');
+        } finally {
+            restore_error_handler();
+        }
+
+        if ($compiled === false) {
+            return '/' . self::sanitizeRegexPattern($pattern) . '/u';
+        }
+
+        return $pattern;
+    }
+
+    /**
      * Validate and escape PRAGMA key for SQLite encryption.
      * Prevents SQL injection in PRAGMA key statements.
-     *
-     * @param string $key The encryption key
      *
      * @return string The escaped key safe for PRAGMA statement
      *
@@ -170,29 +228,16 @@ class FieldValidator
             throw new ValidationException('PRAGMA key cannot be empty');
         }
 
-        // Check for null bytes and other control characters
-        if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $key)) {
+        if (preg_match('/[\x00-\x1F]/', $key)) {
             throw new ValidationException('PRAGMA key contains invalid control characters');
         }
 
-        // Escape single quotes by doubling them (SQL standard)
-        // This is more robust than str_replace for edge cases
-        $escaped = str_replace("'", "''", $key);
-
-        // Additional validation: warn if key looks suspicious
-        // (Too many quotes, unlikely patterns, etc.)
-        // For now, we allow it but it's properly escaped
-
-        return $escaped;
+        return str_replace("'", "''", $key);
     }
 
     /**
      * Check if a value is a safe callable (must be a Closure).
      * Prevents RCE via string function names like "system", "exec", etc.
-     *
-     * @param mixed $value The value to check
-     *
-     * @return bool True if value is a Closure, false otherwise
      */
     public static function isSafeCallable($value): bool
     {
@@ -201,10 +246,6 @@ class FieldValidator
 
     /**
      * Validate a callable is safe (must be a Closure).
-     * Throws exception with helpful message if not.
-     *
-     * @param mixed  $value        The callable to validate
-     * @param string $operatorName The operator name for error message (e.g., '$where', '$func')
      *
      * @throws ValidationException If not a safe callable
      */
@@ -212,6 +253,39 @@ class FieldValidator
     {
         if (!self::isSafeCallable($value)) {
             throw new ValidationException("The '{$operatorName}' operator only accepts Closure objects (anonymous functions). String function names like 'system', 'exec', etc. are not allowed. Example: ['{$operatorName}' => fn(\$doc) => \$doc['field'] > 10]");
+        }
+    }
+
+    /**
+     * Reject lexical parent-directory traversal segments early.
+     *
+     * @throws ValidationException
+     */
+    private static function assertNoTraversalSegments(string $path): void
+    {
+        if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $path)) {
+            throw new ValidationException("Database path '{$path}' contains disallowed parent-directory traversal segments");
+        }
+    }
+
+    /**
+     * Assert that a resolved path stays within an optional base directory.
+     *
+     * @throws ValidationException
+     */
+    private static function assertPathWithinBase(string $realPath, ?string $basePath, string $originalPath): void
+    {
+        if ($basePath === null || $basePath === ':memory:') {
+            return;
+        }
+
+        $resolvedBasePath = realpath($basePath);
+        if ($resolvedBasePath === false) {
+            throw new ValidationException("Base path does not exist: {$basePath}");
+        }
+
+        if (strpos($realPath, $resolvedBasePath) !== 0) {
+            throw new ValidationException("Database path '{$originalPath}' is outside allowed base directory '{$resolvedBasePath}'");
         }
     }
 }

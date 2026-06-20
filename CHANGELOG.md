@@ -44,14 +44,16 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) dan [S
 - Searchable fields tetap terbaca setelah collection dibuka ulang
 - Rename collection kini ikut menyinkronkan cache, metadata, dan konfigurasi tersimpan
 - Validasi searchable field diperketat sebelum dipakai membentuk nama kolom SQL
+- Query execution exception tidak lagi mengekspos SQL dan parameter mentah lewat properti public
 
 ### Security
 
 - `$where` dan `$func` hanya menerima Closure untuk mengurangi risiko RCE
 - Validasi nama field menggunakan whitelist karakter yang aman
 - PRAGMA key escaping untuk mengurangi risiko SQLite injection
-- Regex hardening untuk membantu mengurangi risiko ReDoS
-- Validasi path database untuk membantu mengurangi risiko path traversal
+- Regex hardening diperketat untuk membantu mengurangi risiko ReDoS bypass
+- Validasi path database dan directory path kini dipanggil dari entry point utama
+- Key derivation kini menggunakan salt per-database dengan fallback kompatibilitas untuk data lama
 - `declare(strict_types=1)` di semua file core
 
 [1.0.0]: https://github.com/herdianrony/BangronDB/releases/tag/v1.0.0

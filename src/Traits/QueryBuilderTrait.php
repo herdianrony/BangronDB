@@ -4,23 +4,24 @@ declare(strict_types=1);
 
 namespace BangronDB\Traits;
 
+use BangronDB\Security\FieldValidator;
+
 /**
  * Trait for building SQL queries from MongoDB-like criteria.
  * Supports comparison operators ($gt, $gte, $lt, $lte, $in, $nin, $exists).
  */
 trait QueryBuilderTrait
 {
-
     /**
      * Detect simple equality criteria (no $ operators).
      */
-    private function _isSimpleEqualityCriteria($criteria): bool
+    private function _isSimpleEqualityCriteria(mixed $criteria): bool
     {
         if (!is_array($criteria)) {
             return false;
         }
         foreach ($criteria as $k => $v) {
-            if (strpos($k, '$') === 0) {
+            if (strpos((string) $k, '$') === 0) {
                 return false;
             }
             if (is_array($v)) {
@@ -33,28 +34,31 @@ trait QueryBuilderTrait
 
     /**
      * Determine if a criteria array can be translated to a JSON-based SQL WHERE clause.
-     * Supports simple equality and a limited set of operators: $gt, $gte, $lt, $lte, $in, $nin, $exists.
      */
-    public function _canTranslateToJsonWhere($criteria): bool
+    public function _canTranslateToJsonWhere(mixed $criteria): bool
     {
         if (!is_array($criteria)) {
             return false;
         }
 
-        $allowedOps = ['$gt', '$gte', '$lt', '$lte', '$exists'];
+        $allowedOps = ['$gt', '$gte', '$lt', '$lte', '$in', '$nin', '$exists'];
 
         foreach ($criteria as $k => $v) {
-            if (strpos($k, '$') === 0) {
+            if (strpos((string) $k, '$') === 0) {
                 return false;
-            } // top-level logical operators not supported here
+            }
+
+            FieldValidator::validateFieldName((string) $k);
 
             if (is_array($v)) {
-                // operator-style value expected
-                foreach ($v as $op => $val) {
-                    if (strpos($op, '$') !== 0) {
+                foreach ($v as $op => $_val) {
+                    if (strpos((string) $op, '$') !== 0) {
                         return false;
                     }
                     if (!in_array($op, $allowedOps, true)) {
+                        return false;
+                    }
+                    if (isset($this->searchableFields[(string) $k]) && in_array($op, ['$in', '$nin'], true)) {
                         return false;
                     }
                 }
@@ -67,18 +71,15 @@ trait QueryBuilderTrait
     /**
      * Build SQL WHERE clause using json_extract for simple equality criteria.
      *
-     * @param array $criteria Query criteria
-     * @param array &$params  Parameters collected for prepared statements
-     *
-     * @return string SQL WHERE clause with ? placeholders
+     * @param array<string,mixed> $criteria
+     * @param array<int,mixed>    $params
      */
     public function _buildJsonWhere(array $criteria, array &$params = []): string
     {
         $parts = [];
         foreach ($criteria as $key => $value) {
-            $expr = $this->buildExpressionForKey($key, $value);
-            $condition = $this->buildConditionForValue($expr, $value, $params);
-            $parts[] = $condition;
+            $expr = $this->buildExpressionForKey((string) $key);
+            $parts[] = $this->buildConditionForValue($expr, $value, $params);
         }
 
         return implode(' AND ', $parts);
@@ -87,11 +88,11 @@ trait QueryBuilderTrait
     /**
      * Build expression for a given key considering searchable fields.
      */
-    private function buildExpressionForKey(string $key, $value): string
+    private function buildExpressionForKey(string $key): string
     {
-        $path = '$.' . str_replace("'", "\\'", $key);
+        FieldValidator::validateFieldName($key);
+        $path = '$.' . str_replace("'", "''", $key);
 
-        // If this key is configured as searchable, use the searchable column
         if (isset($this->searchableFields[$key])) {
             return '`' . str_replace('`', '``', $this->buildSearchableColumnName($key)) . '`';
         }
@@ -100,13 +101,9 @@ trait QueryBuilderTrait
     }
 
     /**
-     * Build condition for a given expression and value.
-     *
-     * @param string $expr   SQL expression for the field
-     * @param mixed  $value  Condition value or operator array
-     * @param array  &$params Parameters collected for prepared statements
+     * @param array<int,mixed> $params
      */
-    private function buildConditionForValue(string $expr, $value, array &$params): string
+    private function buildConditionForValue(string $expr, mixed $value, array &$params): string
     {
         if (is_array($value)) {
             return $this->buildOperatorCondition($expr, $value, $params);
@@ -116,18 +113,15 @@ trait QueryBuilderTrait
     }
 
     /**
-     * Build condition for operators ($gt, $gte, $lt, $lte, $in, $nin, $exists).
-     *
-     * @param string $expr      SQL expression for the field
-     * @param array  $operators Operator-value pairs
-     * @param array  &$params   Parameters collected for prepared statements
+     * @param array<string,mixed> $operators
+     * @param array<int,mixed>    $params
      */
     private function buildOperatorCondition(string $expr, array $operators, array &$params): string
     {
         $conditions = [];
 
         foreach ($operators as $op => $v) {
-            $condition = $this->buildSingleOperatorCondition($expr, $op, $v, $params);
+            $condition = $this->buildSingleOperatorCondition($expr, (string) $op, $v, $params);
             if ($condition) {
                 $conditions[] = $condition;
             }
@@ -137,40 +131,26 @@ trait QueryBuilderTrait
     }
 
     /**
-     * Build condition for a single operator.
-     *
-     * @param string $expr   SQL expression for the field
-     * @param string $op     Operator name (e.g. '$gt')
-     * @param mixed  $value  Operator value
-     * @param array  &$params Parameters collected for prepared statements
+     * @param array<int,mixed> $params
      */
-    private function buildSingleOperatorCondition(string $expr, string $op, $value, array &$params): ?string
+    private function buildSingleOperatorCondition(string $expr, string $op, mixed $value, array &$params): ?string
     {
-        switch ($op) {
-            case '$gt':
-                return $this->buildComparisonCondition($expr, '>', $value, $params);
-            case '$gte':
-                return $this->buildComparisonCondition($expr, '>=', $value, $params);
-            case '$lt':
-                return $this->buildComparisonCondition($expr, '<', $value, $params);
-            case '$lte':
-                return $this->buildComparisonCondition($expr, '<=', $value, $params);
-            case '$in':
-                return $this->buildInCondition($expr, $value, false, $params);
-            case '$nin':
-                return $this->buildInCondition($expr, $value, true, $params);
-            case '$exists':
-                return $value ? "{$expr} IS NOT NULL" : "{$expr} IS NULL";
-            default:
-                // unsupported operator - fallback to strict equality check
-                return $this->buildEqualityCondition($expr, $value, $params);
-        }
+        return match ($op) {
+            '$gt' => $this->buildComparisonCondition($expr, '>', $value, $params),
+            '$gte' => $this->buildComparisonCondition($expr, '>=', $value, $params),
+            '$lt' => $this->buildComparisonCondition($expr, '<', $value, $params),
+            '$lte' => $this->buildComparisonCondition($expr, '<=', $value, $params),
+            '$in' => is_array($value) ? $this->buildInCondition($expr, $value, false, $params) : null,
+            '$nin' => is_array($value) ? $this->buildInCondition($expr, $value, true, $params) : null,
+            '$exists' => $value ? "{$expr} IS NOT NULL" : "{$expr} IS NULL",
+            default => $this->buildEqualityCondition($expr, $value, $params),
+        };
     }
 
     /**
      * Check if an expression refers to a searchable field and extract the field name.
      */
-    private function isSearchableExpression(string $expr, &$fieldName = null): bool
+    private function isSearchableExpression(string $expr, ?string &$fieldName = null): bool
     {
         $prefix = $this->getSearchablePrefix();
         $clean = trim($expr, '`');
@@ -184,16 +164,10 @@ trait QueryBuilderTrait
     }
 
     /**
-     * Build comparison condition (>, >=, <, <=) using prepared statement placeholder.
-     *
-     * @param string $expr     SQL expression for the field
-     * @param string $operator Comparison operator
-     * @param mixed  $value    Value to compare against
-     * @param array  &$params  Parameters collected for prepared statements
+     * @param array<int,mixed> $params
      */
-    private function buildComparisonCondition(string $expr, string $operator, $value, array &$params): string
+    private function buildComparisonCondition(string $expr, string $operator, mixed $value, array &$params): string
     {
-        // If this is a searchable field, normalize for case-insensitive search
         if ($this->isSearchableExpression($expr, $field)) {
             $value = strtolower((string) $value);
             if ($this->searchableFields[$field]['hash']) {
@@ -207,20 +181,15 @@ trait QueryBuilderTrait
     }
 
     /**
-     * Build IN/NOT IN condition using prepared statement placeholders.
-     *
-     * @param string $expr   SQL expression for the field
-     * @param array  $values Values to match against
-     * @param bool   $notIn  Whether to use NOT IN instead of IN
-     * @param array  &$params Parameters collected for prepared statements
+     * @param array<int,mixed> $values
+     * @param array<int,mixed> $params
      */
     private function buildInCondition(string $expr, array $values, bool $notIn, array &$params): ?string
     {
         if (empty($values)) {
-            return $notIn ? null : '0'; // Return false condition for empty IN
+            return $notIn ? null : '0';
         }
 
-        // If this is a searchable field with hashing, hash the values
         if ($this->isSearchableExpression($expr, $field)) {
             $values = array_map(function ($v) use ($field) {
                 if (is_array($v)) {
@@ -244,15 +213,10 @@ trait QueryBuilderTrait
     }
 
     /**
-     * Build equality condition using prepared statement placeholder.
-     *
-     * @param string $expr   SQL expression for the field
-     * @param mixed  $value  Value to compare against
-     * @param array  &$params Parameters collected for prepared statements
+     * @param array<int,mixed> $params
      */
-    private function buildEqualityCondition(string $expr, $value, array &$params): string
+    private function buildEqualityCondition(string $expr, mixed $value, array &$params): string
     {
-        // If this is a searchable field, normalize for case-insensitive search
         if ($this->isSearchableExpression($expr, $field)) {
             $value = strtolower((string) $value);
             if ($this->searchableFields[$field]['hash']) {
@@ -260,7 +224,6 @@ trait QueryBuilderTrait
             }
         }
 
-        // Convert booleans to integer for SQL comparison
         if (is_bool($value)) {
             $value = $value ? 1 : 0;
         }

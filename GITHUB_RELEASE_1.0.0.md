@@ -11,6 +11,7 @@ BangronDB 1.0.0 adalah rilis stabil awal untuk database dokumen berbasis SQLite 
 - **Hooks, schema validation, soft deletes, populate, indexing, dan metrics**
 - **Lifecycle API eksplisit** untuk database dan collection
 - **`selectDB()` dan `selectCollection()` kini non-lazy**
+- **Path validation, regex hardening, dan exception hardening** untuk pengurangan risiko security foot-gun
 - **Examples 01–15 sudah diperbarui dan diverifikasi berjalan**
 
 ## ✅ Explicit Lifecycle API
@@ -57,8 +58,8 @@ Detail migrasi tersedia di:
 
 ## 🧪 Validation Status
 
-- **292 tests**
-- **862 assertions**
+- **303 tests**
+- **881 assertions**
 - seluruh test suite lulus
 - **examples 01–15 berhasil dijalankan**
 

@@ -6,27 +6,10 @@ namespace BangronDB;
 
 use BangronDB\Exceptions\DatabaseException;
 use BangronDB\Exceptions\ValidationException;
+use BangronDB\Security\FieldValidator;
 
 /**
  * Client object for managing BangronDB databases.
- *
- * This class provides access to multiple databases within a single directory
- * or in-memory storage. Databases can be accessed either explicitly via
- * selectDB() or using the magic property syntax.
- *
- * Example usage:
- * ```php
- * $client = new Client('/path/to/databases');
- *
- * // Create database explicitly
- * $client->createDB('mydb');
- *
- * // Explicit access (recommended for IDE autocomplete)
- * $db = $client->selectDB('mydb');
- *
- * // Magic property access (convenient but less IDE-friendly)
- * $db = $client->mydb;
- * ```
  */
 class Client
 {
@@ -35,46 +18,29 @@ class Client
      */
     protected array $databases = [];
 
-    /**
-     * @var string Database path
-     */
     public string $path;
-
-    /**
-     * @var array Client options
-     */
     protected array $options = [];
 
-    /**
-     * Path validation regex for database names.
-     */
     private const DATABASE_NAME_REGEX = '/^[a-z0-9_-]+$/i';
 
-    /**
-     * Constructor.
-     *
-     * @param string $path    Pathname to database file or :memory:
-     * @param array  $options Client options
-     */
     public function __construct(string $path, array $options = [])
     {
-        $this->path = $this->normalizePath($path);
+        $normalizedPath = $this->normalizePath($path);
+        $basePath = isset($options['base_path']) && is_string($options['base_path'])
+            ? $options['base_path']
+            : null;
+
+        $this->path = $normalizedPath === Database::DSN_PATH_MEMORY
+            ? $normalizedPath
+            : FieldValidator::validateDatabaseDirectoryPath($normalizedPath, $basePath);
         $this->options = $options;
     }
 
-    /**
-     * Normalize path by trimming slashes.
-     */
     private function normalizePath(string $path): string
     {
         return \rtrim($path, '/\\');
     }
 
-    /**
-     * List Databases.
-     *
-     * @return array List of database names
-     */
     public function listDBs(): array
     {
         if ($this->path === Database::DSN_PATH_MEMORY) {
@@ -84,17 +50,11 @@ class Client
         return $this->getDiskDatabaseNames();
     }
 
-    /**
-     * Get database names from memory.
-     */
     private function getMemoryDatabaseNames(): array
     {
         return array_keys($this->databases);
     }
 
-    /**
-     * Get database names from disk.
-     */
     private function getDiskDatabaseNames(): array
     {
         $databases = [];
@@ -109,28 +69,19 @@ class Client
                 }
             }
         } catch (\Exception $e) {
-            // Handle directory access errors gracefully
             return [];
         }
 
         return $databases;
     }
 
-    /**
-     * Check if file is BangronDB database.
-     */
     private function isDatabaseFile(\SplFileInfo $fileInfo): bool
     {
-        $ext = $fileInfo->getExtension();
-
-        return $ext === 'bangron';
+        return $fileInfo->getExtension() === 'bangron';
     }
 
     /**
      * Explicitly create a collection and return its instance.
-     *
-     * This is a convenience wrapper around Database::createCollection() plus
-     * Database::selectCollection().
      */
     public function createCollection(string $database, string $collection): Collection
     {
@@ -141,9 +92,6 @@ class Client
         return $db->createCollection($collection);
     }
 
-    /**
-     * Check whether a collection exists in a given database.
-     */
     public function collectionExists(string $database, string $collection): bool
     {
         if (!$this->dbExists($database)) {
@@ -153,9 +101,6 @@ class Client
         return $this->selectDB($database)->collectionExists($collection);
     }
 
-    /**
-     * Rename a collection in a given database.
-     */
     public function renameCollection(string $database, string $oldName, string $newName): bool
     {
         if (!$this->dbExists($database)) {
@@ -165,9 +110,6 @@ class Client
         return $this->selectDB($database)->renameCollection($oldName, $newName);
     }
 
-    /**
-     * Drop a collection in a given database.
-     */
     public function dropCollection(string $database, string $collection): bool
     {
         if (!$this->dbExists($database)) {
@@ -184,26 +126,11 @@ class Client
         return true;
     }
 
-    /**
-     * Select Collection.
-     *
-     * @param string $database   Database name
-     * @param string $collection Collection name
-     */
     public function selectCollection(string $database, string $collection): Collection
     {
         return $this->selectDB($database)->selectCollection($collection);
     }
 
-    /**
-     * Explicitly create a database and return its instance.
-     *
-     * For backward compatibility, this method is idempotent and will return
-     * the existing database instance if the database already exists or was
-     * previously selected.
-     *
-     * @throws ValidationException If database name is invalid
-     */
     public function createDB(string $name, array $options = []): Database
     {
         $this->validateDatabaseName($name);
@@ -215,11 +142,6 @@ class Client
         return $this->databases[$name];
     }
 
-    /**
-     * Check whether a database exists.
-     *
-     * @throws ValidationException If database name is invalid
-     */
     public function dbExists(string $name): bool
     {
         $this->validateDatabaseName($name);
@@ -235,11 +157,6 @@ class Client
         return file_exists($this->buildDatabasePath($name));
     }
 
-    /**
-     * Drop a database.
-     *
-     * @throws ValidationException If database name is invalid
-     */
     public function dropDB(string $name): bool
     {
         $this->validateDatabaseName($name);
@@ -251,15 +168,6 @@ class Client
         return $this->dropDiskDatabase($name);
     }
 
-    /**
-     * Rename a database.
-     *
-     * Note: if the database was already selected, any previously held Database
-     * object becomes stale after rename. Re-select the database using the new
-     * name to continue working with it.
-     *
-     * @throws ValidationException If database name is invalid
-     */
     public function renameDB(string $oldName, string $newName): bool
     {
         $this->validateDatabaseName($oldName);
@@ -277,12 +185,7 @@ class Client
     }
 
     /**
-     * Select database.
-     *
-     * @param string $name Database name
-     *
-     * @throws ValidationException If database name is invalid
-     * @throws DatabaseException   If database does not exist
+     * @throws DatabaseException
      */
     public function selectDB(string $name, array $options = []): Database
     {
@@ -299,41 +202,26 @@ class Client
         return $this->databases[$name];
     }
 
-    /**
-     * Validate database name.
-     *
-     * @throws ValidationException If database name is invalid
-     */
     private function validateDatabaseName(string $name): void
     {
         if ($name !== Database::DSN_PATH_MEMORY && !preg_match(self::DATABASE_NAME_REGEX, $name)) {
-            throw ValidationException::invalidNameFormat(
-                $name,
-                self::DATABASE_NAME_REGEX,
-                'database'
-            );
+            throw ValidationException::invalidNameFormat($name, self::DATABASE_NAME_REGEX, 'database');
         }
     }
 
-    /**
-     * Create database instance.
-     */
     private function createDatabaseInstance(string $name, array $options = []): Database
     {
         $dbPath = $this->buildDatabasePath($name);
-        // Merge client global options with specific db options
+        $validatedDbPath = $dbPath === Database::DSN_PATH_MEMORY
+            ? $dbPath
+            : FieldValidator::validateDatabasePath($dbPath, $this->path);
         $finalOptions = array_merge($this->options, $options);
-        $database = new Database($dbPath, $finalOptions);
-
-        // Attach back-reference to client
+        $database = new Database($validatedDbPath, $finalOptions);
         $database->client = $this;
 
         return $database;
     }
 
-    /**
-     * Build database file path.
-     */
     private function buildDatabasePath(string $name): string
     {
         if ($this->path === Database::DSN_PATH_MEMORY) {
@@ -343,9 +231,6 @@ class Client
         return sprintf('%s/%s.bangron', $this->path, $name);
     }
 
-    /**
-     * Drop an in-memory database.
-     */
     private function dropMemoryDatabase(string $name): bool
     {
         if (!isset($this->databases[$name])) {
@@ -357,9 +242,6 @@ class Client
         return true;
     }
 
-    /**
-     * Drop a disk-backed database.
-     */
     private function dropDiskDatabase(string $name): bool
     {
         $path = $this->buildDatabasePath($name);
@@ -375,9 +257,6 @@ class Client
         return $deleted;
     }
 
-    /**
-     * Rename an in-memory database.
-     */
     private function renameMemoryDatabase(string $oldName, string $newName): bool
     {
         if (!isset($this->databases[$oldName])) {
@@ -390,9 +269,6 @@ class Client
         return true;
     }
 
-    /**
-     * Rename a disk-backed database.
-     */
     private function renameDiskDatabase(string $oldName, string $newName): bool
     {
         $oldPath = $this->buildDatabasePath($oldName);
@@ -413,9 +289,6 @@ class Client
         return true;
     }
 
-    /**
-     * Close a cached database handle and remove it from cache.
-     */
     private function closeDatabaseHandle(string $name): void
     {
         if (!isset($this->databases[$name])) {
@@ -426,9 +299,6 @@ class Client
         unset($this->databases[$name]);
     }
 
-    /**
-     * Delete SQLite sidecar files if they exist.
-     */
     private function deleteSidecarFiles(string $path): void
     {
         foreach ([$path . '-wal', $path . '-shm'] as $sidecar) {
@@ -438,9 +308,6 @@ class Client
         }
     }
 
-    /**
-     * Rename SQLite sidecar files if they exist.
-     */
     private function renameSidecarFiles(string $oldPath, string $newPath): void
     {
         foreach (['-wal', '-shm'] as $suffix) {
@@ -452,31 +319,11 @@ class Client
         }
     }
 
-    /**
-     * Magic getter for database access.
-     *
-     * Provides convenient property-style access to databases.
-     * Note: For better IDE support and autocomplete, consider using
-     * selectDB() instead.
-     *
-     * @param string $database Database name
-     *
-     * @return Database
-     *
-     * @example
-     * ```php
-     * $client = new Client('/path/to/db');
-     * $db = $client->mydb; // Equivalent to $client->selectDB('mydb')
-     * ```
-     */
     public function __get(string $database): Database
     {
         return $this->selectDB($database);
     }
 
-    /**
-     * Close all database connections held by this client.
-     */
     public function close(): void
     {
         foreach ($this->databases as $db) {
@@ -488,9 +335,6 @@ class Client
         $this->databases = [];
     }
 
-    /**
-     * Destructor to ensure all connections are closed.
-     */
     public function __destruct()
     {
         $this->close();

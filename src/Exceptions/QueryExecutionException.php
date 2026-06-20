@@ -12,8 +12,13 @@ namespace BangronDB\Exceptions;
  */
 class QueryExecutionException extends \RuntimeException
 {
-    public string $sql;
-    public array $params;
+    /**
+     * Keys that should be redacted from debug output.
+     */
+    private const SENSITIVE_KEYS = ['encryption_key', 'password', 'secret', 'token', 'api_key', 'credential'];
+
+    private string $sql;
+    private array $params;
 
     public function __construct(string $message, string $sql, array $params = [], ?\Throwable $previous = null)
     {
@@ -30,5 +35,44 @@ class QueryExecutionException extends \RuntimeException
     public function getParams(): array
     {
         return $this->params;
+    }
+
+    /**
+     * Return redacted parameters for safe debugging.
+     */
+    public function getRedactedParams(): array
+    {
+        $filtered = [];
+        foreach ($this->params as $key => $value) {
+            $keyLower = is_string($key) ? strtolower($key) : $key;
+            $isSensitive = false;
+
+            if (is_string($key)) {
+                foreach (self::SENSITIVE_KEYS as $sensitive) {
+                    if (strpos($keyLower, $sensitive) !== false) {
+                        $isSensitive = true;
+                        break;
+                    }
+                }
+            }
+
+            $filtered[$key] = $isSensitive ? '[REDACTED]' : $value;
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Prevent accidental leakage of SQL and raw parameters in debug output.
+     */
+    public function __debugInfo(): array
+    {
+        return [
+            'message' => $this->getMessage(),
+            'code' => $this->getCode(),
+            'has_sql' => $this->sql !== '',
+            'params' => $this->getRedactedParams(),
+            'previous' => $this->getPrevious()?->getMessage(),
+        ];
     }
 }

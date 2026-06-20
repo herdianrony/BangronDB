@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BangronDB\Traits;
 
 use BangronDB\Exceptions\ValidationException;
+use BangronDB\Security\FieldValidator;
 
 /**
  * Trait for schema validation.
@@ -18,20 +19,15 @@ trait SchemaValidationTrait
 
     /**
      * Set schema validation rules.
-     *
-     * @param array $schema
-     * @return self
      */
     public function setSchema(array $schema): self
     {
-        $this->schema = $schema;
+        $this->schema = $this->sanitizeSchemaRules($schema);
         return $this;
     }
 
     /**
      * Get defined schema rules.
-     *
-     * @return array
      */
     public function getSchema(): array
     {
@@ -41,9 +37,7 @@ trait SchemaValidationTrait
     /**
      * Validate a document against the schema.
      *
-     * @param array $document
      * @throws \Exception
-     * @return bool
      */
     public function validate(array $document): bool
     {
@@ -54,7 +48,6 @@ trait SchemaValidationTrait
         foreach ($this->schema as $field => $rules) {
             $value = $document[$field] ?? null;
 
-            // Check required
             if (($rules['required'] ?? false) && !isset($document[$field])) {
                 throw ValidationException::requiredFieldMissing($field);
             }
@@ -63,12 +56,10 @@ trait SchemaValidationTrait
                 continue;
             }
 
-            // Check type
             if (isset($rules['type'])) {
                 $this->validateType($field, $value, $rules['type']);
             }
 
-            // Check enum
             if (isset($rules['enum']) && !in_array($value, $rules['enum'])) {
                 throw new ValidationException(
                     "Field '{$field}' must be one of: " . implode(', ', $rules['enum']),
@@ -77,10 +68,8 @@ trait SchemaValidationTrait
                 );
             }
 
-            // Check min/max
             $this->validateRange($field, $value, $rules);
 
-            // Check regex
             if (isset($rules['regex']) && is_string($value) && !preg_match($rules['regex'], $value)) {
                 throw new ValidationException(
                     "Field '{$field}' does not match pattern.",
@@ -91,6 +80,25 @@ trait SchemaValidationTrait
         }
 
         return true;
+    }
+
+    /**
+     * Sanitize schema rules before use.
+     */
+    protected function sanitizeSchemaRules(array $schema): array
+    {
+        foreach ($schema as $_field => &$rules) {
+            if (!is_array($rules)) {
+                continue;
+            }
+
+            if (isset($rules['regex']) && is_string($rules['regex'])) {
+                $rules['regex'] = FieldValidator::sanitizeSchemaRegexPattern($rules['regex']);
+            }
+        }
+        unset($rules);
+
+        return $schema;
     }
 
     /**

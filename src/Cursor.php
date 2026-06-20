@@ -171,7 +171,7 @@ class Cursor implements \IteratorAggregate
     /**
      * Iterate over each document and apply callback.
      */
-    public function each($callable): self
+    public function each(callable $callable): self
     {
         $this->rewind();
         while ($this->valid()) {
@@ -207,7 +207,7 @@ class Cursor implements \IteratorAggregate
     /**
      * Set sort order for results.
      */
-    public function sort($sort): self
+    public function sort(array $sort): self
     {
         $this->sort = $sort;
 
