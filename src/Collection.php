@@ -269,66 +269,35 @@ class Collection
             return false;
         }
 
-        $this->validate($document);
-        $this->ensureCollectionExists();
-
-        $data = $this->prepareDocumentForStorage($document);
         $idVal = $document['_id'];
 
-        // Check if document exists
+        if (!$this->documentExists((string) $idVal)) {
+            return $this->insert($document);
+        }
+
+        $updated = $this->update(['_id' => $idVal], $document, false);
+
+        return $updated > 0 ? $idVal : false;
+    }
+
+    /**
+     * Check whether a document exists by its _id.
+     */
+    protected function documentExists(string $id): bool
+    {
+        $this->ensureCollectionExists();
         $table = $this->database->quoteIdentifier($this->name);
+
         try {
-            $stmt = $this->database->queryExecutor->executeQuery("SELECT id FROM {$table} WHERE json_extract(document, '$._id') = ? LIMIT 1", [$idVal]);
-            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $stmt = $this->database->queryExecutor->executeQuery(
+                "SELECT 1 FROM {$table} WHERE json_extract(document, '$._id') = ? LIMIT 1",
+                [$id]
+            );
+
+            return $stmt->fetch(\PDO::FETCH_ASSOC) !== false;
         } catch (QueryExecutionException $e) {
-            $existing = null;
+            return false;
         }
-
-        if ($existing) {
-            // Update existing
-            $setParts = [];
-            $params = [];
-            foreach ($data as $col => $val) {
-                $setParts[] = "`{$col}` = ?";
-                $params[] = $val;
-            }
-            $params[] = $existing['id'];
-
-            $sql = "UPDATE {$table} SET " . implode(', ', $setParts) . ' WHERE id = ?';
-            try {
-                $this->database->queryExecutor->executeUpdate($sql, $params);
-
-                return $idVal;
-            } catch (QueryExecutionException $e) {
-                $this->logSqlError($sql);
-
-                return false;
-            }
-        } else {
-            // Insert new
-            $fields = [];
-            $placeholders = [];
-            $params = [];
-
-            foreach ($data as $col => $val) {
-                $fields[] = "`{$col}`";
-                $placeholders[] = '?';
-                $params[] = $val;
-            }
-
-            $sql = "INSERT INTO {$table} (" . implode(', ', $fields) . ') VALUES (' . implode(', ', $placeholders) . ')';
-            try {
-                $this->database->queryExecutor->executeUpdate($sql, $params);
-
-                return $idVal;
-            } catch (QueryExecutionException $e) {
-                $this->logSqlError($sql);
-
-                return false;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -375,6 +344,9 @@ class Collection
         foreach ($documents as $doc) {
             $_doc = $this->decodeStored($doc['document']) ?? [];
             $document = $this->mergeDocumentData($_doc, $data, $merge);
+            if (!$merge) {
+                $this->validate($document);
+            }
             $encoded = $this->encodeStored($document);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 continue;
@@ -563,10 +535,12 @@ class Collection
             $where = $this->_buildJsonWhere($criteria, $params);
             $sql = "DELETE FROM {$table} WHERE " . $where;
             try {
-                $this->database->queryExecutor->executeUpdate($sql, $params);
-                $this->notifyChange();
-                // Return estimated count (SQLite changes don't give exact count easily)
-                return 1;
+                $deleted = $this->database->queryExecutor->executeUpdate($sql, $params);
+                if ($deleted > 0) {
+                    $this->notifyChange();
+                }
+
+                return $deleted;
             } catch (QueryExecutionException $e) {
                 $this->logSqlError($sql);
                 return 0;
@@ -735,21 +709,33 @@ class Collection
      */
     public function renameCollection(string $newname): bool
     {
-        if (!in_array($newname, $this->database->getCollectionNames())) {
-            try {
-                // Use internal method for DDL statements (no deprecation warning)
-                $quotedOld = $this->database->quoteIdentifier($this->name);
-                $quotedNew = $this->database->quoteIdentifier($newname);
-                $this->database->queryExecutor->executeRawUpdateInternal("ALTER TABLE {$quotedOld} RENAME TO {$quotedNew}");
-                $this->name = $newname;
+        $oldName = $this->name;
 
-                return true;
-            } catch (QueryExecutionException $e) {
-                return false;
-            }
+        if ($newname === $oldName || in_array($newname, $this->database->getCollectionNames(), true)) {
+            return false;
         }
 
-        return false;
+        try {
+            $this->database->connection->beginTransaction();
+
+            // Use internal method for DDL statements (no deprecation warning)
+            $quotedOld = $this->database->quoteIdentifier($oldName);
+            $quotedNew = $this->database->quoteIdentifier($newname);
+            $this->database->queryExecutor->executeRawUpdateInternal("ALTER TABLE {$quotedOld} RENAME TO {$quotedNew}");
+            $this->database->renameCollectionReferences($oldName, $newname);
+
+            $this->database->connection->commit();
+            $this->name = $newname;
+            $this->database->renameCollectionInCache($this, $oldName, $newname);
+
+            return true;
+        } catch (\Throwable $e) {
+            if ($this->database->connection->inTransaction()) {
+                $this->database->connection->rollBack();
+            }
+
+            return false;
+        }
     }
 
     /**

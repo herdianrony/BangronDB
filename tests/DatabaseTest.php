@@ -84,4 +84,16 @@ class DatabaseTest extends TestCase
         $this->assertArrayHasKey('performance', $metrics);
         $this->assertArrayHasKey('collections', $metrics);
     }
+
+    public function testSetEncryptionKey()
+    {
+        $result = $this->db->setEncryptionKey('12345678901234567890123456789012');
+
+        $this->assertSame($this->db, $result);
+        $this->assertTrue($this->db->isEncryptionEnabled());
+        $this->assertSame([
+            'enabled' => true,
+            'key_length' => 32,
+        ], $this->db->getEncryptionKeyStatus());
+    }
 }

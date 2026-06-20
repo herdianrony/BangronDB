@@ -245,7 +245,7 @@ class Database
         $this->encryptionKey = $key;
 
         // Clear derived key cache since the key changed
-        EncryptionTrait::clearDerivedKeyCache();
+        Collection::clearDerivedKeyCache();
 
         return $this;
     }
@@ -574,6 +574,34 @@ class Database
     }
 
     /**
+     * Rename a cached collection reference.
+     */
+    public function renameCollectionInCache(Collection $collection, string $oldName, string $newName): void
+    {
+        unset($this->collections[$oldName]);
+        $this->collections[$newName] = $collection;
+    }
+
+    /**
+     * Rename persisted metadata/config references for a collection.
+     */
+    public function renameCollectionReferences(string $oldName, string $newName): void
+    {
+        $this->validateCollectionName($oldName);
+        $this->validateCollectionName($newName);
+
+        $this->queryExecutor->executeUpdate(
+            "UPDATE _meta SET document = json_set(document, '$._id', ?) WHERE json_extract(document, '$._id') = ?",
+            [$newName, $oldName]
+        );
+
+        $this->queryExecutor->executeUpdate(
+            "UPDATE _config SET document = json_set(document, '$._id', ?) WHERE json_extract(document, '$._id') = ?",
+            [$newName, $oldName]
+        );
+    }
+
+    /**
      * Get all collection names in the database.
      */
     public function getCollectionNames(): array
@@ -767,6 +795,159 @@ class Database
     public function getCollectionMetrics(): array
     {
         return $this->getMetrics()->getCollectionMetrics();
+    }
+
+    /**
+     * Increment metadata version for a collection and update its timestamp.
+     *
+     * @return array{version:int,last_updated:string|null}
+     */
+    public function touchCollectionMetadata(string $collectionName): array
+    {
+        $this->validateCollectionName($collectionName);
+
+        $metadata = $this->getCollectionMetadata($collectionName);
+        $next = [
+            'version' => $metadata['version'] + 1,
+            'last_updated' => date('c'),
+        ];
+
+        $document = $this->encodeMetadataDocument($collectionName, $next);
+
+        try {
+            $stmt = $this->queryExecutor->executeQuery(
+                "SELECT id FROM _meta WHERE json_extract(document, '$._id') = ?",
+                [$collectionName]
+            );
+            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (QueryExecutionException $e) {
+            $existing = null;
+        }
+
+        if ($existing) {
+            $this->queryExecutor->executeUpdate(
+                'UPDATE _meta SET document = ? WHERE id = ?',
+                [$document, $existing['id']]
+            );
+        } else {
+            $this->queryExecutor->executeUpdate(
+                'INSERT INTO _meta (document) VALUES (?)',
+                [$document]
+            );
+        }
+
+        return $next;
+    }
+
+    /**
+     * Get metadata for a single collection.
+     *
+     * @return array{version:int,last_updated:string|null}
+     */
+    public function getCollectionMetadata(string $collectionName): array
+    {
+        $this->validateCollectionName($collectionName);
+
+        try {
+            $stmt = $this->queryExecutor->executeQuery(
+                "SELECT document FROM _meta WHERE json_extract(document, '$._id') = ?",
+                [$collectionName]
+            );
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (QueryExecutionException $e) {
+            $row = null;
+        }
+
+        if (!$row) {
+            return $this->getEmptyMetadata();
+        }
+
+        return $this->decodeMetadataRow($row['document']);
+    }
+
+    /**
+     * Get metadata for all collections.
+     *
+     * @return array<string,array{version:int,last_updated:string|null}>
+     */
+    public function getAllCollectionMetadata(): array
+    {
+        try {
+            $stmt = $this->queryExecutor->executeQuery('SELECT document FROM _meta');
+            $rows = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
+        } catch (QueryExecutionException $e) {
+            return [];
+        }
+
+        $metadata = [];
+        foreach ($rows as $row) {
+            $document = json_decode($row['document'], true);
+            if (!is_array($document) || !isset($document['_id'])) {
+                continue;
+            }
+
+            $metadata[$document['_id']] = $this->decodeMetadataArray($document);
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * Encode a metadata document for storage.
+     */
+    private function encodeMetadataDocument(string $collectionName, array $metadata): string
+    {
+        $document = json_encode([
+            '_id' => $collectionName,
+            'version' => (int) ($metadata['version'] ?? 0),
+            'last_updated' => $metadata['last_updated'] ?? null,
+        ]);
+
+        if ($document === false) {
+            throw new \RuntimeException('Failed to encode metadata document as JSON');
+        }
+
+        return $document;
+    }
+
+    /**
+     * Decode a metadata JSON string into a normalized array.
+     *
+     * @return array{version:int,last_updated:string|null}
+     */
+    private function decodeMetadataRow(string $document): array
+    {
+        $decoded = json_decode($document, true);
+        if (!is_array($decoded)) {
+            return $this->getEmptyMetadata();
+        }
+
+        return $this->decodeMetadataArray($decoded);
+    }
+
+    /**
+     * Normalize a decoded metadata array.
+     *
+     * @return array{version:int,last_updated:string|null}
+     */
+    private function decodeMetadataArray(array $document): array
+    {
+        return [
+            'version' => (int) ($document['version'] ?? 0),
+            'last_updated' => isset($document['last_updated']) && is_string($document['last_updated'])
+                ? $document['last_updated']
+                : null,
+        ];
+    }
+
+    /**
+     * Return the default empty metadata structure.
+     *
+     * @return array{version:int,last_updated:string|null}
+     */
+    private function getEmptyMetadata(): array
+    {
+        return ['version' => 0, 'last_updated' => null];
     }
 
     /**
