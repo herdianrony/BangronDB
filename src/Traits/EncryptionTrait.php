@@ -25,20 +25,9 @@ trait EncryptionTrait
     private static array $derivedKeyCache = [];
 
     /**
-     * Maximum number of derived keys to cache.
+     * Encryption constants are declared in the Collection class
+     * because PHP < 8.3 does not support constants in traits.
      */
-    private const MAX_DERIVED_KEY_CACHE_SIZE = 16;
-
-    /**
-     * Legacy static PBKDF2 salt retained for backward compatibility with
-     * databases encrypted before per-database salts were introduced.
-     */
-    private const LEGACY_PBKDF2_SALT = 'bangrondb_encryption_salt';
-
-    /**
-     * Maximum document nesting depth to prevent stack overflow.
-     */
-    private const MAX_DOCUMENT_DEPTH = 64;
 
     /**
      * Prevent encryption key from being exposed via var_dump/print_r.
@@ -79,11 +68,6 @@ trait EncryptionTrait
     {
         self::$derivedKeyCache = [];
     }
-
-    /**
-     * Minimum encryption key length in characters.
-     */
-    private const MIN_KEY_LENGTH = 32;
 
     /**
      * Set per-collection encryption key (overrides Database->encryptionKey when set).

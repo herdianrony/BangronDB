@@ -51,6 +51,14 @@ class Collection
     public const HOOK_BEFORE_REMOVE = 'beforeRemove';
     public const HOOK_AFTER_REMOVE = 'afterRemove';
 
+    /**
+     * Encryption constants (PHP 8.1 compatible — cannot be declared in traits).
+     */
+    private const MAX_DERIVED_KEY_CACHE_SIZE = 16;
+    private const LEGACY_PBKDF2_SALT = 'bangrondb_encryption_salt';
+    private const MAX_DOCUMENT_DEPTH = 64;
+    private const MIN_KEY_LENGTH = 32;
+
     public readonly Database $database;
 
     public string $name; // NOT readonly because renameCollection modifies it
