@@ -171,6 +171,16 @@ class CollectionTest extends TestCase
         $this->assertEquals('hidden', $found['data']);
     }
 
+    public function testSchemaEnumUsesStrictComparison()
+    {
+        $this->collection->setSchema([
+            'status' => ['enum' => ['0']],
+        ]);
+
+        $this->expectException(\BangronDB\Exceptions\ValidationException::class);
+        $this->collection->insert(['status' => 0]);
+    }
+
     public function testIdDecorations()
     {
         $collection = $this->db->createCollection('decorated');

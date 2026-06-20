@@ -165,7 +165,7 @@ class DynamicConfigTest extends TestCase
 
         // Load and verify
         $config = $this->db->loadCollectionConfig('users');
-        $this->assertEquals('USR', $config['id_mode']);
+        $this->assertEquals('prefix:USR', $config['id_mode']);
         // Config should NOT contain encryption_key - only encryption_enabled boolean
         $this->assertTrue($config['encryption_enabled']);
         $this->assertTrue($config['soft_deletes_enabled']);
@@ -252,5 +252,17 @@ class DynamicConfigTest extends TestCase
 
         $users = $this->db->createCollection('users');
         $this->assertSame('deleted_at', $users->getDeletedAtField());
+    }
+
+    public function testLegacyPrefixIdModeConfigStillLoads()
+    {
+        $this->db->saveCollectionConfig('orders', [
+            'id_mode' => 'ORD',
+        ]);
+
+        $orders = $this->db->createCollection('orders');
+        $id = $orders->insert(['item' => 'Keyboard']);
+
+        $this->assertSame('ORD-000001', $id);
     }
 }

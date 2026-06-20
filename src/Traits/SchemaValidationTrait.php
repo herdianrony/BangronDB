@@ -60,7 +60,7 @@ trait SchemaValidationTrait
                 $this->validateType($field, $value, $rules['type']);
             }
 
-            if (isset($rules['enum']) && !in_array($value, $rules['enum'])) {
+            if (isset($rules['enum']) && !in_array($value, $rules['enum'], true)) {
                 throw new ValidationException(
                     "Field '{$field}' must be one of: " . implode(', ', $rules['enum']),
                     'ENUM_VALIDATION_FAILED',

@@ -299,6 +299,14 @@ class CollectionManagerTest extends TestCase
         $this->manager->saveCollectionConfig('invalid', ['invalid_key' => 'value']);
     }
 
+    public function testPrefixedIdModeFormatIsAccepted()
+    {
+        $this->manager->saveCollectionConfig('orders', ['id_mode' => 'prefix:ORD']);
+
+        $loaded = $this->manager->loadCollectionConfig('orders');
+        $this->assertSame('prefix:ORD', $loaded['id_mode']);
+    }
+
     public function testInvalidIdModeThrowsException()
     {
         $this->expectException(\InvalidArgumentException::class);
