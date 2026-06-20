@@ -100,6 +100,22 @@ $users = $db->users;
 - `renameCollection()`
 - `dropCollection()`
 
+## 5. Format persistensi `id_mode` prefix dinormalisasi
+
+Jika Anda menggunakan `saveConfiguration()` dengan mode ID prefix, format yang dipersist ke database kini dinormalisasi menjadi:
+
+```php
+prefix:USR
+```
+
+Sebelumnya beberapa konfigurasi dapat tersimpan sebagai prefix mentah, misalnya:
+
+```php
+USR
+```
+
+Keduanya tetap bisa dibaca, tetapi format baru yang direkomendasikan dan akan disimpan selanjutnya adalah `prefix:...`.
+
 ## Pola migrasi cepat
 
 ### Sebelum

@@ -316,6 +316,8 @@ $users->validate([
 ]);
 ```
 
+> Validasi `enum` menggunakan strict comparison. Misalnya, nilai `0`, `false`, dan `'0'` dianggap berbeda.
+
 ## Soft Deletes
 
 ```php
@@ -422,6 +424,8 @@ $users->saveConfiguration();
 ```
 
 > Encryption key **tidak disimpan** di database. Selalu supply dari `.env`, secret manager, atau runtime config.
+>
+> Catatan: konfigurasi ID prefix yang dipersist kini dinormalisasi ke format `prefix:USR`. Konfigurasi lama yang masih menyimpan prefix mentah seperti `USR` tetap didukung saat dibaca ulang.
 
 ## Transactions
 

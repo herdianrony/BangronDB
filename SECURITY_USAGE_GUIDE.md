@@ -132,7 +132,29 @@ $users->saveConfiguration();
 - jangan menjadikan terlalu banyak field sensitif sebagai searchable field tanpa alasan jelas
 - dokumentasikan searchable field yang dipakai aplikasi Anda
 
-## 6. Regex dan fuzzy search
+## 6. Validasi enum dan operator membership
+
+Schema `enum` divalidasi dengan **strict comparison**, jadi perbedaan tipe tetap dihormati.
+
+```php
+$users->setSchema([
+    'status' => ['enum' => ['0']],
+]);
+
+$users->insert(['status' => 0]); // akan ditolak
+```
+
+Untuk query membership, item pada `$in` / `$nin` harus berupa nilai scalar. Nested array seperti berikut sekarang akan ditolak eksplisit:
+
+```php
+$users->find([
+    'role' => ['$in' => ['admin', ['editor']]],
+]);
+```
+
+Ini membantu mencegah edge case yang sebelumnya bisa lolos ke driver SQL sebagai string `Array`.
+
+## 7. Regex dan fuzzy search
 
 BangronDB menerapkan pembatasan tambahan untuk membantu mengurangi risiko ReDoS, termasuk penolakan terhadap beberapa pola recursive, lookbehind, numeric backreference, dan nested quantifier yang berbahaya. Meski begitu, tetap hindari pola regex yang terlalu kompleks.
 
@@ -150,7 +172,7 @@ $collection->find(['name' => ['$regex' => $rawUserInput]]);
 
 Jika input regex berasal dari user, sanitasi atau batasi pola yang diizinkan.
 
-## 7. Hooks dan custom logic
+## 8. Hooks dan custom logic
 
 Hooks sangat berguna, tetapi tetap merupakan titik masuk business logic tambahan.
 
@@ -162,7 +184,7 @@ Hooks sangat berguna, tetapi tetap merupakan titik masuk business logic tambahan
 
 Ingat: hook **tidak dipersist** ke database.
 
-## 8. Utilitas `FieldValidator`
+## 9. Utilitas `FieldValidator`
 
 BangronDB menyediakan utilitas untuk validasi keamanan dasar:
 

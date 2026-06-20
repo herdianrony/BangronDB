@@ -4,6 +4,20 @@ Semua perubahan penting pada project ini dicatat di file ini.
 
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) dan [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Validasi konfigurasi collection diperketat dengan `in_array(..., true)` untuk key config dan pengecekan collection existence di `CollectionManager`
+- Validasi enum schema sekarang menggunakan strict comparison agar nilai seperti `0`, `false`, dan `'0'` tidak tertukar
+- Format persistensi `id_mode` prefix dinormalisasi menjadi `prefix:VALUE`
+- Loader konfigurasi tetap backward compatible untuk config lama yang masih menyimpan prefix mentah seperti `USR`
+
+### Fixed
+
+- Edge case nested array pada operator `$in` / `$nin` sekarang ditolak eksplisit dengan exception yang jelas, alih-alih lolos ke PDO sebagai string `Array`
+- Regression tests ditambahkan untuk enum strictness, prefix config compatibility, dan validasi `$in` / `$nin`
+
 ## [1.0.0] - 2026-06-20
 
 ### Added
