@@ -10,10 +10,15 @@
     tailwind.config = {
       theme: {
         extend: {
+          boxShadow: {
+            glow: '0 0 0 1px rgba(59,130,246,.22), 0 18px 60px rgba(37,99,235,.22)'
+          },
           colors: {
             brand: {
               50: '#eff6ff',
               100: '#dbeafe',
+              200: '#bfdbfe',
+              400: '#60a5fa',
               500: '#3b82f6',
               600: '#2563eb',
               700: '#1d4ed8',
@@ -25,12 +30,28 @@
     };
   </script>
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased">
-  <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.28),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.16),_transparent_30%)]"></div>
+<body class="bg-slate-950 text-slate-100 antialiased selection:bg-brand-500/30">
+  <div class="absolute inset-0 -z-10 overflow-hidden">
+    <div class="absolute left-1/2 top-0 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-brand-600/20 blur-3xl"></div>
+    <div class="absolute bottom-0 right-0 h-[24rem] w-[24rem] rounded-full bg-emerald-500/10 blur-3xl"></div>
+  </div>
 
-  <header class="border-b border-white/10 backdrop-blur">
+  <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-      <a href="#top" class="text-xl font-semibold tracking-tight">BangronDB</a>
+      <a href="#top" class="flex items-center gap-3">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-glow">
+          <svg viewBox="0 0 48 48" class="h-6 w-6 text-white" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="10" y="8" width="28" height="32" rx="6" fill="currentColor" opacity="0.18"/>
+            <rect x="14" y="12" width="20" height="24" rx="4" stroke="currentColor" stroke-width="3"/>
+            <path d="M19 20H29M19 26H29" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="19" cy="32" r="2.5" fill="currentColor"/>
+          </svg>
+        </span>
+        <div>
+          <div class="text-base font-semibold tracking-tight text-white">BangronDB</div>
+          <div class="text-xs text-slate-400">SQLite document database for PHP</div>
+        </div>
+      </a>
       <nav class="hidden gap-6 text-sm text-slate-300 md:flex">
         <a href="#features" class="hover:text-white">Fitur</a>
         <a href="#api" class="hover:text-white">API</a>
@@ -42,49 +63,85 @@
 
   <main id="top">
     <section class="mx-auto max-w-7xl px-6 py-20 md:py-28">
-      <div class="grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+      <div class="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
         <div>
-          <div class="mb-4 inline-flex items-center rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-100">
-            SQLite document database untuk PHP 8.1+
+          <div class="mb-5 inline-flex items-center rounded-full border border-brand-500/30 bg-brand-500/10 px-3 py-1 text-xs font-medium text-brand-100">
+            Stabilized v1.0.0 • Explicit lifecycle API • PHP 8.1+
           </div>
           <h1 class="max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">
-            API dokumen bergaya MongoDB, ringan, terenkripsi, dan tanpa server terpisah.
+            Database dokumen ringan untuk PHP, dengan query fleksibel, enkripsi, dan workflow yang eksplisit.
           </h1>
           <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            BangronDB memudahkan Anda membangun aplikasi PHP dengan penyimpanan berbasis SQLite, query fleksibel, searchable fields, hooks, schema validation, serta lifecycle API yang eksplisit untuk database dan collection.
+            BangronDB menggabungkan SQLite, API dokumen bergaya MongoDB, searchable fields, hooks, schema validation, dan lifecycle API yang jelas untuk database maupun collection — tanpa perlu server database terpisah.
           </p>
           <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="https://github.com/herdianrony/BangronDB" class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-900/30 transition hover:bg-brand-500">
+            <a href="https://packagist.org/packages/herdianrony/bangrondb" class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-500">
+              Install via Packagist
+            </a>
+            <a href="https://github.com/herdianrony/BangronDB" class="inline-flex items-center justify-center rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-white/30 hover:bg-white/5">
               Lihat Repository
             </a>
-            <a href="../README.md" class="inline-flex items-center justify-center rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-white/30 hover:bg-white/5">
-              Baca Dokumentasi
+          </div>
+          <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+            <a href="https://github.com/herdianrony/BangronDB/blob/master/README.md" class="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-brand-500/10">
+              Baca Docs
+            </a>
+            <a href="https://github.com/herdianrony/BangronDB/blob/master/examples/README.md" class="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-brand-500/10">
+              Lihat Examples
             </a>
           </div>
-          <div class="mt-8 flex flex-wrap gap-3 text-sm text-slate-400">
-            <span class="rounded-lg border border-white/10 px-3 py-1">PHP 8.1+</span>
-            <span class="rounded-lg border border-white/10 px-3 py-1">SQLite</span>
-            <span class="rounded-lg border border-white/10 px-3 py-1">AES-256-GCM</span>
-            <span class="rounded-lg border border-white/10 px-3 py-1">Non-lazy lifecycle API</span>
+          <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-2xl font-semibold text-white">292</div>
+              <div class="mt-1 text-sm text-slate-400">tests lulus</div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-2xl font-semibold text-white">862</div>
+              <div class="mt-1 text-sm text-slate-400">assertions</div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-2xl font-semibold text-white">15</div>
+              <div class="mt-1 text-sm text-slate-400">examples tervalidasi</div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div class="text-2xl font-semibold text-white">0</div>
+              <div class="mt-1 text-sm text-slate-400">server tambahan</div>
+            </div>
           </div>
         </div>
 
-        <div class="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-black/30">
-<pre class="overflow-x-auto text-sm leading-7 text-slate-200"><code>use BangronDB\Client;
+        <div class="rounded-3xl border border-white/10 bg-slate-900/85 p-6 shadow-2xl shadow-black/30">
+          <div class="mb-4 flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold text-white">Quick demo</div>
+              <div class="text-xs text-slate-400">Create explicitly, select safely</div>
+            </div>
+            <div class="flex gap-1.5">
+              <span class="h-3 w-3 rounded-full bg-rose-400/70"></span>
+              <span class="h-3 w-3 rounded-full bg-amber-300/70"></span>
+              <span class="h-3 w-3 rounded-full bg-emerald-400/70"></span>
+            </div>
+          </div>
+<pre class="overflow-x-auto rounded-2xl bg-slate-950/80 p-5 text-sm leading-7 text-slate-200"><code><span class="text-sky-300">use</span> BangronDB\Client;
 
-$client = new Client(__DIR__ . '/data');
-$client-&gt;createDB('app');
-$client-&gt;createCollection('app', 'users');
+<span class="text-slate-500">// 1. create resources explicitly</span>
+$client = <span class="text-sky-300">new</span> Client(__DIR__ . <span class="text-emerald-300">'/data'</span>);
+$client-&gt;createDB(<span class="text-emerald-300">'app'</span>);
+$client-&gt;createCollection(<span class="text-emerald-300">'app'</span>, <span class="text-emerald-300">'users'</span>);
 
-$users = $client-&gt;selectCollection('app', 'users');
+<span class="text-slate-500">// 2. select existing resources</span>
+$users = $client-&gt;selectCollection(<span class="text-emerald-300">'app'</span>, <span class="text-emerald-300">'users'</span>);
 
 $id = $users-&gt;insert([
-    'name' =&gt; 'John Doe',
-    'email' =&gt; 'john@example.com',
-    'role' =&gt; 'admin',
+  <span class="text-emerald-300">'name'</span> =&gt; <span class="text-emerald-300">'John Doe'</span>,
+  <span class="text-emerald-300">'email'</span> =&gt; <span class="text-emerald-300">'john@example.com'</span>,
+  <span class="text-emerald-300">'role'</span> =&gt; <span class="text-emerald-300">'admin'</span>,
 ]);
 
-$user = $users-&gt;findOne(['_id' =&gt; $id]);</code></pre>
+$user = $users-&gt;findOne([<span class="text-emerald-300">'_id'</span> =&gt; $id]);</code></pre>
+          <div class="mt-4 rounded-2xl border border-brand-400/20 bg-brand-500/5 p-4 text-sm text-brand-100">
+            <strong>Migration note:</strong> <code>selectDB()</code> dan <code>selectCollection()</code> kini non-lazy. Gunakan <code>createDB()</code> dan <code>createCollection()</code> untuk membuat resource baru.
+          </div>
         </div>
       </div>
     </section>
@@ -92,32 +149,32 @@ $user = $users-&gt;findOne(['_id' =&gt; $id]);</code></pre>
     <section id="features" class="mx-auto max-w-7xl px-6 py-10">
       <div class="mb-10 max-w-2xl">
         <h2 class="text-3xl font-semibold tracking-tight text-white">Fitur utama</h2>
-        <p class="mt-3 text-slate-300">Dirancang untuk aplikasi PHP yang membutuhkan embedded data layer yang mudah dipakai, aman, dan cukup kaya fitur untuk use case nyata.</p>
+        <p class="mt-3 text-slate-300">Dirancang untuk use case embedded data layer yang cepat dipakai, aman, dan cukup kaya fitur untuk aplikasi nyata.</p>
       </div>
       <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h3 class="text-lg font-semibold text-white">Document API</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-300">CRUD dokumen dengan pola query yang familier bagi pengguna MongoDB.</p>
+          <h3 class="text-lg font-semibold text-white">MongoDB-like document API</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-300">CRUD, query operators, sorting, projection, pagination, dan save/upsert dengan sintaks yang familier.</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
           <h3 class="text-lg font-semibold text-white">SQLite backend</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-300">Storage file-based atau in-memory tanpa perlu menjalankan DB server terpisah.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">File-based atau in-memory, cocok untuk aplikasi lokal, tools internal, demo, atau embedded workflows.</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
           <h3 class="text-lg font-semibold text-white">Encryption + searchable fields</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-300">Dokumen terenkripsi dengan dukungan field pencarian untuk use case autentikasi dan data sensitif.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Dokumen terenkripsi dengan field pencarian untuk autentikasi dan data sensitif tanpa mengorbankan query dasar.</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
           <h3 class="text-lg font-semibold text-white">Schema validation</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-300">Validasi type, enum, regex, min/max, dan aturan dasar lain sebelum data disimpan.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Lindungi data lebih awal dengan validasi type, enum, regex, min/max, dan aturan dasar lainnya.</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
           <h3 class="text-lg font-semibold text-white">Hooks & soft deletes</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-300">Tambahkan lifecycle hooks, ubah alur proses, atau gunakan penghapusan logis dengan restore.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Tambahkan lifecycle hooks, veto operation, audit metadata, atau penghapusan logis dengan restore.</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
           <h3 class="text-lg font-semibold text-white">Metrics & monitoring</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-300">Integrity check, health report, collection metrics, dan informasi performa database.</p>
+          <p class="mt-2 text-sm leading-6 text-slate-300">Integrity check, health report, collection metrics, dan informasi performa database siap dipakai.</p>
         </div>
       </div>
     </section>
@@ -125,7 +182,7 @@ $user = $users-&gt;findOne(['_id' =&gt; $id]);</code></pre>
     <section id="api" class="mx-auto max-w-7xl px-6 py-16">
       <div class="mb-8 max-w-2xl">
         <h2 class="text-3xl font-semibold tracking-tight text-white">Lifecycle API yang eksplisit</h2>
-        <p class="mt-3 text-slate-300">BangronDB sekarang memisahkan dengan jelas antara membuat resource dan memilih resource yang sudah ada.</p>
+        <p class="mt-3 text-slate-300">BangronDB kini memisahkan dengan jelas antara membuat resource baru dan memilih resource yang sudah ada.</p>
       </div>
       <div class="grid gap-6 lg:grid-cols-3">
         <div class="rounded-2xl border border-white/10 bg-slate-900/70 p-6">
@@ -159,25 +216,26 @@ $user = $users-&gt;findOne(['_id' =&gt; $id]);</code></pre>
           </ul>
         </div>
       </div>
-      <div class="mt-6 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-5 text-sm text-amber-100">
-        <strong>Catatan migrasi:</strong> <code>selectDB()</code> dan <code>selectCollection()</code> sekarang non-lazy. Untuk resource baru, gunakan <code>createDB()</code> dan <code>createCollection()</code>.
-      </div>
     </section>
 
     <section id="quickstart" class="mx-auto max-w-7xl px-6 py-16">
       <div class="mb-8 max-w-2xl">
         <h2 class="text-3xl font-semibold tracking-tight text-white">Mulai cepat</h2>
-        <p class="mt-3 text-slate-300">Instal library lalu gunakan lifecycle API eksplisit untuk membuat database dan collection.</p>
+        <p class="mt-3 text-slate-300">Instal library, buat resource secara eksplisit, lalu jalankan CRUD dokumen seperti biasa.</p>
       </div>
-      <div class="grid gap-6 lg:grid-cols-2">
+      <div class="grid gap-6 lg:grid-cols-3">
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h3 class="text-lg font-semibold text-white">Instalasi</h3>
+          <h3 class="text-lg font-semibold text-white">Install</h3>
           <pre class="mt-4 overflow-x-auto rounded-xl bg-slate-950/70 p-4 text-sm text-slate-200"><code>composer require herdianrony/bangrondb</code></pre>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h3 class="text-lg font-semibold text-white">Validasi lokal</h3>
+          <h3 class="text-lg font-semibold text-white">Test suite</h3>
           <pre class="mt-4 overflow-x-auto rounded-xl bg-slate-950/70 p-4 text-sm text-slate-200"><code>composer install
 vendor/bin/phpunit</code></pre>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h3 class="text-lg font-semibold text-white">Examples</h3>
+          <pre class="mt-4 overflow-x-auto rounded-xl bg-slate-950/70 p-4 text-sm text-slate-200"><code>php examples/01-quick-start-crud.php</code></pre>
         </div>
       </div>
     </section>
@@ -185,7 +243,7 @@ vendor/bin/phpunit</code></pre>
     <section id="release" class="mx-auto max-w-7xl px-6 py-16">
       <div class="mb-8 max-w-2xl">
         <h2 class="text-3xl font-semibold tracking-tight text-white">Rilis 1.0.0</h2>
-        <p class="mt-3 text-slate-300">Rilis stabil awal ini sudah mencakup lifecycle API eksplisit, docs migrasi, dan examples yang diverifikasi berjalan.</p>
+        <p class="mt-3 text-slate-300">Rilis stabil awal ini sudah mencakup lifecycle API eksplisit, migration notes, landing page, dan examples yang tervalidasi.</p>
       </div>
       <div class="grid gap-6 lg:grid-cols-2">
         <div class="rounded-2xl border border-white/10 bg-slate-900/70 p-6">
@@ -197,12 +255,13 @@ vendor/bin/phpunit</code></pre>
           </ul>
         </div>
         <div class="rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-          <h3 class="text-lg font-semibold text-white">Dokumen penting</h3>
+          <h3 class="text-lg font-semibold text-white">Links</h3>
           <ul class="mt-4 space-y-2 text-sm text-slate-200">
-            <li><a class="text-brand-200 hover:text-brand-100" href="../README.md">README</a></li>
-            <li><a class="text-brand-200 hover:text-brand-100" href="../BACKWARD_COMPATIBILITY_NOTES.md">Backward Compatibility Notes</a></li>
-            <li><a class="text-brand-200 hover:text-brand-100" href="../GITHUB_RELEASE_1.0.0.md">Release Description</a></li>
-            <li><a class="text-brand-200 hover:text-brand-100" href="../examples/README.md">Examples Guide</a></li>
+            <li><a class="text-brand-200 hover:text-brand-100" href="https://github.com/herdianrony/BangronDB/blob/master/README.md">README</a></li>
+            <li><a class="text-brand-200 hover:text-brand-100" href="https://github.com/herdianrony/BangronDB/blob/master/BACKWARD_COMPATIBILITY_NOTES.md">Backward Compatibility Notes</a></li>
+            <li><a class="text-brand-200 hover:text-brand-100" href="https://github.com/herdianrony/BangronDB/blob/master/GITHUB_RELEASE_1.0.0.md">Release Description</a></li>
+            <li><a class="text-brand-200 hover:text-brand-100" href="https://github.com/herdianrony/BangronDB/blob/master/examples/README.md">Examples Guide</a></li>
+            <li><a class="text-brand-200 hover:text-brand-100" href="https://packagist.org/packages/herdianrony/bangrondb">Packagist</a></li>
           </ul>
         </div>
       </div>
@@ -214,7 +273,7 @@ vendor/bin/phpunit</code></pre>
       <p>BangronDB © 2026 — SQLite document database untuk PHP.</p>
       <div class="flex gap-4">
         <a href="https://github.com/herdianrony/BangronDB" class="hover:text-white">GitHub</a>
-        <a href="../README.md" class="hover:text-white">Docs</a>
+        <a href="https://packagist.org/packages/herdianrony/bangrondb" class="hover:text-white">Packagist</a>
       </div>
     </div>
   </footer>

@@ -168,8 +168,8 @@ trait SearchableFieldsTrait
             return;
         }
 
-        // Ensure table exists
-        $this->database->createCollection($this->name);
+        // Ensure table exists without instantiating/reloading the collection object
+        $this->database->ensureCollectionTable($this->name);
 
         $table = $this->database->quoteIdentifier($this->name);
 
