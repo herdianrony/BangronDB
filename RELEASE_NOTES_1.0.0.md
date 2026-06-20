@@ -34,6 +34,10 @@ BangronDB mendukung validasi schema dan soft deletes, sehingga lebih nyaman dipa
 - indexing
 - health metrics dan integrity check
 - transaction support melalui PDO SQLite
+- client API yang konsisten untuk create / check / rename / drop database
+- client helper untuk create / check / rename / drop collection dari level client
+- database API yang lebih eksplisit untuk check / rename collection
+- pemilihan database / collection kini non-lazy, sehingga create dilakukan secara eksplisit
 - examples untuk use case nyata
 
 ## Stabilization & polish included before first stable tag
@@ -57,10 +61,19 @@ Rilis ini juga sudah mencakup guardrail penting:
 - regex hardening
 - `strict_types=1` di semua file core
 
+## Backward compatibility note
+
+Rilis ini juga menetapkan perilaku yang lebih eksplisit untuk lifecycle resource:
+
+- `selectDB()` tidak lagi membuat database secara implisit
+- `selectCollection()` tidak lagi membuat collection secara implisit
+
+Gunakan `createDB()` dan `createCollection()` untuk pembuatan resource baru.
+
 ## Test status
 
 Diverifikasi dengan:
 
-- 277 tests
-- 823 assertions
+- 292 tests
+- 862 assertions
 - seluruh test lulus

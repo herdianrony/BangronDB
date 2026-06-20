@@ -16,7 +16,7 @@ class SchemaValidationTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('testcollection');
+        $this->collection = $this->db->createCollection('testcollection');
     }
 
     protected function tearDown(): void

@@ -16,7 +16,7 @@ class SoftDeleteTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('testcollection');
+        $this->collection = $this->db->createCollection('testcollection');
         $this->collection->useSoftDeletes(true);
     }
 
@@ -146,7 +146,7 @@ class SoftDeleteTest extends TestCase
 
     public function testSoftDeleteFieldCustomization()
     {
-        $collection = $this->db->selectCollection('custom_soft_delete');
+        $collection = $this->db->createCollection('custom_soft_delete');
         $collection->useSoftDeletes(true);
 
         // Check default field
@@ -164,7 +164,7 @@ class SoftDeleteTest extends TestCase
 
     public function testSoftDeletesDisabledByDefault()
     {
-        $collection = $this->db->selectCollection('hard_delete_collection');
+        $collection = $this->db->createCollection('hard_delete_collection');
         $this->assertFalse($collection->softDeletesEnabled());
 
         // Insert and remove (should be hard delete)

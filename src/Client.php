@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BangronDB;
 
+use BangronDB\Exceptions\DatabaseException;
 use BangronDB\Exceptions\ValidationException;
 
 /**
@@ -16,6 +17,9 @@ use BangronDB\Exceptions\ValidationException;
  * Example usage:
  * ```php
  * $client = new Client('/path/to/databases');
+ *
+ * // Create database explicitly
+ * $client->createDB('mydb');
  *
  * // Explicit access (recommended for IDE autocomplete)
  * $db = $client->selectDB('mydb');
@@ -123,6 +127,64 @@ class Client
     }
 
     /**
+     * Explicitly create a collection and return its instance.
+     *
+     * This is a convenience wrapper around Database::createCollection() plus
+     * Database::selectCollection().
+     */
+    public function createCollection(string $database, string $collection): Collection
+    {
+        $db = $this->dbExists($database)
+            ? $this->selectDB($database)
+            : $this->createDB($database);
+
+        return $db->createCollection($collection);
+    }
+
+    /**
+     * Check whether a collection exists in a given database.
+     */
+    public function collectionExists(string $database, string $collection): bool
+    {
+        if (!$this->dbExists($database)) {
+            return false;
+        }
+
+        return $this->selectDB($database)->collectionExists($collection);
+    }
+
+    /**
+     * Rename a collection in a given database.
+     */
+    public function renameCollection(string $database, string $oldName, string $newName): bool
+    {
+        if (!$this->dbExists($database)) {
+            return false;
+        }
+
+        return $this->selectDB($database)->renameCollection($oldName, $newName);
+    }
+
+    /**
+     * Drop a collection in a given database.
+     */
+    public function dropCollection(string $database, string $collection): bool
+    {
+        if (!$this->dbExists($database)) {
+            return false;
+        }
+
+        $db = $this->selectDB($database);
+        if (!$db->collectionExists($collection)) {
+            return false;
+        }
+
+        $db->dropCollection($collection);
+
+        return true;
+    }
+
+    /**
      * Select Collection.
      *
      * @param string $database   Database name
@@ -134,17 +196,103 @@ class Client
     }
 
     /**
+     * Explicitly create a database and return its instance.
+     *
+     * For backward compatibility, this method is idempotent and will return
+     * the existing database instance if the database already exists or was
+     * previously selected.
+     *
+     * @throws ValidationException If database name is invalid
+     */
+    public function createDB(string $name, array $options = []): Database
+    {
+        $this->validateDatabaseName($name);
+
+        if (!isset($this->databases[$name])) {
+            $this->databases[$name] = $this->createDatabaseInstance($name, $options);
+        }
+
+        return $this->databases[$name];
+    }
+
+    /**
+     * Check whether a database exists.
+     *
+     * @throws ValidationException If database name is invalid
+     */
+    public function dbExists(string $name): bool
+    {
+        $this->validateDatabaseName($name);
+
+        if (isset($this->databases[$name])) {
+            return true;
+        }
+
+        if ($this->path === Database::DSN_PATH_MEMORY) {
+            return false;
+        }
+
+        return file_exists($this->buildDatabasePath($name));
+    }
+
+    /**
+     * Drop a database.
+     *
+     * @throws ValidationException If database name is invalid
+     */
+    public function dropDB(string $name): bool
+    {
+        $this->validateDatabaseName($name);
+
+        if ($this->path === Database::DSN_PATH_MEMORY) {
+            return $this->dropMemoryDatabase($name);
+        }
+
+        return $this->dropDiskDatabase($name);
+    }
+
+    /**
+     * Rename a database.
+     *
+     * Note: if the database was already selected, any previously held Database
+     * object becomes stale after rename. Re-select the database using the new
+     * name to continue working with it.
+     *
+     * @throws ValidationException If database name is invalid
+     */
+    public function renameDB(string $oldName, string $newName): bool
+    {
+        $this->validateDatabaseName($oldName);
+        $this->validateDatabaseName($newName);
+
+        if ($oldName === $newName || $this->dbExists($newName)) {
+            return false;
+        }
+
+        if ($this->path === Database::DSN_PATH_MEMORY) {
+            return $this->renameMemoryDatabase($oldName, $newName);
+        }
+
+        return $this->renameDiskDatabase($oldName, $newName);
+    }
+
+    /**
      * Select database.
      *
      * @param string $name Database name
      *
      * @throws ValidationException If database name is invalid
+     * @throws DatabaseException   If database does not exist
      */
     public function selectDB(string $name, array $options = []): Database
     {
         $this->validateDatabaseName($name);
 
         if (!isset($this->databases[$name])) {
+            if (!$this->dbExists($name)) {
+                throw DatabaseException::notFound($name, $this->buildDatabasePath($name));
+            }
+
             $this->databases[$name] = $this->createDatabaseInstance($name, $options);
         }
 
@@ -195,7 +343,114 @@ class Client
         return sprintf('%s/%s.bangron', $this->path, $name);
     }
 
+    /**
+     * Drop an in-memory database.
+     */
+    private function dropMemoryDatabase(string $name): bool
+    {
+        if (!isset($this->databases[$name])) {
+            return false;
+        }
 
+        $this->closeDatabaseHandle($name);
+
+        return true;
+    }
+
+    /**
+     * Drop a disk-backed database.
+     */
+    private function dropDiskDatabase(string $name): bool
+    {
+        $path = $this->buildDatabasePath($name);
+        if (!$this->dbExists($name)) {
+            return false;
+        }
+
+        $this->closeDatabaseHandle($name);
+
+        $deleted = file_exists($path) ? @unlink($path) : true;
+        $this->deleteSidecarFiles($path);
+
+        return $deleted;
+    }
+
+    /**
+     * Rename an in-memory database.
+     */
+    private function renameMemoryDatabase(string $oldName, string $newName): bool
+    {
+        if (!isset($this->databases[$oldName])) {
+            return false;
+        }
+
+        $this->databases[$newName] = $this->databases[$oldName];
+        unset($this->databases[$oldName]);
+
+        return true;
+    }
+
+    /**
+     * Rename a disk-backed database.
+     */
+    private function renameDiskDatabase(string $oldName, string $newName): bool
+    {
+        $oldPath = $this->buildDatabasePath($oldName);
+        $newPath = $this->buildDatabasePath($newName);
+
+        if (!file_exists($oldPath)) {
+            return false;
+        }
+
+        $this->closeDatabaseHandle($oldName);
+
+        if (!@rename($oldPath, $newPath)) {
+            return false;
+        }
+
+        $this->renameSidecarFiles($oldPath, $newPath);
+
+        return true;
+    }
+
+    /**
+     * Close a cached database handle and remove it from cache.
+     */
+    private function closeDatabaseHandle(string $name): void
+    {
+        if (!isset($this->databases[$name])) {
+            return;
+        }
+
+        $this->databases[$name]->close();
+        unset($this->databases[$name]);
+    }
+
+    /**
+     * Delete SQLite sidecar files if they exist.
+     */
+    private function deleteSidecarFiles(string $path): void
+    {
+        foreach ([$path . '-wal', $path . '-shm'] as $sidecar) {
+            if (file_exists($sidecar)) {
+                @unlink($sidecar);
+            }
+        }
+    }
+
+    /**
+     * Rename SQLite sidecar files if they exist.
+     */
+    private function renameSidecarFiles(string $oldPath, string $newPath): void
+    {
+        foreach (['-wal', '-shm'] as $suffix) {
+            $oldSidecar = $oldPath . $suffix;
+            $newSidecar = $newPath . $suffix;
+            if (file_exists($oldSidecar)) {
+                @rename($oldSidecar, $newSidecar);
+            }
+        }
+    }
 
     /**
      * Magic getter for database access.

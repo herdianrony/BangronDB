@@ -147,7 +147,7 @@ class Collection
     protected function ensureCollectionExists(): void
     {
         if (!$this->collectionVerified) {
-            $this->database->createCollection($this->name);
+            $this->database->ensureCollectionTable($this->name);
             $this->collectionVerified = true;
         }
     }

@@ -24,6 +24,38 @@ Folder `examples/` berisi contoh penggunaan BangronDB untuk fitur inti sampai sk
 
 ## Cara Menjalankan
 
+Semua example kini menggunakan API eksplisit untuk lifecycle resource:
+
+- `createDB()` untuk membuat database
+- `createCollection()` untuk membuat collection
+- `selectDB()` / `selectCollection()` hanya untuk resource yang sudah ada
+
+### Migration note: lazy -> non-lazy
+
+Jika Anda sebelumnya mengandalkan pola lama seperti ini:
+
+```php
+$db = $client->selectDB('app');
+$users = $db->selectCollection('users');
+```
+
+Sekarang gunakan pola eksplisit:
+
+```php
+$client->createDB('app');
+$client->createCollection('app', 'users');
+
+$db = $client->selectDB('app');
+$users = $db->selectCollection('users');
+```
+
+Atau langsung dari level client:
+
+```php
+$client->createDB('app');
+$users = $client->createCollection('app', 'users');
+```
+
 Pastikan dependency sudah terpasang:
 
 ```bash

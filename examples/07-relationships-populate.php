@@ -13,13 +13,13 @@ use BangronDB\Client;
 
 sep('Contoh 07: Relationships & Populate');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('blog');
+$client = createIsolatedClient('example07');
+$db = $client->createDB('blog');
 
-$users     = $db->users;
-$posts     = $db->posts;
-$comments  = $db->comments;
-$tags      = $db->tags;
+$users     = $db->createCollection('users');
+$posts     = $db->createCollection('posts');
+$comments  = $db->createCollection('comments');
+$tags      = $db->createCollection('tags');
 
 // ── Setup Data ────────────────────────────────────────────
 sub('Setup Data');
@@ -97,8 +97,8 @@ foreach ($withPostAndUser as $c) {
 sub('Cross-Database Populate');
 
 // Buat database kedua untuk profiles
-$profilesDb = $client->selectDB('profiles');
-$profiles = $profilesDb->profiles;
+$profilesDb = $client->createDB('profiles');
+$profiles = $profilesDb->createCollection('profiles');
 
 $profiles->insert([
     'user_id'  => $author1,

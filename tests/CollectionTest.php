@@ -16,7 +16,7 @@ class CollectionTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('testcollection');
+        $this->collection = $this->db->createCollection('testcollection');
     }
 
     protected function tearDown(): void
@@ -137,13 +137,13 @@ class CollectionTest extends TestCase
 
     public function testIdModes()
     {
-        $collection = $this->db->selectCollection('auto');
+        $collection = $this->db->createCollection('auto');
         $doc = ['name' => 'Auto'];
         $id = $collection->insert($doc);
         $this->assertIsString($id);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/', $id); // UUID v4
 
-        $collection2 = $this->db->selectCollection('manual');
+        $collection2 = $this->db->createCollection('manual');
         $collection2->setIdModeManual();
         $doc2 = ['_id' => 'custom-id', 'name' => 'Manual'];
         $id2 = $collection2->insert($doc2);
@@ -164,7 +164,7 @@ class CollectionTest extends TestCase
 
     public function testIdDecorations()
     {
-        $collection = $this->db->selectCollection('decorated');
+        $collection = $this->db->createCollection('decorated');
         $collection->setPrefix('PRE-');
         $collection->setSuffix('-SUF');
 
@@ -172,7 +172,7 @@ class CollectionTest extends TestCase
         $this->assertStringStartsWith('PRE-', $id);
         $this->assertStringEndsWith('-SUF', $id);
 
-        $collection2 = $this->db->selectCollection('decorated_prefix_mode');
+        $collection2 = $this->db->createCollection('decorated_prefix_mode');
         $collection2->setIdModePrefix('USR');
         $collection2->setSuffix('-SUF');
 

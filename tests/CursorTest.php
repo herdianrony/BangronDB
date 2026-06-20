@@ -16,7 +16,7 @@ class CursorTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('testcollection');
+        $this->collection = $this->db->createCollection('testcollection');
 
         // Insert test data
         $this->collection->insert(['name' => 'John', 'age' => 30]);

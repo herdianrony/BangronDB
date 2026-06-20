@@ -16,7 +16,7 @@ class MetricsTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('test_collection');
+        $this->collection = $this->db->createCollection('test_collection');
     }
 
     protected function tearDown(): void
@@ -201,7 +201,7 @@ class MetricsTest extends TestCase
 
     public function testCollectionMetricsWithMultipleCollections()
     {
-        $collection2 = $this->db->selectCollection('collection2');
+        $collection2 = $this->db->createCollection('collection2');
 
         $this->collection->insert(['type' => 'main']);
         $this->collection->insert(['type' => 'main']);

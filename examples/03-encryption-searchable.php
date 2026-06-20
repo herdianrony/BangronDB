@@ -19,9 +19,12 @@ sep('Contoh 03: Enkripsi & Searchable Fields');
 
 sub('BAGIAN 1: Enkripsi Per-Collection');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('secure_app');
-$patients = $db->patients;
+$examplePath = __DIR__ . '/data/example03_' . uniqid();
+@mkdir($examplePath, 0755, true);
+
+$client = new Client($examplePath);
+$db = $client->createDB('secure_app');
+$patients = $db->createCollection('patients');
 
 // Set encryption key (min 32 karakter)
 $encKey = 'this-is-a-32-char-secret-key-secure!!';
@@ -59,7 +62,7 @@ echo "SSN setelah update: {$updated['ssn']}\n";
 
 sub('BAGIAN 2: Searchable Fields dengan Hashing');
 
-$users = $db->users;
+$users = $db->createCollection('users');
 
 // Set searchable fields + hashing untuk email
 $users->setSearchableFields(['email'], true); // true = SHA-256 hash
@@ -93,8 +96,8 @@ sub('BAGIAN 3: Enkripsi dengan Key dari .env');
 // Simulasi key dari .env (di production: $_ENV['DB_ENCRYPTION_KEY'])
 $envKey = 'env-secret-key-at-least-32-chars!!!';
 
-$secretDb = $client->selectDB('secrets');
-$vault = $secretDb->vault;
+$secretDb = $client->createDB('secrets');
+$vault = $secretDb->createCollection('vault');
 $vault->setEncryptionKey($envKey);
 
 $vaultId = $vault->insert([
@@ -110,17 +113,17 @@ echo "API Key: {$secret['api_key']}\n";
 
 // Reconnect TANPA key → data tidak bisa dibaca
 $client->close();
-$client2 = new Client(__DIR__ . '/data');
+$client2 = new Client($examplePath);
 $db2 = $client2->selectDB('secrets');
-$vault2 = $db2->vault;
+$vault2 = $db2->selectCollection('vault');
 $unreadable = $vault2->findOne(['_id' => $vaultId]);
 echo "Tanpa key: " . ($unreadable === null ? 'null (tidak bisa decrypt)' : 'terbaca') . "\n";
 
 // Reconnect DENGAN key → data bisa dibaca
 $client2->close();
-$client3 = new Client(__DIR__ . '/data', ['encryption_key' => $envKey]);
+$client3 = new Client($examplePath, ['encryption_key' => $envKey]);
 $db3 = $client3->selectDB('secrets');
-$vault3 = $db3->vault;
+$vault3 = $db3->selectCollection('vault');
 $readable = $vault3->findOne(['_id' => $vaultId]);
 echo "Dengan key: API Key = {$readable['api_key']}\n";
 

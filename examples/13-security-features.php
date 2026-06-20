@@ -15,9 +15,9 @@ use BangronDB\Security\FieldValidator;
 
 sep('Contoh 13: Security Features');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('secure_app');
-$users = $db->users;
+$client = createIsolatedClient('example13');
+$db = $client->createDB('secure_app');
+$users = $db->createCollection('users');
 
 $users->insert([
     ['name' => 'Alice',   'email' => 'alice@test.com',   'age' => 28, 'role' => 'admin'],

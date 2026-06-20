@@ -17,8 +17,8 @@ class PopulateTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->users = $this->db->selectCollection('users');
-        $this->posts = $this->db->selectCollection('posts');
+        $this->users = $this->db->createCollection('users');
+        $this->posts = $this->db->createCollection('posts');
     }
 
     protected function tearDown(): void

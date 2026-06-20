@@ -23,7 +23,12 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) dan [S
 - Change notification per collection
 - Dynamic configuration per collection
 - Transaction support melalui PDO SQLite
-- Contoh aplikasi dan example scripts untuk fitur-fitur utama
+- Client API yang lebih konsisten untuk lifecycle database: `createDB()`, `dbExists()`, `renameDB()`, dan `dropDB()`
+- Client helper untuk lifecycle collection dari level atas: `createCollection()`, `collectionExists()`, `renameCollection()`, dan `dropCollection()`
+- Database API yang lebih konsisten untuk lifecycle collection: `collectionExists()` dan `renameCollection($oldName, $newName)`
+- `selectDB()` dan `selectCollection()` kini bersifat non-lazy, sehingga pembuatan resource dilakukan secara eksplisit
+- Ditambahkan catatan migrasi kompatibilitas untuk perubahan dari lazy ke non-lazy
+- Contoh aplikasi dan example scripts diperbarui ke API terbaru
 
 ### Changed
 

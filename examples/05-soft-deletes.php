@@ -12,9 +12,9 @@ use BangronDB\Client;
 
 sep('Contoh 05: Soft Deletes');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('blog');
-$posts = $db->posts;
+$client = createIsolatedClient('example05');
+$db = $client->createDB('blog');
+$posts = $db->createCollection('posts');
 
 // ── Enable soft deletes ───────────────────────────────────
 sub('Setup & Insert');

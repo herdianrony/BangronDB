@@ -55,12 +55,12 @@ class IntegrationTest extends TestCase
     public function testEcommerceWorkflow()
     {
         // Create databases for different domains
-        $userDb = $this->client->selectDB('users');
-        $productDb = $this->client->selectDB('products');
-        $orderDb = $this->client->selectDB('orders');
+        $userDb = $this->client->createDB('users');
+        $productDb = $this->client->createDB('products');
+        $orderDb = $this->client->createDB('orders');
 
         // Setup users collection with encryption and validation
-        $users = $userDb->selectCollection('customers');
+        $users = $userDb->createCollection('customers');
         $users->setEncryptionKey($this->encryptionKey);
         $users->setSchema([
             'name' => ['type' => 'string', 'required' => true],
@@ -71,7 +71,7 @@ class IntegrationTest extends TestCase
         $users->saveConfiguration();
 
         // Setup products collection with searchable fields
-        $products = $productDb->selectCollection('items');
+        $products = $productDb->createCollection('items');
         $products->setSearchableFields(['name', 'category'], false);
         $products->setSchema([
             'name' => ['type' => 'string', 'required' => true],
@@ -82,7 +82,7 @@ class IntegrationTest extends TestCase
         $products->saveConfiguration();
 
         // Setup orders collection with hooks
-        $orders = $orderDb->selectCollection('purchases');
+        $orders = $orderDb->createCollection('purchases');
         $orders->on('beforeInsert', function ($doc) {
             $doc['order_date'] = date('Y-m-d H:i:s');
             $doc['status'] = 'pending';
@@ -147,8 +147,8 @@ class IntegrationTest extends TestCase
      */
     public function testPerformanceMonitoring()
     {
-        $db = $this->client->selectDB('perf_test');
-        $collection = $db->selectCollection('test_data');
+        $db = $this->client->createDB('perf_test');
+        $collection = $db->createCollection('test_data');
 
         // Enable monitoring
         $db->queryExecutor->setLogging(true);
@@ -180,11 +180,11 @@ class IntegrationTest extends TestCase
      */
     public function testHealthAndMetrics()
     {
-        $db = $this->client->selectDB('health_test');
+        $db = $this->client->createDB('health_test');
 
         // Create collections and add data
-        $collection1 = $db->selectCollection('collection1');
-        $collection2 = $db->selectCollection('collection2');
+        $collection1 = $db->createCollection('collection1');
+        $collection2 = $db->createCollection('collection2');
 
         for ($i = 0; $i < 50; ++$i) {
             $collection1->insert(['data' => 'test' . $i, 'group' => $i % 5]);
@@ -227,8 +227,8 @@ class IntegrationTest extends TestCase
      */
     public function testConcurrentOperations()
     {
-        $db = $this->client->selectDB('concurrent_test');
-        $collection = $db->selectCollection('shared_data');
+        $db = $this->client->createDB('concurrent_test');
+        $collection = $db->createCollection('shared_data');
 
         // Add hook for concurrency testing
         $collection->on('beforeUpdate', function ($criteria, $data) {
@@ -286,8 +286,8 @@ class IntegrationTest extends TestCase
      */
     public function testBackupRestoreWorkflow()
     {
-        $sourceDb = $this->client->selectDB('source_db');
-        $sourceCollection = $sourceDb->selectCollection('important_data');
+        $sourceDb = $this->client->createDB('source_db');
+        $sourceCollection = $sourceDb->createCollection('important_data');
 
         // Insert diverse data with all features
         $sourceCollection->setEncryptionKey('backup-key-with-minimum-32-chars-ok');
@@ -309,8 +309,8 @@ class IntegrationTest extends TestCase
         $sourceCollection->saveConfiguration();
 
         // Simulate backup by copying data
-        $backupDb = $this->client->selectDB('backup_db');
-        $backupCollection = $backupDb->selectCollection('important_data');
+        $backupDb = $this->client->createDB('backup_db');
+        $backupCollection = $backupDb->createCollection('important_data');
 
         // Copy configuration
         $config = $sourceDb->loadCollectionConfig('important_data');

@@ -16,7 +16,7 @@ class HealthReportTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('test_collection');
+        $this->collection = $this->db->createCollection('test_collection');
     }
 
     protected function tearDown(): void
@@ -136,8 +136,8 @@ class HealthReportTest extends TestCase
     public function testHealthReportWithMultipleCollections()
     {
         // Create multiple collections
-        $collection1 = $this->db->selectCollection('collection1');
-        $collection2 = $this->db->selectCollection('collection2');
+        $collection1 = $this->db->createCollection('collection1');
+        $collection2 = $this->db->createCollection('collection2');
 
         $collection1->insert(['type' => 'data1']);
         $collection2->insert(['type' => 'data2']);

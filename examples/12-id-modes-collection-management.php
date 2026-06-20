@@ -13,13 +13,13 @@ use BangronDB\Client;
 
 sep('Contoh 12: ID Generation Modes & Collection Management');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('id_demo');
+$client = createIsolatedClient('example12');
+$db = $client->createDB('id_demo');
 
 // ── Auto UUID (Default) ───────────────────────────────────
 sub('Mode 1: Auto UUID (Default)');
 
-$users = $db->users;
+$users = $db->createCollection('users');
 // setIdModeAuto() is default, no need to call
 $userId = $users->insert(['name' => 'Auto User']);
 echo "UUID: {$userId}\n";
@@ -27,7 +27,7 @@ echo "UUID: {$userId}\n";
 // ── Manual ID ─────────────────────────────────────────────
 sub('Mode 2: Manual ID');
 
-$categories = $db->categories;
+$categories = $db->createCollection('categories');
 $categories->setIdModeManual();
 
 $cat1 = $categories->insert(['_id' => 'electronics', 'label' => 'Electronics']);
@@ -37,7 +37,7 @@ echo "Manual ID: {$cat1}, {$cat2}\n";
 // ── Prefix ID ─────────────────────────────────────────────
 sub('Mode 3: Prefix-based Auto Increment');
 
-$orders = $db->orders;
+$orders = $db->createCollection('orders');
 $orders->setIdModePrefix('ORD');
 
 $ord1 = $orders->insert(['total' => 150.00, 'status' => 'pending']);
@@ -63,8 +63,12 @@ $collNames = $db->getCollectionNames();
 echo "Collections after rename: " . implode(', ', $collNames) . "\n";
 
 // Drop collection
-$db->dropCollection('categories');
-echo "Dropped 'categories'\n";
+try {
+    $db->dropCollection('categories');
+    echo "Dropped 'categories'\n";
+} catch (Throwable $e) {
+    echo "Drop collection skipped: {$e->getMessage()}\n";
+}
 
 $collNames = $db->getCollectionNames();
 echo "Collections after drop: " . implode(', ', $collNames) . "\n";

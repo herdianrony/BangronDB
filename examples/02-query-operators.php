@@ -13,9 +13,9 @@ use BangronDB\Client;
 
 sep('Contoh 02: Query Operators Lengkap');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('shop');
-$products = $db->products;
+$client = createIsolatedClient('example02');
+$db = $client->createDB('shop');
+$products = $db->createCollection('products');
 
 // ── Setup data ────────────────────────────────────────────
 $products->insert([

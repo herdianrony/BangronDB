@@ -16,7 +16,7 @@ class ChangeNotificationTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('testcollection');
+        $this->collection = $this->db->createCollection('testcollection');
     }
 
     protected function tearDown(): void
@@ -145,8 +145,8 @@ class ChangeNotificationTest extends TestCase
 
     public function testChangeNotificationDifferentCollections()
     {
-        $collection1 = $this->db->selectCollection('coll1');
-        $collection2 = $this->db->selectCollection('coll2');
+        $collection1 = $this->db->createCollection('coll1');
+        $collection2 = $this->db->createCollection('coll2');
 
         // Initial states
         $this->assertEquals(0, $collection1->getLastModified()['version']);
