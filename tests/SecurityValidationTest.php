@@ -294,6 +294,20 @@ class SecurityValidationTest extends TestCase
         }
     }
 
+    public function testSqlFastPathRejectsNestedArrayValuesForInOperator(): void
+    {
+        $db = new Database(':memory:');
+        try {
+            $users = $db->createCollection('users');
+            $users->insert(['name' => 'John']);
+
+            $this->expectException(\InvalidArgumentException::class);
+            $users->find(['name' => ['$in' => ['John', ['Jane']]]])->toArray();
+        } finally {
+            $db->close();
+        }
+    }
+
     // ==================== Regex Operator Safety Tests ====================
 
     public function testRegexOperatorWithValidPattern(): void

@@ -211,16 +211,20 @@ class CollectionManager
         ];
 
         foreach (array_keys($config) as $key) {
-            if (!in_array($key, $validKeys)) {
+            if (!in_array($key, $validKeys, true)) {
                 throw new \InvalidArgumentException("Invalid configuration key: {$key}");
             }
         }
 
         // Validate id_mode
         if (isset($config['id_mode'])) {
+            if (!is_string($config['id_mode']) || $config['id_mode'] === '') {
+                throw new \InvalidArgumentException('id_mode must be a non-empty string');
+            }
+
             $validIdModes = ['auto', 'manual', 'prefix'];
-            if (!in_array($config['id_mode'], $validIdModes)
-                && !preg_match('/^prefix:/', $config['id_mode'])) {
+            if (!in_array($config['id_mode'], $validIdModes, true)
+                && !preg_match('/^prefix:.+$/', $config['id_mode'])) {
                 throw new \InvalidArgumentException("Invalid id_mode: {$config['id_mode']}");
             }
         }
@@ -258,7 +262,7 @@ class CollectionManager
         return [
             'config' => $this->loadCollectionConfig($collectionName),
             'metadata' => $this->getMetadata($collectionName),
-            'exists' => in_array($collectionName, $this->database->getCollectionNames()),
+            'exists' => in_array($collectionName, $this->database->getCollectionNames(), true),
         ];
     }
 

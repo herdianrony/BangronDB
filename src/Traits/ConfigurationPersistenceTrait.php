@@ -146,7 +146,12 @@ trait ConfigurationPersistenceTrait
                 $this->setIdModeManual();
                 break;
             default:
-                // Handle prefix mode - assume the mode string is the prefix
+                if (str_starts_with($mode, 'prefix:')) {
+                    $this->setIdModePrefix(substr($mode, strlen('prefix:')));
+                    break;
+                }
+
+                // Backward compatibility: older configs stored the raw prefix directly.
                 $this->setIdModePrefix($mode);
                 break;
         }
@@ -157,7 +162,13 @@ trait ConfigurationPersistenceTrait
      */
     private function getIdModeString(): string
     {
-        return $this->idMode === 'prefix' ? ($this->idPrefix ?? 'auto') : $this->idMode;
+        if ($this->idMode !== 'prefix') {
+            return $this->idMode;
+        }
+
+        return $this->idPrefix !== null && $this->idPrefix !== ''
+            ? 'prefix:' . $this->idPrefix
+            : 'prefix';
     }
 
     /**

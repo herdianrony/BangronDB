@@ -170,11 +170,14 @@ trait QueryBuilderTrait
             return $notIn ? null : '0';
         }
 
+        foreach ($values as $item) {
+            if (is_array($item)) {
+                throw new \InvalidArgumentException('$in/$nin values must not contain nested arrays');
+            }
+        }
+
         if ($this->isSearchableExpression($expr, $field)) {
             $values = array_map(function ($v) use ($field) {
-                if (is_array($v)) {
-                    return $v;
-                }
                 $normalized = strtolower((string) $v);
 
                 return $this->searchableFields[$field]['hash'] ? hash('sha256', $normalized) : $normalized;
