@@ -78,6 +78,7 @@ echo "\$all ['sale','new']: " . implode(', ', array_column($saleAndNew, 'name'))
 
 $twoTags = $products->find(['tags' => ['$size' => 2]])->toArray();
 echo "\$size 2 tags: " . implode(', ', array_column($twoTags, 'name')) . "\n";
+echo "Catatan: item pada \$in/\$nin harus berupa nilai scalar; nested array akan ditolak eksplisit.\n";
 
 // ── String Operators ───────────────────────────────────────
 sub('String: $regex, $not');

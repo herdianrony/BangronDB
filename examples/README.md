@@ -89,7 +89,15 @@ $collection->saveConfiguration();
 
 Tanpa `saveConfiguration()`, konfigurasi tersebut hanya berlaku di runtime saat ini.
 
-### 2. Encryption key tidak disimpan di database
+Untuk collection dengan prefix ID, format yang dipersist sekarang dinormalisasi menjadi `prefix:USR`. Konfigurasi lama yang masih menyimpan prefix mentah seperti `USR` tetap bisa dibaca.
+
+### 2. Enum bersifat strict dan `$in` / `$nin` hanya menerima item scalar
+
+- validasi `enum` membedakan `0`, `false`, dan `'0'`
+- item pada `$in` / `$nin` harus berupa nilai scalar
+- nested array pada `$in` / `$nin` akan ditolak eksplisit
+
+### 3. Encryption key tidak disimpan di database
 
 Selalu supply key dari environment atau secret manager:
 
@@ -97,7 +105,7 @@ Selalu supply key dari environment atau secret manager:
 $collection->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
 ```
 
-### 3. Hooks tidak dipersist
+### 4. Hooks tidak dipersist
 
 Hooks harus didaftarkan ulang setiap startup / request:
 
@@ -108,7 +116,7 @@ $collection->on('beforeInsert', function ($doc) {
 });
 ```
 
-### 4. Example adalah panduan, bukan benchmark mutlak
+### 5. Example adalah panduan, bukan benchmark mutlak
 
 Beberapa example menekankan kejelasan alur. Untuk production, Anda tetap perlu menyesuaikan:
 

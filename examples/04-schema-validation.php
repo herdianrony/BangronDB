@@ -31,6 +31,7 @@ $users->setSchema([
 ]);
 $users->saveConfiguration();
 echo "Schema configured and saved\n";
+echo "Catatan: validasi enum sekarang strict; nilai 0, false, dan '0' dianggap berbeda.\n";
 
 // ── Valid Insert ───────────────────────────────────────────
 sub('Valid Insert');
