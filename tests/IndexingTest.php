@@ -16,7 +16,7 @@ class IndexingTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('test_collection');
+        $this->collection = $this->db->createCollection('test_collection');
     }
 
     protected function tearDown(): void

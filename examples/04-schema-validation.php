@@ -13,9 +13,9 @@ use BangronDB\Client;
 
 sep('Contoh 04: Schema Validation');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('validated_app');
-$users = $db->users;
+$client = createIsolatedClient('example04');
+$db = $client->createDB('validated_app');
+$users = $db->createCollection('users');
 
 // ── Define Schema ─────────────────────────────────────────
 sub('Setup Schema');

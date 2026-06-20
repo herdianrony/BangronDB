@@ -13,10 +13,10 @@ use BangronDB\Client;
 
 sep('Contoh 08: Transactions & Batch Operations');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('bank');
-$accounts = $db->accounts;
-$transfers = $db->transfers;
+$client = createIsolatedClient('example08');
+$db = $client->createDB('bank');
+$accounts = $db->createCollection('accounts');
+$transfers = $db->createCollection('transfers');
 
 // ── Setup Accounts ────────────────────────────────────────
 sub('Setup Accounts');

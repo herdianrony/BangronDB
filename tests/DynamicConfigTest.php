@@ -140,7 +140,7 @@ class DynamicConfigTest extends TestCase
         ]);
 
         // Create collection (should auto-load config)
-        $users = $this->db->selectCollection('users');
+        $users = $this->db->createCollection('users');
 
         // Verify configuration was loaded (by testing behavior)
         $this->assertTrue($users->softDeletesEnabled());
@@ -152,7 +152,7 @@ class DynamicConfigTest extends TestCase
 
     public function testCollectionSaveConfiguration()
     {
-        $users = $this->db->selectCollection('users');
+        $users = $this->db->createCollection('users');
 
         // Configure collection
         $users->setIdModePrefix('USR');
@@ -175,7 +175,7 @@ class DynamicConfigTest extends TestCase
     public function testCollectionWithoutConfigUsesDefaults()
     {
         // Collection without saved config should work normally
-        $posts = $this->db->selectCollection('posts');
+        $posts = $this->db->createCollection('posts');
 
         // Should use defaults
         $this->assertFalse($posts->softDeletesEnabled());

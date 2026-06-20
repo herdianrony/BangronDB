@@ -14,9 +14,9 @@ use BangronDB\Client;
 sep('Contoh 01: Quick Start & CRUD Dasar');
 
 // ── Inisialisasi ──────────────────────────────────────────
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('myapp');
-$users = $db->users;
+$client = createIsolatedClient('example01');
+$db = $client->createDB('myapp');
+$users = $db->createCollection('users');
 
 // ── INSERT ────────────────────────────────────────────────
 sub('INSERT - Menambahkan Dokumen');

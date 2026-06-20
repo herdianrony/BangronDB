@@ -13,9 +13,12 @@ use BangronDB\Client;
 
 sep('Contoh 10: Dynamic Configuration & Custom Config');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('config_app');
-$users = $db->users;
+$examplePath = __DIR__ . '/data/example10_' . uniqid();
+@mkdir($examplePath, 0755, true);
+
+$client = new Client($examplePath);
+$db = $client->createDB('config_app');
+$users = $db->createCollection('users');
 
 // ── Setup Collection dengan Full Config ────────────────────
 sub('Setup Collection dengan Configuration');
@@ -96,9 +99,9 @@ sub('Config Persistence - Reconnect');
 $client->close();
 
 // Reconnect ke path yang sama
-$client2 = new Client(__DIR__ . '/data');
+$client2 = new Client($examplePath);
 $db2 = $client2->selectDB('config_app');
-$users2 = $db2->users;
+$users2 = $db2->selectCollection('users');
 
 // Config otomatis dimuat dari database
 $persistedTheme = $users2->getCustomConfig('theme');

@@ -38,7 +38,10 @@ composer require herdianrony/bangrondb
 use BangronDB\Client;
 
 $client = new Client(__DIR__ . '/data');
-$users = $client->app->users;
+$client->createDB('app');
+$client->createCollection('app', 'users');
+
+$users = $client->selectCollection('app', 'users');
 
 // Insert
 $userId = $users->insert([
@@ -90,14 +93,39 @@ $secureClient = new Client(__DIR__ . '/data', [
     'performance_monitoring' => false,
 ]);
 
-$db = $client->selectDB('app');
-$db = $client->app; // magic getter
+// API eksplisit untuk lifecycle database
+$client->createDB('app');
+$client->dbExists('app'); // true
 
-$users = $db->selectCollection('users');
-$users = $db->users;
+$db = $client->selectDB('app');
+$db = $client->app; // magic getter, untuk database yang sudah ada
+
+$client->createCollection('app', 'users');
+$client->collectionExists('app', 'users'); // true
+
+$users = $client->selectCollection('app', 'users');
+$users = $db->users; // magic getter, untuk collection yang sudah ada
+
+$client->renameCollection('app', 'users', 'members');
+$client->dropCollection('app', 'members');
+
+// Atau dari object Database jika lebih nyaman
+$db->createCollection('logs');
+$db->collectionExists('logs'); // true
+
+// Rename / hapus database
+$client->renameDB('app', 'app_v2');
+$client->dropDB('app_v2');
 
 $client->close();
 ```
+
+> Mulai versi ini, `selectDB()` dan `selectCollection()` bersifat **non-lazy**: keduanya hanya memilih resource yang sudah ada.
+>
+> Untuk membuat resource baru secara eksplisit, gunakan:
+>
+> - `createDB()` untuk database
+> - `createCollection()` untuk collection
 
 ## CRUD
 
@@ -434,8 +462,16 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 | Method | Keterangan |
 |--------|------------|
 | `new Client($path, $options = [])` | Membuat client |
+| `createDB($name, $options = [])` | Membuat database secara eksplisit |
+| `dbExists($name)` | Mengecek apakah database ada |
 | `listDBs()` | Daftar database |
 | `selectDB($name)` | Ambil database |
+| `renameDB($oldName, $newName)` | Rename database |
+| `dropDB($name)` | Hapus database |
+| `createCollection($db, $collection)` | Membuat collection langsung dari level client |
+| `collectionExists($db, $collection)` | Mengecek collection dari level client |
+| `renameCollection($db, $oldName, $newName)` | Rename collection dari level client |
+| `dropCollection($db, $collection)` | Hapus collection dari level client |
 | `selectCollection($db, $collection)` | Ambil collection langsung |
 | `close()` | Tutup koneksi |
 
@@ -445,6 +481,8 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 |--------|------------|
 | `selectCollection($name)` | Ambil collection |
 | `createCollection($name)` | Buat collection |
+| `collectionExists($name)` | Mengecek apakah collection ada |
+| `renameCollection($oldName, $newName)` | Rename collection |
 | `dropCollection($name)` | Hapus collection |
 | `getCollectionNames()` | Daftar nama collection |
 | `createJsonIndex($collection, $field, $indexName = null)` | Buat index JSON |
@@ -531,6 +569,12 @@ Lihat folder [examples/](examples/) untuk contoh end-to-end:
 - `13-security-features.php`
 - `14-ecommerce-app.php`
 - `15-auth-encrypted.php`
+
+## Catatan Kompatibilitas
+
+Jika Anda bermigrasi dari perilaku lama yang mengandalkan create implicit saat `selectDB()` / `selectCollection()`, lihat:
+
+- [BACKWARD_COMPATIBILITY_NOTES.md](BACKWARD_COMPATIBILITY_NOTES.md)
 
 ## Kontribusi
 

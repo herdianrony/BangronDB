@@ -13,26 +13,30 @@ use BangronDB\Client;
 
 sep('Contoh 11: Multiple Databases & Cross-DB Operations');
 
-$client = new Client(__DIR__ . '/data');
+$client = createIsolatedClient('example11');
 
 // ── Create Multiple Databases ─────────────────────────────
 sub('Multiple Databases');
 
-$appDb       = $client->selectDB('app');
-$logsDb      = $client->selectDB('logs');
-$analyticsDb = $client->selectDB('analytics');
+$appDb       = $client->createDB('app');
+$logsDb      = $client->createDB('logs');
+$analyticsDb = $client->createDB('analytics');
+
+$appUsers = $appDb->createCollection('users');
+$logActions = $logsDb->createCollection('actions');
+$visits = $analyticsDb->createCollection('visits');
 
 // App DB: users
-$appDb->users->insert(['name' => 'Alice', 'role' => 'admin']);
-$appDb->users->insert(['name' => 'Bob',   'role' => 'user']);
+$appUsers->insert(['name' => 'Alice', 'role' => 'admin']);
+$appUsers->insert(['name' => 'Bob',   'role' => 'user']);
 
 // Logs DB: audit trail
-$logsDb->actions->insert(['action' => 'login',  'user' => 'Alice', 'timestamp' => date('c')]);
-$logsDb->actions->insert(['action' => 'upload', 'user' => 'Bob',   'timestamp' => date('c')]);
+$logActions->insert(['action' => 'login',  'user' => 'Alice', 'timestamp' => date('c')]);
+$logActions->insert(['action' => 'upload', 'user' => 'Bob',   'timestamp' => date('c')]);
 
 // Analytics DB: metrics
-$analyticsDb->visits->insert(['page' => '/home',   'count' => 150]);
-$analyticsDb->visits->insert(['page' => '/about',  'count' => 45]);
+$visits->insert(['page' => '/home',   'count' => 150]);
+$visits->insert(['page' => '/about',  'count' => 45]);
 
 echo "3 databases created with data\n";
 
@@ -45,36 +49,37 @@ echo "Databases: " . implode(', ', $databases) . "\n";
 // ── Data Isolation ────────────────────────────────────────
 sub('Data Isolation');
 
-echo "App users: " . $appDb->users->count() . "\n";
-echo "Log entries: " . $logsDb->actions->count() . "\n";
-echo "Analytics records: " . $analyticsDb->visits->count() . "\n";
+echo "App users: " . $appUsers->count() . "\n";
+echo "Log entries: " . $logActions->count() . "\n";
+echo "Analytics records: " . $visits->count() . "\n";
 
 // ── Cross-Database Populate ───────────────────────────────
 sub('Cross-Database Populate');
 
 // Profiles di database terpisah
-$profilesDb = $client->selectDB('profiles');
-$profilesDb->profiles->insert([
-    'user_id' => $appDb->users->findOne(['name' => 'Alice'])['_id'],
+$profilesDb = $client->createDB('profiles');
+$profiles = $profilesDb->createCollection('profiles');
+$profiles->insert([
+    'user_id' => $appUsers->findOne(['name' => 'Alice'])['_id'],
     'bio'     => 'System Administrator',
 ]);
-$profilesDb->profiles->insert([
-    'user_id' => $appDb->users->findOne(['name' => 'Bob'])['_id'],
+$profiles->insert([
+    'user_id' => $appUsers->findOne(['name' => 'Bob'])['_id'],
     'bio'     => 'Content Creator',
 ]);
 
-$profilesList = $profilesDb->profiles->find()->toArray();
-$withUser = $profilesDb->profiles->populate($profilesList, 'user_id', 'app.users', '_id', 'user');
+$profilesList = $profiles->find()->toArray();
+$withUser = $profiles->populate($profilesList, 'user_id', 'app.users', '_id', 'user');
 
 foreach ($withUser as $p) {
     echo "Profile: {$p['bio']} → {$p['user']['name']}\n";
 }
 
-// ── Attach/Detach Database ────────────────────────────────
-sub('Attach/Detach Database');
+// ── Cross-Database Notes ─────────────────────────────────
+sub('Cross-Database Notes');
 
-// Attach memungkinkan query cross-database via SQL
-echo "attach() and detach() available for advanced cross-database SQL queries\n";
+echo "Cross-database populate tersedia melalui notation database.collection\n";
+echo "Contoh: 'app.users' dipakai di populate() pada demo di atas\n";
 
 @$client->close();
 echo "\nDone!\n";

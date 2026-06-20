@@ -16,7 +16,7 @@ class SearchTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('test_collection');
+        $this->collection = $this->db->createCollection('test_collection');
     }
 
     protected function tearDown(): void
@@ -169,7 +169,7 @@ class SearchTest extends TestCase
 
         try {
             $db1 = new Database($path);
-            $collection1 = $db1->selectCollection('test_collection');
+            $collection1 = $db1->createCollection('test_collection');
             $collection1->setSearchableFields(['priority', 'type']);
             $collection1->saveConfiguration();
             $db1->close();

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace BangronDB;
 
+use BangronDB\Exceptions\CollectionException;
+
 /**
  * Database object for managing SQLite database connections and operations.
  *
@@ -517,12 +519,40 @@ class Database
     }
 
     /**
-     * Create a collection.
+     * Ensure the physical table for a collection exists.
      */
-    public function createCollection(string $name): void
+    public function ensureCollectionTable(string $name): void
     {
         $this->validateCollectionName($name);
         $this->executeCreateCollection($name);
+    }
+
+    /**
+     * Create a collection.
+     */
+    public function createCollection(string $name): Collection
+    {
+        $this->ensureCollectionTable($name);
+
+        if (!isset($this->collections[$name])) {
+            $this->collections[$name] = new Collection($name, $this);
+        }
+
+        return $this->collections[$name];
+    }
+
+    /**
+     * Check whether a collection exists.
+     */
+    public function collectionExists(string $name): bool
+    {
+        $this->validateCollectionName($name);
+
+        if (isset($this->collections[$name])) {
+            return true;
+        }
+
+        return in_array($name, $this->getCollectionNames(), true);
     }
 
     /**
@@ -627,19 +657,47 @@ class Database
 
     /**
      * Ensure collection is loaded into cache.
+     *
+     * @throws CollectionException If collection does not exist
      */
     private function ensureCollectionLoaded(string $name): void
     {
         if (!isset($this->collections[$name])) {
-            if (!in_array($name, $this->getCollectionNames())) {
-                $this->createCollection($name);
+            if (!in_array($name, $this->getCollectionNames(), true)) {
+                $databaseName = $this->path === self::DSN_PATH_MEMORY
+                    ? self::DSN_PATH_MEMORY
+                    : basename($this->path, '.bangron');
+                throw CollectionException::notFound($name, $databaseName);
             }
             $this->collections[$name] = new Collection($name, $this);
         }
     }
 
     /**
+     * Rename a collection by name.
+     */
+    public function renameCollection(string $oldName, string $newName): bool
+    {
+        $this->validateCollectionName($oldName);
+        $this->validateCollectionName($newName);
+
+        if (!$this->collectionExists($oldName)) {
+            return false;
+        }
+
+        if ($oldName === $newName || $this->collectionExists($newName)) {
+            return false;
+        }
+
+        $collection = $this->collections[$oldName] ?? new Collection($oldName, $this);
+
+        return $collection->renameCollection($newName);
+    }
+
+    /**
      * Select collection.
+     *
+     * @throws CollectionException If collection does not exist
      */
     public function selectCollection(string $name): Collection
     {

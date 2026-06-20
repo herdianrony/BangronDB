@@ -16,7 +16,7 @@ class RenameTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new Database(':memory:');
-        $this->collection = $this->db->selectCollection('original_collection');
+        $this->collection = $this->db->createCollection('original_collection');
     }
 
     protected function tearDown(): void
@@ -56,7 +56,7 @@ class RenameTest extends TestCase
     {
         // Create two collections
         $this->collection->insert(['data' => 'original']);
-        $existingCollection = $this->db->selectCollection('existing_collection');
+        $existingCollection = $this->db->createCollection('existing_collection');
         $existingCollection->insert(['data' => 'existing']);
 
         // Try to rename to existing collection

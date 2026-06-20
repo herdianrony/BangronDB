@@ -66,6 +66,16 @@ docs: sync README with current examples
 - Hindari menambah API publik baru tanpa alasan kuat
 - Jaga backward compatibility jika memungkinkan
 
+## Dependency Policy
+
+BangronDB diperlakukan sebagai **library**, jadi `composer.lock` sengaja tidak di-commit ke repository.
+
+Implikasinya:
+
+- gunakan `composer install` / `composer update` sesuai kebutuhan lokal
+- jangan tambahkan `composer.lock` ke commit kecuali kebijakan project berubah di masa depan
+- fokus review dependency pada `composer.json`
+
 ## Testing
 
 Setiap perubahan yang memengaruhi behavior sebaiknya disertai test.

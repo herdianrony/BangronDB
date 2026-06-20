@@ -6,6 +6,7 @@ namespace BangronDB\Tests;
 
 use PHPUnit\Framework\TestCase;
 use BangronDB\Database;
+use BangronDB\Exceptions\CollectionException;
 
 class DatabaseTest extends TestCase
 {
@@ -45,9 +46,25 @@ class DatabaseTest extends TestCase
 
     public function testSelectCollection()
     {
+        $this->db->createCollection('testcollection');
+
         $collection = $this->db->selectCollection('testcollection');
         $this->assertInstanceOf(\BangronDB\Collection::class, $collection);
         $this->assertEquals('testcollection', $collection->name);
+    }
+
+    public function testCollectionExists()
+    {
+        $this->assertFalse($this->db->collectionExists('missing'));
+
+        $this->db->createCollection('existing');
+        $this->assertTrue($this->db->collectionExists('existing'));
+    }
+
+    public function testSelectMissingCollectionThrowsException()
+    {
+        $this->expectException(CollectionException::class);
+        $this->db->selectCollection('missing');
     }
 
     public function testListCollections()
@@ -62,9 +79,21 @@ class DatabaseTest extends TestCase
 
     public function testMagicGetCollection()
     {
+        $this->db->createCollection('testcollection');
+
         $collection = $this->db->testcollection;
         $this->assertInstanceOf(\BangronDB\Collection::class, $collection);
         $this->assertEquals('testcollection', $collection->name);
+    }
+
+    public function testRenameCollectionViaDatabase()
+    {
+        $this->db->createCollection('users')->insert(['name' => 'Alice']);
+
+        $this->assertTrue($this->db->renameCollection('users', 'members'));
+        $this->assertFalse($this->db->collectionExists('users'));
+        $this->assertTrue($this->db->collectionExists('members'));
+        $this->assertEquals(1, $this->db->selectCollection('members')->count());
     }
 
     public function testVacuum()

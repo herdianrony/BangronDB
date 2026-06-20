@@ -14,9 +14,9 @@ use BangronDB\Client;
 
 sep('Contoh 06: Hooks (Event System)');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('hooked_app');
-$users = $db->users;
+$client = createIsolatedClient('example06');
+$db = $client->createDB('hooked_app');
+$users = $db->createCollection('users');
 
 // ── beforeInsert: Auto timestamps & defaults ──────────────
 sub('beforeInsert - Auto Timestamps & Defaults');

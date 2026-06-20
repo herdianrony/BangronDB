@@ -34,9 +34,9 @@ sub('BAGIAN 1: Masalah - Tanpa Searchable Fields');
 
 $encKey = 'super-secret-encryption-key-32ch!!';
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('auth_demo');
-$users = $db->users_no_searchable;
+$client = createIsolatedClient('example15');
+$db = $client->createDB('auth_demo');
+$users = $db->createCollection('users_no_searchable');
 
 // Enkripsi TANPA searchable fields
 $users->setEncryptionKey($encKey);
@@ -73,7 +73,7 @@ echo "Kolom di tabel: " . implode(', ', array_keys($raw)) . "\n";
 
 sub('BAGIAN 2: Solusi - Searchable Fields + Hashing');
 
-$authUsers = $db->auth_users;
+$authUsers = $db->createCollection('auth_users');
 
 // ✅ Set searchable fields SEBELUM insert
 // 'email' => hash: true  → disimpan sebagai SHA-256 (aman, tidak bisa di-reverse)
@@ -466,8 +466,8 @@ class AuthService
 // ── Demo AuthService ─────────────────────────────────────
 
 echo "\n🏗️  Membuat AuthService baru...\n";
-$secureDb = $client->selectDB('auth_secure');
-$secureUsers = $secureDb->secure_users;
+$secureDb = $client->createDB('auth_secure');
+$secureUsers = $secureDb->createCollection('secure_users');
 $auth = new AuthService($secureUsers, $encKey);
 
 // Register

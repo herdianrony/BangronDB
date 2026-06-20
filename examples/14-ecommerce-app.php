@@ -14,14 +14,14 @@ use BangronDB\Client;
 
 sep('Contoh 14: E-Commerce Application');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('ecommerce');
+$client = createIsolatedClient('example14');
+$db = $client->createDB('ecommerce');
 
 // ── Setup Collections ─────────────────────────────────────
 sub('Setup: Schema, Hooks, Encryption');
 
 // Products
-$products = $db->products;
+$products = $db->createCollection('products');
 $products->setIdModePrefix('PRD');
 $products->setSchema([
     'name'  => ['type' => 'string', 'required' => true, 'min' => 2],
@@ -34,7 +34,7 @@ $products->createIndex('category');
 $products->saveConfiguration();
 
 // Users
-$users = $db->users;
+$users = $db->createCollection('users');
 $users->setIdModePrefix('USR');
 $users->setSchema([
     'name'  => ['type' => 'string', 'required' => true],
@@ -50,7 +50,7 @@ $users->on('beforeInsert', function ($doc) {
 $users->saveConfiguration();
 
 // Orders
-$orders = $db->orders;
+$orders = $db->createCollection('orders');
 $orders->setIdModePrefix('ORD');
 $orders->setEncryptionKey('ecommerce-encryption-key-32char!!!');
 $orders->on('beforeInsert', function ($doc) {

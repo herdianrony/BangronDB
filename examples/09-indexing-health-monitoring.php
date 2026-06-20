@@ -13,9 +13,9 @@ use BangronDB\Client;
 
 sep('Contoh 09: Indexing, Health & Monitoring');
 
-$client = new Client(__DIR__ . '/data');
-$db = $client->selectDB('monitored_app');
-$users = $db->users;
+$client = createIsolatedClient('example09');
+$db = $client->createDB('monitored_app');
+$users = $db->createCollection('users');
 
 // ── Insert Sample Data ────────────────────────────────────
 sub('Setup Data');
@@ -61,8 +61,12 @@ echo "Speedup: " . round($nonIndexedTime / $indexedTime, 1) . "x\n";
 // ── Drop Index ────────────────────────────────────────────
 sub('Drop Index');
 
-$db->dropIndex('idx_users_status');
-echo "Dropped idx_users_status\n";
+try {
+    $db->dropIndex('idx_users_status');
+    echo "Dropped idx_users_status\n";
+} catch (Throwable $e) {
+    echo "Drop index skipped: {$e->getMessage()}\n";
+}
 
 // ── Health Metrics ────────────────────────────────────────
 sub('Health Metrics');
@@ -111,8 +115,12 @@ foreach ($collMetrics as $name => $m) {
 // ── VACUUM ────────────────────────────────────────────────
 sub('VACUUM - Optimize Database');
 
-$db->vacuum();
-echo "VACUUM completed - space reclaimed\n";
+try {
+    $db->vacuum();
+    echo "VACUUM completed - space reclaimed\n";
+} catch (Throwable $e) {
+    echo "VACUUM skipped: {$e->getMessage()}\n";
+}
 
 // ── Change Notification ───────────────────────────────────
 sub('Change Notification');
