@@ -38,9 +38,11 @@ trait ConfigurationPersistenceTrait
             // Use $collection->setEncryptionKey('your-key') to enable encryption
 
             if (isset($config['searchable_fields']) && is_array($config['searchable_fields'])) {
+                $searchableFields = [];
                 foreach ($config['searchable_fields'] as $field => $hashed) {
-                    $this->setSearchableFields([$field], $hashed);
+                    $searchableFields[$field] = ['hash' => (bool) $hashed];
                 }
+                $this->setSearchableFields($searchableFields);
             }
 
             if (isset($config['schema']) && is_array($config['schema'])) {

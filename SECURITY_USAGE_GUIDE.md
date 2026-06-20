@@ -1,83 +1,219 @@
 # Panduan Keamanan BangronDB
 
-Ringkasan perubahan keamanan sejak v1.0.1+ untuk mencegah RCE, NoSQL Injection, dan Path Traversal.
+Dokumen ini merangkum guardrail keamanan penting di BangronDB dan cara memakainya dengan benar.
 
-## Perubahan Penting
+## Ringkasan
 
-### `$where` dan `$func` hanya menerima Closure
+BangronDB memiliki beberapa proteksi bawaan untuk mengurangi risiko:
+
+- remote code execution (RCE)
+- injection pada query / identifier
+- path traversal
+- regex denial of service (ReDoS)
+- penyalahgunaan key pada PRAGMA
+
+## 1. `$where` dan `$func` hanya menerima Closure
+
+Operator berikut **tidak menerima string function name**:
+
+- `$where`
+- `$func`
+- alias terkait seperti `$fn` dan `$f`
+
+### Contoh yang diblokir
 
 ```php
-// DIBLOKIR - string function names (risiko RCE)
 $collection->find(['status' => ['$where' => 'is_array']]);
 $collection->find(['value' => ['$func' => 'strlen']]);
-
-// WAJIB - gunakan Closure/arrow function
-$collection->find(['status' => ['$where' => fn($doc) => is_array($doc['status'])]]);
-$collection->find(['value' => ['$func' => fn($val) => strlen($val) > 5]]);
 ```
 
-### Field name validation
+### Contoh yang benar
 
 ```php
-// DIIZINKAN: alfanumerik + underscore + hyphen + dot
-['user_name' => 'john', 'user-email' => 'a@b.com', 'address.city' => 'NYC']
+$collection->find([
+    'status' => [
+        '$where' => fn($doc) => is_array($doc['status'] ?? null),
+    ],
+]);
 
-// DIBLOKIR: karakter berbahaya
-["field'; DROP--" => 'value']   // SQL injection attempt
-['field" OR "1"="1' => 'val']   // injection
-```
-
-### Database path validation
-
-```php
-new Database('/data/db.sqlite');     // Aman
-new Database('../../etc/passwd');    // DIBLOKIR - path traversal
-```
-
-### Encryption key escaping
-
-```php
-new Database(':memory:', [
-    'encryption_key' => "it's-a-secret"  // Quote otomatis di-escape
+$collection->find([
+    'value' => [
+        '$func' => fn($val) => is_string($val) && strlen($val) > 5,
+    ],
 ]);
 ```
 
-## Fitur Keamanan
+## 2. Nama field divalidasi
 
-| Fitur | Status |
-|-------|--------|
-| `$where`/`$func` hanya Closure | Mencegah RCE |
-| Field name whitelist | Mencegah NoSQL injection |
-| Path validation | Mencegah directory traversal |
-| PRAGMA key escaping | Mencegah SQLite injection |
-| Regex delimiter escaping | Mencegah ReDoS |
-| `strict_types=1` | Type safety |
+BangronDB hanya menerima nama field yang terdiri dari:
 
-## FieldValidator Utility
+- huruf dan angka
+- underscore (`_`)
+- hyphen (`-`)
+- dot (`.`)
+
+### Diizinkan
+
+```php
+[
+    'user_name' => 'john',
+    'user-email' => 'john@example.com',
+    'address.city' => 'Jakarta',
+]
+```
+
+### Ditolak
+
+```php
+["field'; DROP TABLE users;--" => 'value'];
+['field" OR "1"="1' => 'value'];
+['field(name)' => 'value'];
+```
+
+Validasi ini juga relevan untuk searchable fields dan field yang dipakai dalam sorting atau indexing.
+
+## 3. Path database perlu dijaga
+
+Gunakan path yang eksplisit dan berada di direktori aplikasi Anda.
+
+### Aman
+
+```php
+new Database(__DIR__ . '/data/app.bangron');
+```
+
+### Hindari
+
+```php
+new Database('../../etc/passwd');
+```
+
+Jika Anda menerima input path dari luar, validasi terlebih dahulu.
+
+## 4. Encryption key tidak boleh hard-coded sembarangan
+
+BangronDB mendukung enkripsi dokumen dengan **AES-256-GCM**. Key sebaiknya:
+
+- minimal 32 karakter
+- berasal dari `.env`, vault, atau secret manager
+- tidak disimpan di konfigurasi collection yang dipersist ke database
+
+### Contoh
+
+```php
+$db = new Database(__DIR__ . '/secure.bangron', [
+    'encryption_key' => $_ENV['DB_ENCRYPTION_KEY'],
+]);
+```
+
+### Catatan
+
+- key di-escape saat dipakai pada PRAGMA
+- key collection-level tidak otomatis dipersist
+- ganti key secara hati-hati dan uji data terenkripsi setelah rotasi
+
+## 5. Searchable fields untuk data terenkripsi
+
+Searchable fields memudahkan query pada data terenkripsi, tetapi tetap ada trade-off.
+
+```php
+$users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
+$users->setSearchableFields(['email', 'phone'], true); // true = hash
+$users->saveConfiguration();
+```
+
+### Rekomendasi
+
+- gunakan hashing (`true`) untuk field sensitif seperti email, phone, username login
+- jangan menjadikan terlalu banyak field sensitif sebagai searchable field tanpa alasan jelas
+- dokumentasikan searchable field yang dipakai aplikasi Anda
+
+## 6. Regex dan fuzzy search
+
+BangronDB menerapkan pembatasan dasar untuk membantu mengurangi risiko ReDoS. Meski begitu, tetap hindari pola regex yang terlalu kompleks.
+
+### Lebih aman
+
+```php
+$collection->find(['name' => ['$regex' => '^John']]);
+```
+
+### Hindari pola user-generated yang terlalu bebas
+
+```php
+$collection->find(['name' => ['$regex' => $rawUserInput]]);
+```
+
+Jika input regex berasal dari user, sanitasi atau batasi pola yang diizinkan.
+
+## 7. Hooks dan custom logic
+
+Hooks sangat berguna, tetapi tetap merupakan titik masuk business logic tambahan.
+
+### Rekomendasi
+
+- hindari hook yang terlalu besar atau memiliki side effect tersembunyi
+- tangani exception secara eksplisit jika hook melakukan operasi penting
+- dokumentasikan hook yang wajib didaftarkan ulang setiap startup/request
+
+Ingat: hook **tidak dipersist** ke database.
+
+## 8. Utilitas `FieldValidator`
+
+BangronDB menyediakan utilitas untuk validasi keamanan dasar:
 
 ```php
 use BangronDB\Security\FieldValidator;
 
-FieldValidator::isValidFieldName('user_name');           // true
-FieldValidator::validateFieldName("'; DROP--");          // throws ValidationException
-FieldValidator::isSafeCallable(fn($x) => true);          // true
-FieldValidator::isSafeCallable('system');                // false
+FieldValidator::isValidFieldName('user_name');
+FieldValidator::validateFieldName('address.city');
+FieldValidator::isSafeCallable(fn($x) => true);
+FieldValidator::isSafeCallable('system');
 ```
 
 ## Troubleshooting
 
-**Error: "only accepts Closure objects"**
+### Error: only accepts Closure objects
+
+Ubah dari:
+
 ```php
-// Ubah dari:
 ['$where' => 'is_array']
-// Ke:
-['$where' => fn($doc) => is_array($doc['field'])]
 ```
 
-**Error: "Invalid field name"**
+Menjadi:
+
 ```php
-// Ubah dari:
+['$where' => fn($doc) => is_array($doc['field'] ?? null)]
+```
+
+### Error: Invalid field name
+
+Ubah dari:
+
+```php
 ['field; DROP' => 'value']
-// Ke:
+```
+
+Menjadi:
+
+```php
 ['field_name' => 'value']
 ```
+
+### Data terenkripsi tidak bisa dibaca
+
+Periksa hal berikut:
+
+- key runtime benar
+- key belum berubah dari saat data ditulis
+- collection-level key dan database-level key tidak tertukar
+
+## Checklist Praktik Aman
+
+- [ ] Gunakan key dari environment variable atau secret manager
+- [ ] Jangan pakai string function name pada `$where` / `$func`
+- [ ] Batasi field yang dijadikan searchable
+- [ ] Validasi input user sebelum dipakai sebagai query
+- [ ] Tambahkan regression test untuk area encryption, hooks, dan searchable fields
+- [ ] Audit logika hook yang sensitif

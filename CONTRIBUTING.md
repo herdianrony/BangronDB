@@ -1,61 +1,118 @@
 # Contributing to BangronDB
 
-Terima kasih telah tertarik untuk berkontribusi!
+Terima kasih sudah tertarik berkontribusi ke BangronDB.
 
-## Quick Setup
+## Persiapan Cepat
 
 ```bash
 git clone https://github.com/herdianrony/BangronDB.git
 cd BangronDB
 composer install
-php vendor/bin/phpunit   # Pastikan semua test pass
+vendor/bin/phpunit
 ```
 
-## Workflow
+Jika Anda memakai FrankenPHP:
 
-1. **Fork** repositori ini
-2. **Buat branch**: `git checkout -b feature/nama-fitur` atau `bugfix/deskripsi-fix`
-3. **Develop & test**: Pastikan `vendor/bin/phpunit` pass
-4. **Commit** menggunakan conventional commits:
-   - `feat:` fitur baru
-   - `fix:` bug fix
-   - `docs:` perubahan dokumentasi
-   - `refactor:` refactoring
-   - `test:` penambahan/pembaruan test
-5. **Push & buat Pull Request**
+```bash
+frankenphp php-cli vendor/bin/phpunit
+```
 
-## Code Standards
+## Kebutuhan Development
+
+- PHP 8.1+
+- `pdo_sqlite`
+- `openssl`
+- Composer
+
+## Workflow yang Disarankan
+
+1. Fork repository ini.
+2. Buat branch baru dari branch aktif utama.
+   - `feature/nama-fitur`
+   - `fix/nama-perbaikan`
+   - `docs/nama-perubahan`
+   - `refactor/nama-refactor`
+3. Lakukan perubahan sekecil dan sejelas mungkin.
+4. Tambahkan atau perbarui test bila ada perubahan perilaku.
+5. Jalankan test suite sebelum commit.
+6. Buka Pull Request dengan deskripsi yang jelas.
+
+## Standar Commit
+
+Gunakan pesan commit yang ringkas dan konsisten. Conventional commits sangat dianjurkan:
+
+- `feat:` fitur baru
+- `fix:` bug fix
+- `docs:` perubahan dokumentasi
+- `refactor:` refactor tanpa mengubah behavior publik
+- `test:` perubahan atau penambahan test
+- `chore:` pekerjaan maintenance
+
+Contoh:
+
+```text
+fix: keep searchable fields after collection reload
+refactor: centralize collection metadata handling
+docs: sync README with current examples
+```
+
+## Standar Kode
 
 - Ikuti [PSR-12](https://www.php-fig.org/psr/psr-12/)
-- Gunakan type declarations untuk arguments dan return types
-- Tulis doc blocks untuk class dan public methods
-- Gunakan `declare(strict_types=1);` di semua file
-- Jaga method tetap singkat (< 50 lines)
+- Gunakan `declare(strict_types=1);`
+- Gunakan type declaration untuk parameter dan return value
+- Tambahkan docblock pada class dan public method yang relevan
+- Utamakan method kecil dan fokus pada satu tanggung jawab
+- Hindari menambah API publik baru tanpa alasan kuat
+- Jaga backward compatibility jika memungkinkan
 
 ## Testing
 
-- Setiap kontribusi **HARUS** menyertakan test
-- Minimum 80% code coverage untuk kode baru
-- Semua public methods harus memiliki test
-- Jalankan `vendor/bin/phpunit` sebelum submit PR
+Setiap perubahan yang memengaruhi behavior sebaiknya disertai test.
+
+Perintah yang umum dipakai:
+
+```bash
+vendor/bin/phpunit
+composer test
+composer test-coverage
+composer lint
+```
+
+Checklist minimum sebelum membuka PR:
+
+- Semua test lulus
+- Tidak ada syntax error
+- Dokumentasi ikut diperbarui jika behavior berubah
+
+## Area yang Perlu Perhatian Khusus
+
+Saat mengubah area berikut, mohon tambahkan regression test:
+
+- upsert / `save()`
+- rename collection
+- searchable fields
+- encryption & key handling
+- change notification / metadata
+- hooks lifecycle
 
 ## Melaporkan Bug
 
-Buat issue dengan detail:
+Saat membuat issue, sertakan:
 
-1. **Deskripsi** bug
-2. **Langkah reproduksi**
-3. **Expected behavior** vs **Actual behavior**
-4. **Environment** (PHP version, OS, BangronDB version)
-5. **Error log / stack trace**
+1. deskripsi bug
+2. langkah reproduksi
+3. expected vs actual behavior
+4. versi PHP dan OS
+5. potongan kode minimal untuk reproduksi
+6. error message / stack trace jika ada
 
-## PR Checklist
+## Pull Request Checklist
 
-- [ ] Tests ditambahkan/diperbarui
-- [ ] Semua test pass
-- [ ] Kode mengikuti PSR-12
-- [ ] Dokumentasi diperbarui jika perlu
+- [ ] Perubahan fokus dan tidak terlalu besar
+- [ ] Test ditambahkan/diperbarui bila diperlukan
+- [ ] Semua test lulus
+- [ ] Dokumentasi diperbarui bila ada perubahan perilaku
+- [ ] Tidak ada file sementara / debug yang ikut ter-commit
 
----
-
-Terima kasih telah menjadi bagian dari BangronDB!
+Terima kasih sudah membantu menjaga BangronDB tetap rapi dan stabil.

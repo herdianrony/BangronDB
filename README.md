@@ -1,44 +1,35 @@
 # BangronDB
 
-Database NoSQL berbasis SQLite dengan API mirip MongoDB untuk PHP. Mendukung enkripsi, hook, relasi, dan fitur enterprise.
+BangronDB adalah database dokumen berbasis SQLite untuk PHP dengan API bergaya MongoDB. Library ini cocok untuk aplikasi kecil hingga menengah yang membutuhkan penyimpanan lokal, query fleksibel, enkripsi, hooks, schema validation, dan relasi sederhana tanpa harus menjalankan server database terpisah.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/herdianrony/BangronDB/releases) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![PHP](https://img.shields.io/badge/php-%3E%3D%208.0-blue.svg)](https://www.php.net)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PHP](https://img.shields.io/badge/php-%3E%3D%208.1-blue.svg)](https://www.php.net)
 
-## Fitur Utama
+## Sorotan Fitur
 
-- **API MongoDB-like** - Sintaks familiar seperti MongoDB
-- **Enkripsi AES-256** - Enkripsi tingkat kolom dan koleksi
-- **Searchable Fields** - Pencarian pada data terenkripsi
-- **Hooks System** - Event-driven hooks untuk semua operasi
-- **Relationships** - Populate untuk relasi antar koleksi
-- **Schema Validation** - Validasi tipe, enum, regex, range
-- **Soft Deletes** - Penghapusan logis dengan restore
-- **Multiple ID Modes** - UUID, manual, dan prefiks
-- **Health Monitoring** - Monitoring dan metrics database
+- API mirip MongoDB untuk operasi dokumen
+- Backend SQLite berbasis file atau in-memory
+- Enkripsi dokumen dengan **AES-256-GCM**
+- Searchable fields untuk data terenkripsi
+- Hooks untuk lifecycle insert, update, dan remove
+- Schema validation untuk type, enum, regex, min/max
+- Soft delete dengan restore dan force delete
+- ID mode fleksibel: UUID, manual, prefix
+- Populate relasi antar-collection dan antar-database dalam satu client
+- Health metrics, integrity check, dan change notification
+- Konfigurasi collection yang bisa disimpan ke database
+
+## Kebutuhan Sistem
+
+- PHP **8.1+**
+- Ekstensi `pdo_sqlite`
+- Ekstensi `openssl`
+- Composer
 
 ## Instalasi
 
-### Persyaratan
-
-- PHP 8.1+ dengan ekstensi PDO SQLite
-- Ekstensi OpenSSL untuk enkripsi
-- Composer
-
-### Via Composer
-
 ```bash
 composer require herdianrony/bangrondb
-```
-
-### Manual
-
-```php
-require_once __DIR__ . '/src/Client.php';
-require_once __DIR__ . '/src/Database.php';
-require_once __DIR__ . '/src/Collection.php';
-require_once __DIR__ . '/src/Cursor.php';
-require_once __DIR__ . '/src/UtilArrayQuery.php';
-// ...sertakan traits yang diperlukan
 ```
 
 ## Quick Start
@@ -46,355 +37,376 @@ require_once __DIR__ . '/src/UtilArrayQuery.php';
 ```php
 use BangronDB\Client;
 
-// 1. Inisialisasi
 $client = new Client(__DIR__ . '/data');
-
-// 2. Pilih database & collection
 $users = $client->app->users;
 
-// 3. Simpan data
-$userId = $users->insert(['name' => 'John Doe', 'role' => 'admin']);
+// Insert
+$userId = $users->insert([
+    'name' => 'John Doe',
+    'email' => 'john@example.com',
+    'role' => 'admin',
+]);
 
-// 4. Cari data
-$user = $users->findOne(['name' => 'John Doe']);
-echo "Halo, " . $user['name'];
+// Find
+$user = $users->findOne(['_id' => $userId]);
 
-// 5. Update
-$users->update(['_id' => $userId], ['$set' => ['role' => 'superadmin']]);
+echo $user['name'] . PHP_EOL;
 
-// 6. Hapus
+// Update
+$users->update(['_id' => $userId], [
+    '$set' => ['role' => 'superadmin'],
+]);
+
+// Delete
 $users->remove(['_id' => $userId]);
 ```
 
 ## Konsep Dasar
 
-```
-Client → Database (file .bangron) → Collection → Document (JSON)
+```text
+Client -> Database (.bangron / :memory:) -> Collection -> Document
 ```
 
-- **Client**: Manager utama yang mengatur koneksi ke berbagai database
-- **Database**: Satu file fisik `.bangron` di komputer Anda
-- **Collection**: "Folder" di dalam database untuk mengelompokkan data sejenis
-- **Document**: Satu record data dalam format array/JSON
+- **Client** mengelola banyak database dalam satu path.
+- **Database** mewakili satu file SQLite/BangronDB.
+- **Collection** mewakili tabel dokumen.
+- **Document** disimpan sebagai JSON.
 
-## Client & Database
+## Membuat Client dan Database
 
 ```php
 use BangronDB\Client;
 
-// File-based
+// File-based storage
 $client = new Client(__DIR__ . '/data');
 
 // In-memory
-$client = new Client(':memory:');
+$memoryClient = new Client(':memory:');
 
-// Dengan options
-$client = new Client(__DIR__ . '/data', [
-    'encryption_key' => 'my-secret-key',
-    'timeout' => 30
+// Dengan opsi runtime
+$secureClient = new Client(__DIR__ . '/data', [
+    'encryption_key' => $_ENV['DB_ENCRYPTION_KEY'] ?? null,
+    'query_logging' => false,
+    'performance_monitoring' => false,
 ]);
 
-// Akses database
-$db = $client->selectDB('mydatabase');   // Method
-$db = $client->mydatabase;               // Magic getter
+$db = $client->selectDB('app');
+$db = $client->app; // magic getter
 
-// Akses collection
-$collection = $db->selectCollection('users');
-$collection = $db->users;
+$users = $db->selectCollection('users');
+$users = $db->users;
 
-// List databases
-$databases = $client->listDBs();
-
-// Cleanup
 $client->close();
 ```
 
-## Collection
-
-```php
-// ID Generation Modes
-$collection->setIdModeAuto();        // UUID v4 (default)
-$collection->setIdModeManual();      // Manual ID
-$collection->setIdModePrefix('USR'); // Prefiks: USR-000001
-
-// Enkripsi per koleksi
-$collection->setEncryptionKey('collection-secret-key');
-
-// Searchable fields
-$collection->setSearchableFields(['email', 'phone'], true); // true = hashing
-
-// Drop collection
-$collection->drop();
-
-// Rename collection
-$collection->renameCollection('new_name');
-```
-
-## CRUD Operations
+## CRUD
 
 ### Insert
 
 ```php
-// Single document
-$id = $collection->insert(['name' => 'John', 'email' => 'john@example.com', 'age' => 30]);
+$id = $users->insert([
+    'name' => 'Alice',
+    'email' => 'alice@example.com',
+]);
 
-// Batch insert
-$count = $collection->insert([
-    ['name' => 'Alice', 'age' => 25],
-    ['name' => 'Bob', 'age' => 35]
+$count = $users->insert([
+    ['name' => 'Bob'],
+    ['name' => 'Charlie'],
 ]);
 ```
 
 ### Find
 
 ```php
-// Find all
-$users = $collection->find()->toArray();
+$all = $users->find()->toArray();
+$one = $users->findOne(['name' => 'Alice']);
 
-// Find one
-$user = $collection->findOne(['name' => 'John']);
+$activeAdults = $users->find([
+    'status' => 'active',
+    'age' => ['$gte' => 21],
+])->toArray();
 
-// Dengan criteria
-$users = $collection->find(['age' => ['$gt' => 25], 'status' => 'active']);
+$projection = $users->find(
+    ['status' => 'active'],
+    ['name' => 1, 'email' => 1]
+)->toArray();
 
-// Dengan projection
-$users = $collection->find(['age' => ['$gte' => 21]], ['name' => 1, 'email' => 1]);
-
-// Count
-$total = $collection->count(['status' => 'active']);
+$total = $users->count(['status' => 'active']);
 ```
 
 ### Update
 
 ```php
 // Merge update (default)
-$collection->update(['name' => 'John'], ['age' => 31, 'city' => 'NY']);
+$users->update(['name' => 'Alice'], ['city' => 'Jakarta']);
 
 // Replace update
-$collection->update(['name' => 'John'], ['age' => 31], false);
+$users->update(['name' => 'Alice'], ['name' => 'Alice', 'city' => 'Bandung'], false);
 
-// MongoDB-style operators
-$collection->update(['name' => 'John'], [
-    '$set' => ['age' => 31, 'city' => 'NY'],
-    '$unset' => ['old_field' => '']
+// Operator-style update
+$users->update(['name' => 'Alice'], [
+    '$set' => ['role' => 'editor'],
+    '$unset' => ['legacy_field' => ''],
 ]);
+```
 
-// Upsert
-$collection->save(['_id' => 'existing-id', 'name' => 'Updated']);
+### Save / Upsert
+
+```php
+// Tanpa _id => insert baru
+$newId = $users->save(['name' => 'Dina']);
+
+// Dengan _id => update jika sudah ada, insert jika belum ada
+$users->save([
+    '_id' => 'USR-000001',
+    'name' => 'Dina Updated',
+]);
 ```
 
 ### Delete
 
 ```php
-$deleted = $collection->remove(['status' => 'inactive']);
-$collection->remove([]); // Hapus semua
+$deleted = $users->remove(['status' => 'inactive']);
+$users->remove([]); // hapus semua dokumen
 ```
 
-### Pagination & Sorting
+## Pagination, Sorting, Projection
 
 ```php
-$users = $collection->find(['status' => 'active'])
+$results = $users->find(['status' => 'active'])
+    ->sort(['age' => 1])
     ->skip(10)
     ->limit(5)
-    ->sort(['age' => 1])   // Ascending
     ->toArray();
-
-$users = $collection->find()->sort(['age' => -1]); // Descending
 ```
 
 ## Query Operators
 
+### Comparison
+
 ```php
-// Comparison
-$collection->find(['age' => ['$gt' => 18]]);
-$collection->find(['age' => ['$gte' => 21]]);
-$collection->find(['age' => ['$lt' => 65]]);
-$collection->find(['age' => ['$lte' => 60]]);
-$collection->find(['age' => ['$ne' => 30]]);
-
-// Array
-$collection->find(['role' => ['$in' => ['admin', 'editor']]]);
-$collection->find(['role' => ['$nin' => ['guest', 'banned']]]);
-
-// Existence
-$collection->find(['email' => ['$exists' => true]]);
-
-// Logical
-$collection->find(['$or' => [['age' => ['$lt' => 18]], ['age' => ['$gt' => 65]]]]);
-$collection->find(['$and' => [['status' => 'active'], ['age' => ['$gte' => 21]]]]);
-
-// Regex
-$collection->find(['name' => ['$regex' => '^John']]);
-
-// Custom function (Closure only - keamanan RCE)
-$collection->find(['age' => ['$where' => fn($doc) => $doc['age'] > 18]]);
-$collection->find(['name' => ['$func' => fn($val) => strlen($val) > 5]]);
-
-// Fuzzy search
-$collection->find(['description' => ['$fuzzy' => ['$search' => 'important', '$minScore' => 0.7]]]);
-
-// Dot notation (nested fields)
-$collection->find(['address.city' => 'New York']);
+$users->find(['age' => ['$gt' => 18]]);
+$users->find(['age' => ['$gte' => 21]]);
+$users->find(['age' => ['$lt' => 65]]);
+$users->find(['age' => ['$lte' => 60]]);
+$users->find(['age' => ['$ne' => 30]]);
 ```
+
+### Array / Membership
+
+```php
+$users->find(['role' => ['$in' => ['admin', 'editor']]]);
+$users->find(['role' => ['$nin' => ['guest', 'banned']]]);
+$users->find(['tags' => ['$all' => ['php', 'sqlite']]]);
+$users->find(['tags' => ['$size' => 3]]);
+```
+
+### Existence dan Logical
+
+```php
+$users->find(['email' => ['$exists' => true]]);
+
+$users->find(['$or' => [
+    ['age' => ['$lt' => 18]],
+    ['age' => ['$gt' => 65]],
+]]);
+
+$users->find(['$and' => [
+    ['status' => 'active'],
+    ['age' => ['$gte' => 21]],
+]]);
+```
+
+### Regex, Closure, Fuzzy Search, Dot Notation
+
+```php
+$users->find(['name' => ['$regex' => '^John']]);
+
+$users->find(['age' => ['$where' => fn($doc) => $doc['age'] > 18]]);
+$users->find(['name' => ['$func' => fn($val) => strlen($val) > 5]]);
+
+$users->find([
+    'description' => [
+        '$fuzzy' => [
+            '$search' => 'important',
+            '$minScore' => 0.7,
+        ],
+    ],
+]);
+
+$users->find(['address.city' => 'Jakarta']);
+```
+
+> `'$where'` dan `'$func'` hanya menerima **Closure**, bukan string function name.
 
 ## Enkripsi
 
+### Database-level encryption
+
 ```php
-// Database-wide encryption
-$db = new Database('path/to/db.sqlite', [
-    'encryption_key' => 'master-secret-key'
+use BangronDB\Database;
+
+$db = new Database(__DIR__ . '/secure.bangron', [
+    'encryption_key' => $_ENV['DB_ENCRYPTION_KEY'],
 ]);
-
-// Collection-specific encryption
-$collection->setEncryptionKey('collection-specific-key');
-$isEncrypted = $collection->isEncrypted(); // true/false
-
-// Searchable encrypted fields
-$collection->setSearchableFields(['email', 'phone'], true); // true = SHA-256 hashing
-$collection->removeSearchableField('email', true); // true = drop column
 ```
 
-**Detail teknis**: Algoritma AES-256-CBC, key derivation SHA-256, IV random per enkripsi, storage Base64 dalam JSON.
+### Collection-level encryption
+
+```php
+$users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
+
+$users->insert([
+    'name' => 'Alice',
+    'ssn' => '123-45-6789',
+]);
+```
+
+### Searchable fields untuk data terenkripsi
+
+```php
+$users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
+$users->setSearchableFields(['email', 'phone'], true); // true = SHA-256 hash
+$users->saveConfiguration();
+```
+
+**Catatan teknis:** BangronDB menggunakan **AES-256-GCM**, key derivation berbasis PBKDF2 SHA-256, IV acak per enkripsi, dan payload Base64 di dokumen JSON.
 
 ## Schema Validation
 
 ```php
-$collection->setSchema([
+$users->setSchema([
     'username' => ['required' => true, 'type' => 'string', 'min' => 3, 'max' => 50],
     'email'    => ['required' => true, 'type' => 'string', 'regex' => '/^[^\s@]+@[^\s@]+\.[^\s@]+$/'],
     'age'      => ['type' => 'int', 'min' => 13, 'max' => 120],
-    'role'     => ['type' => 'string', 'enum' => ['admin', 'user', 'moderator']]
+    'role'     => ['type' => 'string', 'enum' => ['admin', 'user', 'moderator']],
 ]);
 
-// Validate tanpa insert
-$collection->validate(['username' => 'john', 'email' => 'invalid']); // throws ValidationException
+$users->validate([
+    'username' => 'john',
+    'email' => 'john@example.com',
+]);
 ```
 
 ## Soft Deletes
 
 ```php
-$collection->useSoftDeletes(true);
+$users->useSoftDeletes(true);
 
-$collection->remove(['username' => 'johndoe']);      // Soft delete
-$users->find()->withTrashed()->toArray();             // Include deleted
-$users->find()->onlyTrashed()->toArray();             // Hanya deleted
-$users->restore(['username' => 'johndoe']);           // Restore
-$users->forceDelete(['username' => 'johndoe']);       // Permanent delete
+$users->remove(['username' => 'johndoe']);
+$users->find()->withTrashed()->toArray();
+$users->find()->onlyTrashed()->toArray();
+$users->restore(['username' => 'johndoe']);
+$users->forceDelete(['username' => 'johndoe']);
 ```
 
 ## Hooks
 
 ```php
-// Before insert - modifikasi data
-$collection->on('beforeInsert', function($document) {
+$users->on('beforeInsert', function ($document) {
     $document['created_at'] = date('c');
     return $document;
 });
 
-// After insert - logging
-$collection->on('afterInsert', function($document, $insertId) {
-    error_log("Document inserted: " . $insertId);
+$users->on('afterInsert', function ($document, $insertId) {
+    error_log('Inserted: ' . $insertId);
 });
 
-// Before update - auto timestamp
-$collection->on('beforeUpdate', function($criteria, $data) {
+$users->on('beforeUpdate', function ($criteria, $data) {
     $data['updated_at'] = date('c');
     return ['criteria' => $criteria, 'data' => $data];
 });
 
-// Veto operation
-$collection->on('beforeRemove', function($document) {
-    if ($document['protected'] ?? false) return false; // Cancel
+$users->on('beforeRemove', function ($document) {
+    if ($document['protected'] ?? false) {
+        return false;
+    }
 });
-
-// Remove hook
-$collection->off('beforeInsert');
 ```
 
-**Events**: `beforeInsert`, `afterInsert`, `beforeUpdate`, `afterUpdate`, `beforeRemove`, `afterRemove`
+Event yang tersedia:
 
-## Relationships (Populate)
+- `beforeInsert`
+- `afterInsert`
+- `beforeUpdate`
+- `afterUpdate`
+- `beforeRemove`
+- `afterRemove`
+
+## Relationships / Populate
 
 ```php
-// Basic populate
-$postsWithAuthors = $db->posts->find()
-    ->populate('author_id', $db->users, ['as' => 'author'])
-    ->toArray();
-
-// Nested populate
 $posts = $db->posts->find()
     ->populate('author_id', $db->users, ['as' => 'author'])
-    ->populate('category_id', $db->categories, ['as' => 'category'])
     ->toArray();
 
-// Array references
-$post = $db->posts->populate($post, 'comment_ids', 'db.comments', '_id', 'comments');
-
-// Cross-database populate
-$collection->populate($docs, 'foreign_field', 'otherdb.othercollection', '_id', 'relation');
+$post = $db->posts->populate($post, 'comment_ids', 'app.comments', '_id', 'comments');
 ```
 
 ## Indexing
 
 ```php
-$collection->createIndex('email');
-$collection->createIndex('address.city');
-$collection->createIndex('status', 'idx_status');
+$users->createIndex('email');
+$users->createIndex('address.city');
+$users->createIndex('status', 'idx_status');
 
-$db->dropIndex('idx_email');
+$db->dropIndex('idx_status');
 ```
-
-> **Tip**: Buat index untuk field yang sering di-query. Index memberikan ~20x speedup pada find operations.
 
 ## Health & Monitoring
 
 ```php
-$metrics = $db->getHealthMetrics();   // Metrics detail
-$report = $db->getHealthReport();     // Status, issues, warnings, recommendations
+$health = $db->getHealthMetrics();
+$report = $db->getHealthReport();
 $perf   = $db->getPerformanceMetrics();
-$collM  = $db->getCollectionMetrics();
-$db->vacuum();                        // Optimasi & reclaim space
-$db->checkIntegrity();                // Cek integritas
+$index  = $db->getIndexMetrics();
+$coll   = $db->getCollectionMetrics();
+
+$db->checkIntegrity();
+$db->vacuum();
 ```
 
 ## Change Notification
 
 ```php
-$lastModified = $collection->getLastModified();
-// ['version' => 42, 'last_updated' => '2024-01-15 10:30:45']
+$lastModified = $users->getLastModified();
+// ['version' => 42, 'last_updated' => '2026-06-20T10:30:45+07:00']
 
-$collection->notifyChange(); // Manual trigger
+$users->notifyChange();
 ```
 
 ## Dynamic Configuration
 
+Konfigurasi collection berikut bisa disimpan ke database:
+
+- ID mode
+- searchable fields
+- schema
+- soft deletes
+- custom config
+
 ```php
-// Set konfigurasi
 $users->setIdModePrefix('USR');
+$users->setSearchableFields(['email'], true);
 $users->setSchema([...]);
 $users->useSoftDeletes(true);
-$users->saveConfiguration(); // Simpan ke database
-
-// Konfigurasi otomatis dimuat saat inisialisasi collection
-$users = $db->users; // encryption, schema, searchable fields otomatis
-
-// Kelola konfigurasi manual
-$db->saveCollectionConfig('users', [...]);
-$config = $db->loadCollectionConfig('users');
-$db->deleteCollectionConfig('users');
+$users->saveConfiguration();
 ```
 
-> **Penting**: Encryption key TIDAK disimpan di config. Selalu sediakan key saat runtime dari `.env` atau secret manager.
+> Encryption key **tidak disimpan** di database. Selalu supply dari `.env`, secret manager, atau runtime config.
 
 ## Transactions
 
+BangronDB menggunakan PDO SQLite di bawahnya, jadi Anda bisa memakai transaksi langsung lewat koneksi PDO:
+
 ```php
 $db->connection->beginTransaction();
+
 try {
-    $collection->insert($doc1);
-    $collection->insert($doc2);
+    $db->users->insert(['name' => 'Alice']);
+    $db->profiles->insert(['user' => 'Alice']);
     $db->connection->commit();
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     $db->connection->rollBack();
     throw $e;
 }
@@ -402,131 +414,128 @@ try {
 
 ## Keamanan
 
-BangronDB menerapkan validasi ketat untuk mencegah RCE, injection, dan path traversal:
+BangronDB menerapkan beberapa guardrail penting:
 
-| Fitur | Status |
-|-------|--------|
-| `$where` / `$func` hanya menerima Closure | ✅ Mencegah RCE |
-| Field name whitelist (alfanumerik + `_`, `-`, `.`) | ✅ Mencegah injection |
-| Database path validation | ✅ Mencegah path traversal |
-| PRAGMA key escaping | ✅ Mencegah SQLite injection |
-| Regex delimiter escaping | ✅ Mencegah ReDoS |
-| `strict_types=1` di semua file | ✅ Type safety |
+| Fitur | Tujuan |
+|------|--------|
+| Closure-only untuk `$where` / `$func` | Mencegah RCE |
+| Validasi field name | Mencegah injection |
+| PRAGMA key escaping | Mencegah SQLite injection |
+| Regex hardening | Mengurangi risiko ReDoS |
+| Validasi path | Mengurangi risiko path traversal |
+| `strict_types=1` | Type safety |
 
-> Lihat [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md) untuk panduan migrasi detail.
+Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 
-## API Reference
+## API Ringkas
 
 ### Client
 
-| Method | Deskripsi |
-|--------|-----------|
-| `new Client($path, $options)` | Inisialisasi koneksi |
-| `listDBs()` | List semua database |
-| `selectDB($name)` | Pilih database |
-| `selectCollection($db, $col)` | Pilih collection langsung |
-| `close()` | Tutup semua koneksi |
+| Method | Keterangan |
+|--------|------------|
+| `new Client($path, $options = [])` | Membuat client |
+| `listDBs()` | Daftar database |
+| `selectDB($name)` | Ambil database |
+| `selectCollection($db, $collection)` | Ambil collection langsung |
+| `close()` | Tutup koneksi |
 
 ### Database
 
-| Method | Deskripsi |
-|--------|-----------|
-| `selectCollection($name)` | Pilih collection |
-| `createCollection($name)` | Buat collection baru |
+| Method | Keterangan |
+|--------|------------|
+| `selectCollection($name)` | Ambil collection |
+| `createCollection($name)` | Buat collection |
 | `dropCollection($name)` | Hapus collection |
-| `getCollectionNames()` | List semua collection |
-| `createJsonIndex($col, $field)` | Buat index |
-| `attach($path, $alias)` | Attach database lain |
-| `detach($alias)` | Detach database |
-| `vacuum()` | Optimasi database |
-| `getHealthMetrics()` | Metrics kesehatan |
-| `getHealthReport()` | Health report |
+| `getCollectionNames()` | Daftar nama collection |
+| `createJsonIndex($collection, $field, $indexName = null)` | Buat index JSON |
+| `dropIndex($indexName)` | Hapus index |
+| `getHealthMetrics()` | Ambil health metrics |
+| `getHealthReport()` | Ambil health report |
+| `getPerformanceMetrics()` | Ambil metrik performa |
+| `getCollectionMetrics()` | Ambil metrik per collection |
 | `saveCollectionConfig($name, $config)` | Simpan konfigurasi |
-| `loadCollectionConfig($name)` | Load konfigurasi |
+| `loadCollectionConfig($name)` | Muat konfigurasi |
+| `deleteCollectionConfig($name)` | Hapus konfigurasi |
+| `checkIntegrity()` | Jalankan integrity check |
+| `vacuum()` | Optimasi file database |
 
 ### Collection
 
-| Method | Deskripsi |
-|--------|-----------|
-| `insert($doc)` | Insert document |
-| `find($criteria, $projection)` | Cari documents |
-| `findOne($criteria, $projection)` | Cari satu document |
-| `update($criteria, $data, $merge)` | Update documents |
-| `remove($criteria)` | Hapus documents |
-| `count($criteria)` | Hitung documents |
-| `save($document)` | Upsert document |
+| Method | Keterangan |
+|--------|------------|
+| `insert($document)` | Insert satu/banyak dokumen |
+| `find($criteria = null, $projection = null)` | Query dokumen |
+| `findOne($criteria = null, $projection = null)` | Query satu dokumen |
+| `update($criteria, $data, $merge = true)` | Update dokumen |
+| `remove($criteria)` | Hapus dokumen |
+| `count($criteria = null)` | Hitung dokumen |
+| `save($document)` | Insert / upsert dokumen |
 | `drop()` | Hapus collection |
 | `renameCollection($newName)` | Rename collection |
-| `setIdModeAuto/Manual/Prefix` | Set ID mode |
-| `setEncryptionKey($key)` | Set encryption key |
-| `setSearchableFields($fields, $hash)` | Set searchable fields |
-| `setSchema($schema)` | Set schema validation |
-| `useSoftDeletes($enabled)` | Enable soft deletes |
-| `restore($criteria)` | Restore soft-deleted |
-| `forceDelete($criteria)` | Permanent delete |
-| `on($event, $fn)` | Register hook |
-| `off($event)` | Remove hook |
-| `createIndex($field)` | Buat index |
-| `getLastModified()` | Info perubahan terakhir |
-| `saveConfiguration()` | Simpan konfigurasi |
+| `setIdModeAuto()` / `setIdModeManual()` / `setIdModePrefix($prefix)` | Atur mode ID |
+| `setEncryptionKey($key)` | Atur key enkripsi |
+| `setSearchableFields($fields, $hash = false)` | Atur searchable fields |
+| `removeSearchableField($field, $dropColumn = false)` | Hapus searchable field |
+| `setSchema($schema)` | Atur schema |
+| `useSoftDeletes($enabled = true)` | Aktifkan soft delete |
+| `restore($criteria)` | Restore dokumen terhapus |
+| `forceDelete($criteria)` | Hapus permanen |
+| `on($event, $callback)` | Register hook |
+| `off($event, $callback = null)` | Hapus hook |
+| `createIndex($field, $indexName = null)` | Buat index |
+| `getLastModified()` | Ambil metadata perubahan |
+| `notifyChange()` | Trigger manual change notification |
+| `saveConfiguration()` | Simpan konfigurasi collection |
 
 ### Cursor
 
-| Method | Deskripsi |
-|--------|-----------|
-| `limit($n)` | Set limit |
-| `skip($n)` | Set skip |
-| `sort($fields)` | Set sort order |
-| `populate($field, $col, $opts)` | Populate relasi |
-| `withTrashed()` | Include soft-deleted |
+| Method | Keterangan |
+|--------|------------|
+| `limit($n)` | Batas hasil |
+| `skip($n)` | Lewati hasil awal |
+| `sort($fields)` | Urutkan hasil |
+| `populate($field, $collection, $options = [])` | Populate relasi |
+| `withTrashed()` | Sertakan soft-deleted |
 | `onlyTrashed()` | Hanya soft-deleted |
-| `toArray()` | Konversi ke array |
-| `each($callable)` | Iterasi tiap document |
+| `toArray()` | Materialisasi ke array |
+| `toArraySafe($maxResults = null)` | Materialisasi dengan batas aman |
+| `each($callback)` | Iterasi tiap dokumen |
 
-## Environment Configuration
+## Konfigurasi Environment
 
-Salin `.env.example` ke `.env`:
+Salin `.env.example` menjadi `.env` lalu isi sesuai kebutuhan:
 
 ```env
-DB_PATH=                # Path database (kosongkan untuk in-memory)
-ENCRYPTION_KEY=         # Key 32 byte untuk AES-256-CBC
-QUERY_LOGGING=false     # Log query (true/false)
-PERFORMANCE_MONITORING=false  # Monitor performa (true/false)
+DB_PATH=                         # Kosongkan untuk in-memory
+ENCRYPTION_KEY=                  # Key kuat minimal 32 karakter
+QUERY_LOGGING=false
+PERFORMANCE_MONITORING=false
 ```
 
 ## Contoh Lengkap
 
-Lihat folder `examples/` untuk implementasi lengkap:
+Lihat folder [examples/](examples/) untuk contoh end-to-end:
 
-- `01-basic-crud.php` - Operasi CRUD dasar
-- `02-encryption.php` - Enkripsi data
-- `03-schema-validation.php` - Validasi schema
-- `04-soft-deletes.php` - Soft deletes
-- `05-searchable-fields.php` - Searchable fields
-- `06-hooks.php` - Hooks & events
-- `07-relationships.php` - Relasi antar collection
-- `08-transactions.php` - Transaksi
-- `10-advanced.php` - Demo semua fitur
+- `01-quick-start-crud.php`
+- `02-query-operators.php`
+- `03-encryption-searchable.php`
+- `04-schema-validation.php`
+- `05-soft-deletes.php`
+- `06-hooks.php`
+- `07-relationships-populate.php`
+- `08-transactions.php`
+- `09-indexing-health-monitoring.php`
+- `10-dynamic-configuration.php`
+- `11-multiple-databases.php`
+- `12-id-modes-collection-management.php`
+- `13-security-features.php`
+- `14-ecommerce-app.php`
+- `15-auth-encrypted.php`
 
-## Performa
+## Kontribusi
 
-Hasil benchmark (PHP 8.3, SSD, 1000 records):
+Lihat [CONTRIBUTING.md](CONTRIBUTING.md).
 
-| Operasi | Waktu | Performa |
-|---------|-------|----------|
-| Insert (1000x) | 215 ms | ~4,600 ops/sec |
-| Find One (no index) | 56 ms | ~1,780 ops/sec |
-| Find One (with index) | 2.8 ms | ~35,000 ops/sec |
-| Update (100x) | 19 ms | ~5,000 ops/sec |
-| Pagination (50 pages) | 5 ms | ~0.10 ms/page |
-| Query Encrypted (100x) | 15 ms | ~6,350 ops/sec |
+## Lisensi
 
-> **Tip**: Index memberikan **~20x speedup** pada find operations.
-
-## Contributing
-
-Lihat [CONTRIBUTING.md](CONTRIBUTING.md) untuk panduan berkontribusi.
-
-## License
-
-[MIT](LICENSE) - BangronDB © 2024
+BangronDB dilisensikan dengan [MIT](LICENSE).
