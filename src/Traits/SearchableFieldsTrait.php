@@ -45,10 +45,16 @@ trait SearchableFieldsTrait
         foreach ($fields as $key => $value) {
             if (is_int($key)) {
                 // Flat array: ['field1', 'field2']
-                $this->searchableFields[(string) $value] = ['hash' => $hash];
+                $fieldName = (string) $value;
+                \BangronDB\Security\FieldValidator::validateFieldName($fieldName);
+                $this->searchableFields[$fieldName] = ['hash' => $hash];
             } else {
                 // Associative array: ['field1' => ['hash' => true]]
-                $this->searchableFields[(string) $key] = $value;
+                $fieldName = (string) $key;
+                \BangronDB\Security\FieldValidator::validateFieldName($fieldName);
+                $this->searchableFields[$fieldName] = [
+                    'hash' => (bool) ($value['hash'] ?? $value),
+                ];
             }
         }
 
@@ -64,6 +70,8 @@ trait SearchableFieldsTrait
      */
     public function removeSearchableField(string $field, bool $dropColumn = false): self
     {
+        \BangronDB\Security\FieldValidator::validateFieldName($field);
+
         if (isset($this->searchableFields[$field])) {
             unset($this->searchableFields[$field]);
         }
@@ -76,11 +84,21 @@ trait SearchableFieldsTrait
     }
 
     /**
+     * Build the physical column name for a searchable field.
+     */
+    protected function buildSearchableColumnName(string $field): string
+    {
+        \BangronDB\Security\FieldValidator::validateFieldName($field);
+
+        return self::$searchablePrefix . $field;
+    }
+
+    /**
      * Drop a searchable column from the database table.
      */
     private function dropSearchableColumn(string $field): void
     {
-        $col = self::$searchablePrefix . $field;
+        $col = $this->buildSearchableColumnName($field);
         $table = $this->database->quoteIdentifier($this->name);
         // Check if column exists
         $stmt = $this->database->connection->query("PRAGMA table_info({$table})");
@@ -163,9 +181,10 @@ trait SearchableFieldsTrait
         }
 
         foreach ($this->searchableFields as $field => $cfg) {
-            $col = self::$searchablePrefix . $field;
+            $col = $this->buildSearchableColumnName($field);
             if (!isset($existing[$col])) {
-                $this->database->connection->exec("ALTER TABLE {$table} ADD COLUMN `{$col}` TEXT NULL");
+                $quotedColumn = '`' . str_replace('`', '``', $col) . '`';
+                $this->database->connection->exec("ALTER TABLE {$table} ADD COLUMN {$quotedColumn} TEXT NULL");
             }
         }
     }
@@ -205,11 +224,9 @@ trait SearchableFieldsTrait
                 if ($cfg['hash']) {
                     $val = hash('sha256', $val);
                 }
-                // Note: strtolower already applied above for non-array values,
-                // no need to apply it again here
             }
 
-            $out[self::$searchablePrefix . $field] = $val;
+            $out[$this->buildSearchableColumnName($field)] = $val;
         }
 
         return $out;

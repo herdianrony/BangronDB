@@ -93,7 +93,7 @@ trait QueryBuilderTrait
 
         // If this key is configured as searchable, use the searchable column
         if (isset($this->searchableFields[$key])) {
-            return '`' . $this->getSearchablePrefix() . $key . '`';
+            return '`' . str_replace('`', '``', $this->buildSearchableColumnName($key)) . '`';
         }
 
         return "json_extract(document, '" . $path . "')";

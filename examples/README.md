@@ -1,61 +1,87 @@
 # BangronDB Examples
 
-Kumpulan contoh penggunaan BangronDB yang mencakup semua fitur dan berbagai skenario.
+Folder `examples/` berisi contoh penggunaan BangronDB untuk fitur inti sampai skenario aplikasi yang lebih lengkap.
 
 ## Daftar Contoh
 
-| # | File | Topik | Fitur yang Dicover |
-|---|------|-------|--------------------|
-| 01 | `01-quick-start-crud.php` | Quick Start & CRUD | insert, find, update, delete, pagination, sorting, projection, save/upsert |
-| 02 | `02-query-operators.php` | Query Operators | $gt, $gte, $lt, $lte, $ne, $in, $nin, $and, $or, $has, $all, $size, $regex, $not, $exists, $where, $func, $fuzzy, dot notation |
-| 03 | `03-encryption-searchable.php` | Enkripsi & Searchable | AES-256 encryption, searchable fields (hashed/plain), encryption key dari .env |
-| 04 | `04-schema-validation.php` | Schema Validation | type, required, enum, regex, min/max, array constraints, validate(), update validation |
-| 05 | `05-soft-deletes.php` | Soft Deletes | soft delete, restore, force delete, withTrashed, onlyTrashed |
-| 06 | `06-hooks.php` | Hooks (Events) | beforeInsert, afterInsert, beforeUpdate, afterUpdate, beforeRemove, afterRemove, veto, chaining |
-| 07 | `07-relationships-populate.php` | Relationships | single populate, array references, multi-level, cross-database, cursor-based |
-| 08 | `08-transactions.php` | Transactions | beginTransaction, commit, rollback, batch insert, atomic operations |
-| 09 | `09-indexing-health-monitoring.php` | Indexing & Monitoring | createIndex, dropIndex, health metrics, health report, performance, VACUUM, change notification |
-| 10 | `10-dynamic-configuration.php` | Dynamic Configuration | saveConfiguration, custom config, permissions, auto-load, persistence |
-| 11 | `11-multiple-databases.php` | Multiple Databases | multi-DB, data isolation, cross-DB populate, attach/detach |
-| 12 | `12-id-modes-collection-management.php` | ID Modes & Management | UUID auto, manual ID, prefix ID, renameCollection, dropCollection |
-| 13 | `13-security-features.php` | Security | Closure-only $where/$func, field validation, path traversal, PRAGMA escaping, FieldValidator |
-| 14 | `14-ecommerce-app.php` | Real-World App | E-commerce: schema, hooks, encryption, searchable, soft deletes, transactions, populate, monitoring |
+| # | File | Topik | Sorotan |
+|---|------|-------|----------|
+| 01 | `01-quick-start-crud.php` | Quick Start & CRUD | insert, find, update, delete, projection, pagination, sorting, save/upsert |
+| 02 | `02-query-operators.php` | Query Operators | comparison, logical, array operators, regex, Closure, fuzzy search, dot notation |
+| 03 | `03-encryption-searchable.php` | Enkripsi & Searchable Fields | AES-256-GCM, hashed/plain searchable fields, runtime key |
+| 04 | `04-schema-validation.php` | Schema Validation | required, type, enum, regex, min/max, validasi sebelum insert/update |
+| 05 | `05-soft-deletes.php` | Soft Deletes | soft delete, restore, force delete, `withTrashed()`, `onlyTrashed()` |
+| 06 | `06-hooks.php` | Hooks | before/after insert, update, remove, veto, chaining |
+| 07 | `07-relationships-populate.php` | Relationships / Populate | populate tunggal, nested, array reference, cross-database |
+| 08 | `08-transactions.php` | Transactions | beginTransaction, commit, rollback, atomic workflow |
+| 09 | `09-indexing-health-monitoring.php` | Indexing & Monitoring | index, metrics, health report, integrity check, change notification |
+| 10 | `10-dynamic-configuration.php` | Dynamic Configuration | `saveConfiguration()`, auto-load config, custom config |
+| 11 | `11-multiple-databases.php` | Multiple Databases | multi database, isolasi data, cross-database populate |
+| 12 | `12-id-modes-collection-management.php` | ID Modes & Collection Management | UUID, manual ID, prefix ID, rename, drop |
+| 13 | `13-security-features.php` | Security | Closure-only operators, field validation, path safety, PRAGMA escaping |
+| 14 | `14-ecommerce-app.php` | Real-World Example | schema, hooks, encryption, searchable fields, soft deletes, transactions, populate |
+| 15 | `15-auth-encrypted.php` | Authentication Example | data auth terenkripsi, query aman, praktik penyimpanan secret |
 
-## Menjalankan
+## Cara Menjalankan
+
+Pastikan dependency sudah terpasang:
 
 ```bash
 composer install
+```
 
-# Jalankan satu contoh
+Jalankan salah satu example:
+
+```bash
 php examples/01-quick-start-crud.php
+```
 
-# Atau dengan FrankenPHP
+Atau dengan FrankenPHP:
+
+```bash
 frankenphp php-cli examples/01-quick-start-crud.php
 ```
 
 ## Catatan Penting
 
-### saveConfiguration()
-Untuk fitur berikut, **WAJIB** panggil `saveConfiguration()` agar konfigurasi tersimpan di database:
+### 1. `saveConfiguration()` untuk persist konfigurasi
+
+Jika Anda ingin konfigurasi collection tetap tersimpan setelah aplikasi dibuka ulang, panggil:
 
 ```php
 $collection->setSchema([...]);
 $collection->setSearchableFields([...]);
 $collection->useSoftDeletes(true);
-$collection->saveConfiguration(); // WAJIB
+$collection->saveConfiguration();
 ```
 
-### Encryption Key
-Encryption key **TIDAK** disimpan di database. Selalu sediakan dari `.env` atau secret manager:
+Tanpa `saveConfiguration()`, konfigurasi tersebut hanya berlaku di runtime saat ini.
+
+### 2. Encryption key tidak disimpan di database
+
+Selalu supply key dari environment atau secret manager:
 
 ```php
 $collection->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
 ```
 
-### Hooks Tidak Persist
-Hooks harus didaftarkan ulang setiap session (tidak disimpan di database):
+### 3. Hooks tidak dipersist
+
+Hooks harus didaftarkan ulang setiap startup / request:
 
 ```php
-// Daftar di bootstrap/setiap request
-$collection->on('beforeInsert', function($doc) { ... });
+$collection->on('beforeInsert', function ($doc) {
+    $doc['created_at'] = date('c');
+    return $doc;
+});
 ```
+
+### 4. Example adalah panduan, bukan benchmark mutlak
+
+Beberapa example menekankan kejelasan alur. Untuk production, Anda tetap perlu menyesuaikan:
+
+- struktur folder
+- manajemen secret
+- penanganan exception
+- logging
+- strategi backup
