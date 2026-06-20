@@ -134,7 +134,7 @@ $users->saveConfiguration();
 
 ## 6. Regex dan fuzzy search
 
-BangronDB menerapkan pembatasan tambahan untuk membantu mengurangi risiko ReDoS, termasuk penolakan terhadap beberapa pola recursive, lookbehind, backreference, dan nested quantifier yang berbahaya. Meski begitu, tetap hindari pola regex yang terlalu kompleks.
+BangronDB menerapkan pembatasan tambahan untuk membantu mengurangi risiko ReDoS, termasuk penolakan terhadap beberapa pola recursive, lookbehind, numeric backreference, dan nested quantifier yang berbahaya. Meski begitu, tetap hindari pola regex yang terlalu kompleks.
 
 ### Lebih aman
 
@@ -219,5 +219,6 @@ Periksa hal berikut:
 - [ ] Jangan pakai string function name pada `$where` / `$func`
 - [ ] Batasi field yang dijadikan searchable
 - [ ] Validasi input user sebelum dipakai sebagai query
-- [ ] Tambahkan regression test untuk area encryption, hooks, dan searchable fields
+- [ ] Tambahkan regression test untuk area encryption, hooks, searchable fields, dan SQL fast-path
 - [ ] Audit logika hook yang sensitif
+- [ ] Jalankan static analysis (`composer analyze`) di workflow development Anda

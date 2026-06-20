@@ -17,7 +17,7 @@ class UtilArrayQuery
     private const REDOS_PATTERNS = [
         '/([+*?]|\{[^}]*\})\s*([+*?]|\{)/',                    // Quantifier followed by another quantifier
         '/\((?:[^()\\]|\\.)*([+*?]|\{[^}]*\})(?:[^()\\]|\\.)*\)\s*(?:[+*?]|\{)/', // Quantified group followed by quantifier
-        '/\\[1-9][0-9]*/',                                       // Numeric backreferences
+        '/[\\\\][1-9][0-9]*/',                               // Numeric backreferences
         '/\(\?(?:R|[0-9]|&)/',                                  // Recursive/subroutine calls
         '/\(\?<(?=[=!])/',                                      // Lookbehind assertions
     ];
