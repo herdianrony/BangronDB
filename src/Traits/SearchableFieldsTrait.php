@@ -122,7 +122,7 @@ trait SearchableFieldsTrait
                 return "`{$n}`";
             }, $colsToKeep));
 
-            $tmp = $this->name . '_tmp_' . uniqid();
+            $tmp = $this->name . '_tmp_' . bin2hex(random_bytes(8));
             $quotedTmp = $this->database->quoteIdentifier($tmp);
             // Create temp table with only the kept columns
             $createCols = [];

@@ -242,4 +242,15 @@ class DynamicConfigTest extends TestCase
         $this->assertStringContainsString('(?<=test)', $rawPattern);
         $this->assertStringNotContainsString('(?<=test)', $schema['email']['regex']);
     }
+
+    public function testLoadedDeletedAtFieldIsValidatedFromConfig()
+    {
+        $this->db->saveCollectionConfig('users', [
+            'soft_deletes_enabled' => true,
+            'deleted_at_field' => 'deleted_at',
+        ]);
+
+        $users = $this->db->createCollection('users');
+        $this->assertSame('deleted_at', $users->getDeletedAtField());
+    }
 }

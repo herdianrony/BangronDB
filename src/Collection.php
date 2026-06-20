@@ -108,7 +108,7 @@ class Collection
             try {
                 foreach ($document as $doc) {
                     if (!\is_array($doc)) {
-                        continue;
+                        throw new \InvalidArgumentException('Batch insert requires all items to be arrays');
                     }
 
                     $res = $this->_insert($doc);

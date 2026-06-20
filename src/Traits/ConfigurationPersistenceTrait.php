@@ -53,8 +53,8 @@ trait ConfigurationPersistenceTrait
                 $this->useSoftDeletes($config['soft_deletes_enabled']);
             }
 
-            if (isset($config['deleted_at_field'])) {
-                $this->deletedAtField = $config['deleted_at_field'];
+            if (isset($config['deleted_at_field']) && is_string($config['deleted_at_field'])) {
+                $this->setDeletedAtField($config['deleted_at_field']);
             }
 
             // Load custom configuration

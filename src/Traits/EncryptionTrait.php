@@ -243,7 +243,7 @@ trait EncryptionTrait
      */
     private function getDerivedKey(string $key, string $salt): string
     {
-        $cacheKey = md5($key . "\0" . $salt);
+        $cacheKey = hash('sha256', $key . "\0" . $salt);
 
         if (isset(self::$derivedKeyCache[$cacheKey])) {
             return self::$derivedKeyCache[$cacheKey];

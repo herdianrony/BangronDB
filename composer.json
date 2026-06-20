@@ -49,7 +49,7 @@
         "test": "phpunit",
         "test-coverage": "phpunit --coverage-text --coverage-html=coverage/",
         "lint": "find src/ tests/ -name \"*.php\" -exec php -l {} \\;",
-        "analyze": "phpstan analyse --configuration=phpstan.neon --no-progress",
+        "analyze": "phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M",
         "clean": "rm -rf vendor/ .phpunit.result.cache coverage/"
     },
     "config": {

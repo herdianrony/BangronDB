@@ -6,6 +6,7 @@ namespace BangronDB\Tests;
 
 use BangronDB\Collection;
 use BangronDB\Database;
+use BangronDB\Exceptions\ValidationException;
 use PHPUnit\Framework\TestCase;
 
 class SoftDeleteTest extends TestCase
@@ -160,6 +161,12 @@ class SoftDeleteTest extends TestCase
         $deleted = $collection->find()->onlyTrashed()->toArray();
         $this->assertCount(1, $deleted);
         $this->assertArrayHasKey('_deleted_at', $deleted[0]);
+    }
+
+    public function testSetDeletedAtFieldValidatesFieldName()
+    {
+        $this->expectException(ValidationException::class);
+        $this->collection->setDeletedAtField("deleted; DROP TABLE");
     }
 
     public function testSoftDeletesDisabledByDefault()

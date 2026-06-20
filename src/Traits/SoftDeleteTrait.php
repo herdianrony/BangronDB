@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace BangronDB\Traits;
 
+use BangronDB\Security\FieldValidator;
+
 /**
  * Trait for soft deletes.
  */
@@ -59,6 +61,7 @@ trait SoftDeleteTrait
      */
     public function setDeletedAtField(string $field): self
     {
+        FieldValidator::validateFieldName($field);
         $this->deletedAtField = $field;
         return $this;
     }

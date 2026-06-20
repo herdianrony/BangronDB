@@ -44,6 +44,15 @@ class CollectionTest extends TestCase
         $this->assertEquals(2, $count);
     }
 
+    public function testInsertManyDocumentsRejectsNonArrayItems()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->collection->insert([
+            ['name' => 'John'],
+            'invalid-item',
+        ]);
+    }
+
     public function testFindAll()
     {
         $this->collection->insert(['name' => 'John']);

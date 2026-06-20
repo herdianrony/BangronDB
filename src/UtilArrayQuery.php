@@ -46,7 +46,7 @@ class UtilArrayQuery
         $keys = \array_keys($condition);
 
         foreach ($keys as &$key) {
-            if ($key == '$options') {
+            if ($key === '$options') {
                 continue;
             }
 
@@ -118,7 +118,7 @@ class UtilArrayQuery
                             return false;
                         }
                     } else {
-                        if ($d != $value) {
+                        if ($d !== $value) {
                             return false;
                         }
                     }
