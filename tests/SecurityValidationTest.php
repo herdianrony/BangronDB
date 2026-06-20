@@ -280,6 +280,20 @@ class SecurityValidationTest extends TestCase
         UtilArrayQuery::match($criteria, $doc);
     }
 
+    public function testSqlFastPathRejectsMaliciousFieldName(): void
+    {
+        $db = new Database(':memory:');
+        try {
+            $users = $db->createCollection('users');
+            $users->insert(['name' => 'John']);
+
+            $this->expectException(ValidationException::class);
+            $users->find(["name'; DROP TABLE users; --" => 'John'])->toArray();
+        } finally {
+            $db->close();
+        }
+    }
+
     // ==================== Regex Operator Safety Tests ====================
 
     public function testRegexOperatorWithValidPattern(): void

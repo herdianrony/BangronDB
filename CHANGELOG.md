@@ -29,6 +29,7 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) dan [S
 - `selectDB()` dan `selectCollection()` kini bersifat non-lazy, sehingga pembuatan resource dilakukan secara eksplisit
 - Ditambahkan catatan migrasi kompatibilitas untuk perubahan dari lazy ke non-lazy
 - Contoh aplikasi dan example scripts diperbarui ke API terbaru
+- CI matrix diperbarui ke PHP 8.1+ dan static analysis PHPStan ditambahkan
 
 ### Changed
 

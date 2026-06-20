@@ -58,10 +58,11 @@ Detail migrasi tersedia di:
 
 ## 🧪 Validation Status
 
-- **303 tests**
-- **881 assertions**
+- **304 tests**
+- **882 assertions**
 - seluruh test suite lulus
 - **examples 01–15 berhasil dijalankan**
+- **PHPStan** lulus dengan baseline terkelola
 
 ## 📚 Docs & Resources
 

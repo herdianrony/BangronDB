@@ -13,26 +13,6 @@ use BangronDB\Security\FieldValidator;
 trait QueryBuilderTrait
 {
     /**
-     * Detect simple equality criteria (no $ operators).
-     */
-    private function _isSimpleEqualityCriteria(mixed $criteria): bool
-    {
-        if (!is_array($criteria)) {
-            return false;
-        }
-        foreach ($criteria as $k => $v) {
-            if (strpos((string) $k, '$') === 0) {
-                return false;
-            }
-            if (is_array($v)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Determine if a criteria array can be translated to a JSON-based SQL WHERE clause.
      */
     public function _canTranslateToJsonWhere(mixed $criteria): bool

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ master, main ]
 
 jobs:
   test:
@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.0', '8.1', '8.2', '8.3']
+        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 
     name: PHP ${{ matrix.php-version }} Tests
     steps:
@@ -36,7 +36,7 @@ jobs:
         run: composer test
 
       - name: Execute tests with coverage
-        if: matrix.php-version == '8.3'
+        if: matrix.php-version == '8.5'
         run: composer test-coverage
 
   lint:
@@ -49,11 +49,30 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           extensions: pdo_sqlite, openssl
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Check syntax errors
-        run: find src/ tests/ -name "*.php" -exec php -l {} \; 2>&1 | grep -v "No syntax errors"
+        run: composer lint
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    name: Static Analysis
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_sqlite, openssl
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run PHPStan
+        run: composer analyze

@@ -75,6 +75,7 @@ Gunakan `createDB()` dan `createCollection()` untuk pembuatan resource baru.
 
 Diverifikasi dengan:
 
-- 303 tests
-- 881 assertions
+- 304 tests
+- 882 assertions
 - seluruh test lulus
+- static analysis PHPStan lulus dengan baseline terkelola
