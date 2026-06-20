@@ -125,4 +125,50 @@ class DatabaseTest extends TestCase
             'key_length' => 32,
         ], $this->db->getEncryptionKeyStatus());
     }
+
+    public function testMemoryEncryptionSaltIsStablePerInstance()
+    {
+        $salt1 = $this->db->getEncryptionSalt();
+        $salt2 = $this->db->getEncryptionSalt();
+
+        $this->assertNotEmpty($salt1);
+        $this->assertSame($salt1, $salt2);
+    }
+
+    public function testFileEncryptionSaltPersistsPerDatabase()
+    {
+        $path = sys_get_temp_dir() . '/bangrondb_salt_' . uniqid() . '.bangron';
+
+        try {
+            $db1 = new Database($path);
+            $salt1 = $db1->getEncryptionSalt();
+            $db1->close();
+
+            $db2 = new Database($path);
+            $salt2 = $db2->getEncryptionSalt();
+            $db2->close();
+
+            $this->assertNotEmpty($salt1);
+            $this->assertSame($salt1, $salt2);
+        } finally {
+            @unlink($path);
+            @unlink($path . '-wal');
+            @unlink($path . '-shm');
+        }
+    }
+
+    public function testDropRejectsNonBangronExtension()
+    {
+        $path = sys_get_temp_dir() . '/bangrondb_invalid_' . uniqid() . '.sqlite';
+
+        try {
+            $db = new Database($path);
+            $this->expectException(\RuntimeException::class);
+            $db->drop();
+        } finally {
+            @unlink($path);
+            @unlink($path . '-wal');
+            @unlink($path . '-shm');
+        }
+    }
 }

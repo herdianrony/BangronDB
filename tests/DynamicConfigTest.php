@@ -221,4 +221,25 @@ class DynamicConfigTest extends TestCase
         $this->assertEquals($complexConfig['searchable_fields'], $loaded['searchable_fields']);
         $this->assertTrue($loaded['soft_deletes_enabled']);
     }
+
+    public function testLoadedSchemaRegexIsSanitizedFromConfig()
+    {
+        $rawPattern = '/(?<=test)@example\.com/';
+
+        $this->db->saveCollectionConfig('users', [
+            'schema' => [
+                'email' => [
+                    'type' => 'string',
+                    'regex' => $rawPattern,
+                ],
+            ],
+        ]);
+
+        $users = $this->db->createCollection('users');
+        $schema = $users->getSchema();
+
+        $this->assertNotSame($rawPattern, $schema['email']['regex']);
+        $this->assertStringContainsString('(?<=test)', $rawPattern);
+        $this->assertStringNotContainsString('(?<=test)', $schema['email']['regex']);
+    }
 }

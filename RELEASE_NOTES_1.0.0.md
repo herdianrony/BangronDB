@@ -56,9 +56,10 @@ Rilis ini juga sudah mencakup guardrail penting:
 
 - Closure-only untuk `$where` dan `$func`
 - validasi nama field
-- validasi path database
+- validasi path database dan directory path di entry point utama
 - PRAGMA key escaping
-- regex hardening
+- regex hardening tambahan untuk membantu mengurangi bypass ReDoS
+- key derivation dengan salt per-database dan fallback kompatibilitas untuk data lama
 - `strict_types=1` di semua file core
 
 ## Backward compatibility note
@@ -74,6 +75,6 @@ Gunakan `createDB()` dan `createCollection()` untuk pembuatan resource baru.
 
 Diverifikasi dengan:
 
-- 292 tests
-- 862 assertions
+- 303 tests
+- 881 assertions
 - seluruh test lulus

@@ -226,6 +226,24 @@ class QueryExecutorTest extends TestCase
         $this->executor->executeQuery('SELECT * FROM nonexistent_table');
     }
 
+    public function testQueryExecutionExceptionDebugInfoRedactsSensitiveParams()
+    {
+        try {
+            throw new QueryExecutionException(
+                'Test failure',
+                'SELECT * FROM users WHERE email = :email AND password = :password',
+                ['email' => 'user@example.com', 'password' => 'secret123']
+            );
+        } catch (QueryExecutionException $e) {
+            $debug = $e->__debugInfo();
+            $this->assertTrue($debug['has_sql']);
+            $this->assertSame('user@example.com', $debug['params']['email']);
+            $this->assertSame('[REDACTED]', $debug['params']['password']);
+            $this->assertSame('SELECT * FROM users WHERE email = :email AND password = :password', $e->getSql());
+            $this->assertSame(['email' => 'user@example.com', 'password' => 'secret123'], $e->getParams());
+        }
+    }
+
     public function testExecuteUpdateException()
     {
         $this->expectException(QueryExecutionException::class);

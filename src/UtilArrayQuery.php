@@ -15,16 +15,15 @@ class UtilArrayQuery
      * Dangerous regex patterns that can cause catastrophic backtracking.
      */
     private const REDOS_PATTERNS = [
-        '/(\+|\*)\s*(\+|\*)/',           // Nested quantifiers like a++ or a*+
-        '/(\+|\*)\s*\{/',                 // Quantifier followed by another quantifier
-        '/\([^)]*[+*][^)]*\)\s*[+*]/',    // Group with quantifier followed by quantifier
+        '/([+*?]|\{[^}]*\})\s*([+*?]|\{)/',                    // Quantifier followed by another quantifier
+        '/\((?:[^()\\]|\\.)*([+*?]|\{[^}]*\})(?:[^()\\]|\\.)*\)\s*(?:[+*?]|\{)/', // Quantified group followed by quantifier
+        '/\\[1-9][0-9]*/',                                       // Numeric backreferences
+        '/\(\?(?:R|[0-9]|&)/',                                  // Recursive/subroutine calls
+        '/\(\?<(?=[=!])/',                                      // Lookbehind assertions
     ];
+
     /**
      * Get a value from an array using dot notation.
-     *
-     * @param array  $data    The array to search
-     * @param string $path    The dot-notated path (e.g., 'user.name')
-     * @param mixed  $default Default value if not found
      */
     public static function get(array $data, string $path, $default = null)
     {
@@ -61,7 +60,6 @@ class UtilArrayQuery
 
     /**
      * Match a full criteria array against a document array.
-     * Supports $and, $or, $where and field comparisons (delegates to check()).
      */
     public static function match($criteria, $document)
     {
@@ -101,7 +99,6 @@ class UtilArrayQuery
 
                 default:
                     \BangronDB\Security\FieldValidator::validateFieldName($key);
-                    // resolve nested field value
                     $d = $document;
                     if (\strpos($key, '.') !== false) {
                         $keys = \explode('.', $key);
@@ -143,35 +140,29 @@ class UtilArrayQuery
             case '$eq':
                 $r = $a === $b;
                 break;
-
             case '$ne':
                 $r = $a !== $b;
                 break;
-
             case '$gte':
                 if ((\is_numeric($a) && \is_numeric($b)) || (\is_string($a) && \is_string($b))) {
                     $r = $a >= $b;
                 }
                 break;
-
             case '$gt':
                 if ((\is_numeric($a) && \is_numeric($b)) || (\is_string($a) && \is_string($b))) {
                     $r = $a > $b;
                 }
                 break;
-
             case '$lte':
                 if ((\is_numeric($a) && \is_numeric($b)) || (\is_string($a) && \is_string($b))) {
                     $r = $a <= $b;
                 }
                 break;
-
             case '$lt':
                 if ((\is_numeric($a) && \is_numeric($b)) || (\is_string($a) && \is_string($b))) {
                     $r = $a < $b;
                 }
                 break;
-
             case '$in':
                 if (\is_array($a)) {
                     $r = \is_array($b) ? \count(\array_intersect($a, $b)) : false;
@@ -179,7 +170,6 @@ class UtilArrayQuery
                     $r = \is_array($b) ? \in_array($a, $b) : false;
                 }
                 break;
-
             case '$nin':
                 if (\is_array($a)) {
                     $r = \is_array($b) ? (\count(\array_intersect($a, $b)) === 0) : false;
@@ -187,7 +177,6 @@ class UtilArrayQuery
                     $r = \is_array($b) ? (\in_array($a, $b) === false) : false;
                 }
                 break;
-
             case '$has':
                 if (\is_array($b)) {
                     throw new \InvalidArgumentException('Invalid argument for $has array not supported');
@@ -197,7 +186,6 @@ class UtilArrayQuery
                 }
                 $r = \in_array($b, $a);
                 break;
-
             case '$all':
                 if (!\is_array($a)) {
                     $a = @\json_decode($a, true) ?: [];
@@ -207,12 +195,10 @@ class UtilArrayQuery
                 }
                 $r = \count(\array_intersect($a, $b)) === \count($b);
                 break;
-
             case '$regex':
             case '$preg':
             case '$match':
             case '$not':
-                // Security: Limit regex complexity to prevent ReDoS attacks
                 $regexPattern = self::buildSafeRegexPattern($b);
                 if ($regexPattern === null) {
                     $r = false;
@@ -223,32 +209,27 @@ class UtilArrayQuery
                     $r = !$r;
                 }
                 break;
-
             case '$size':
                 if (!\is_array($a)) {
                     $a = @\json_decode($a, true) ?: [];
                 }
                 $r = (int) $b === \count($a);
                 break;
-
             case '$mod':
                 if (!\is_array($b)) {
                     throw new \InvalidArgumentException('Invalid argument for $mod option must be array');
                 }
                 $r = $a % $b[0] === ($b[1] ?? 0);
                 break;
-
             case '$func':
             case '$fn':
             case '$f':
                 \BangronDB\Security\FieldValidator::validateSafeCallable($b, $func);
                 $r = $b($a);
                 break;
-
             case '$exists':
                 $r = $b ? !\is_null($a) : \is_null($a);
                 break;
-
             case '$fuzzy':
             case '$text':
                 $distance = 3;
@@ -267,10 +248,8 @@ class UtilArrayQuery
 
                 $r = self::fuzzy_search($b, $a, $distance) >= $minScore;
                 break;
-
             default:
                 throw new \ErrorException("Condition not valid ... Use {$func} for custom operations");
-                break;
         }
 
         return $r;
@@ -282,13 +261,14 @@ class UtilArrayQuery
      */
     private static function buildSafeRegexPattern(string $pattern): ?string
     {
-        // Check pattern length
         if (strlen($pattern) > self::MAX_REGEX_LENGTH) {
             return null;
         }
 
         if (isset($pattern[0]) && $pattern[0] === '/') {
-            // Pattern already has delimiters - validate it for ReDoS patterns
+            if (str_contains($pattern, '\\g') || str_contains($pattern, '\\k<')) {
+                return null;
+            }
             foreach (self::REDOS_PATTERNS as $dangerPattern) {
                 if (preg_match($dangerPattern, $pattern)) {
                     return null;
@@ -297,8 +277,7 @@ class UtilArrayQuery
             return $pattern;
         }
 
-        // No delimiters, escape and add delimiters for safe literal matching
-        return '/'.preg_quote($pattern, '/').'/iu';
+        return '/' . preg_quote($pattern, '/') . '/iu';
     }
 
     /**
@@ -307,26 +286,23 @@ class UtilArrayQuery
     public static function levenshtein_utf8($s1, $s2)
     {
         $map = [];
-        $utf8_to_extended_ascii = function ($str) use ($map) {
-            // find all multibyte characters (cf. utf-8 encoding specs)
+        $utf8ToExtendedAscii = function ($str) use ($map) {
             $matches = [];
 
             if (!\preg_match_all('/[\xC0-\xF7][\x80-\xBF]+/', $str, $matches)) {
                 return $str;
-            } // plain ascii string
+            }
 
-            // update the encoding map with the characters not already met
             foreach ($matches[0] as $mbc) {
                 if (!isset($map[$mbc])) {
                     $map[$mbc] = \chr(128 + \count($map));
                 }
             }
 
-            // finally remap non-ascii characters
             return \strtr($str, $map);
         };
 
-        return levenshtein($utf8_to_extended_ascii($s1), $utf8_to_extended_ascii($s2));
+        return levenshtein($utf8ToExtendedAscii($s1), $utf8ToExtendedAscii($s2));
     }
 
     /**
@@ -354,7 +330,6 @@ class UtilArrayQuery
             }
         }
 
-        // Guard against division by zero if no needles
         $needleCount = \count($needles);
         if ($needleCount === 0) {
             return 0;
@@ -368,26 +343,13 @@ class UtilArrayQuery
      */
     public static function generateId()
     {
-        // Generate a UUID v4
         return sprintf(
             '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            // 32 bits for "time_low"
             random_int(0, 0xFFFF),
             random_int(0, 0xFFFF),
-
-            // 16 bits for "time_mid"
             random_int(0, 0xFFFF),
-
-            // 16 bits for "time_hi_and_version",
-            // four most significant bits holds version number 4
             random_int(0, 0x0FFF) | 0x4000,
-
-            // 16 bits, 8 bits for "clk_hi_res",
-            // 8 bits for "clk_hi_res",
-            // two most significant bits holds zero and one for variant DCE1.1
             random_int(0, 0x3FFF) | 0x8000,
-
-            // 48 bits for "node"
             random_int(0, 0xFFFF),
             random_int(0, 0xFFFF),
             random_int(0, 0xFFFF)

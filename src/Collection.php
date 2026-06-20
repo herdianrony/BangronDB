@@ -79,12 +79,12 @@ class Collection
     /**
      * Drop collection.
      */
-    public function drop()
+    public function drop(): void
     {
         $this->database->dropCollection($this->name);
     }
 
-    public function forceDelete($criteria): int
+    public function forceDelete(mixed $criteria): int
     {
         $currentSoftDelete = $this->softDeletesEnabled;
         $this->softDeletesEnabled = false;
@@ -303,7 +303,7 @@ class Collection
     /**
      * Update documents.
      */
-    public function update($criteria, array $data, bool $merge = true): int
+    public function update(mixed $criteria, array $data, bool $merge = true): int
     {
         $this->ensureCollectionExists();
         $this->applyUpdateHooks($criteria, $data);
@@ -514,7 +514,7 @@ class Collection
      *
      * @return mixed
      */
-    public function remove($criteria): int
+    public function remove(mixed $criteria): int
     {
         $this->ensureCollectionExists();
         if ($this->softDeletesEnabled) {
@@ -585,7 +585,7 @@ class Collection
     /**
      * Count documents in collections.
      */
-    public function count($criteria = null): int
+    public function count(mixed $criteria = null): int
     {
         $this->ensureCollectionExists();
 
@@ -609,7 +609,7 @@ class Collection
      *
      * @return object Cursor
      */
-    public function find($criteria = null, $projection = null): Cursor
+    public function find(mixed $criteria = null, ?array $projection = null): Cursor
     {
         return new Cursor($this, $criteria, $projection);
     }
@@ -617,7 +617,7 @@ class Collection
     /**
      * Find one document.
      */
-    public function findOne($criteria = null, $projection = null): ?array
+    public function findOne(mixed $criteria = null, ?array $projection = null): ?array
     {
         $items = $this->find($criteria, $projection)->limit(1)->toArray();
 

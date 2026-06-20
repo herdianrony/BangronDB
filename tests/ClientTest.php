@@ -169,6 +169,25 @@ class ClientTest extends TestCase
         $client->selectDB('invalid name!');
     }
 
+    public function testConstructorRejectsInvalidDirectoryPath()
+    {
+        $this->expectException(ValidationException::class);
+        new Client($this->tempDir . '/missing-subdir');
+    }
+
+    public function testConstructorRejectsPathOutsideBaseDirectory()
+    {
+        $outsideDir = sys_get_temp_dir() . '/bangrondb_outside_' . uniqid();
+        mkdir($outsideDir);
+
+        try {
+            $this->expectException(ValidationException::class);
+            new Client($outsideDir, ['base_path' => $this->tempDir]);
+        } finally {
+            @rmdir($outsideDir);
+        }
+    }
+
     public function testSelectMissingDatabaseThrowsException()
     {
         $this->expectException(DatabaseException::class);

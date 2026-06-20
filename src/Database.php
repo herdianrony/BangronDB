@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BangronDB;
 
 use BangronDB\Exceptions\CollectionException;
+use BangronDB\Security\FieldValidator;
 
 /**
  * Database object for managing SQLite database connections and operations.
@@ -13,62 +14,45 @@ use BangronDB\Exceptions\CollectionException;
  */
 class Database
 {
-    // Constants
     public const DSN_PATH_MEMORY = ':memory:';
     private const COLLECTION_NAME_REGEX = '/^[A-Za-z0-9_]+$/';
     private const IDENTIFIER_REGEX = '/^[A-Za-z0-9_]+$/';
 
-    // Instance properties
     public string $path;
     public ?Client $client = null;
-    /**
-     * @var string|null Encryption key (protected to prevent direct external access)
-     */
     protected ?string $encryptionKey = null;
     protected array $options = [];
     protected array $collections = [];
+    private ?string $encryptionSalt = null;
 
-    // Connection and criteria
-    /**
-     * @var \PDO Database connection
-     */
+    /** @var \PDO Database connection */
     public \PDO $connection;
     public ?QueryExecutor $queryExecutor = null;
     protected array $document_criterias = [];
     private ?DatabaseMetrics $metrics = null;
 
-    // Static registry for managing database instances
     protected static array $criteria_registry = [];
     protected static array $instances = [];
 
-    /**
-     * Maximum criteria registry size before triggering cleanup.
-     */
     private const MAX_CRITERIA_REGISTRY_SIZE = 1000;
-
-    /**
-     * Last cleanup timestamp.
-     */
     private static int $lastCleanupTime = 0;
-
-    /**
-     * Cleanup interval in seconds (5 minutes).
-     */
     private const CLEANUP_INTERVAL = 300;
 
-    /**
-     * Constructor.
-     */
     public function __construct(string $path = self::DSN_PATH_MEMORY, array $options = [])
     {
-        $this->path = $path;
+        $basePath = isset($options['base_path']) && is_string($options['base_path'])
+            ? $options['base_path']
+            : null;
+
+        $this->path = $path === self::DSN_PATH_MEMORY
+            ? $path
+            : FieldValidator::validateDatabasePath($path, $basePath);
         $this->options = $options;
         $this->encryptionKey = $options['encryption_key'] ?? null;
 
         $this->connection = $this->createConnection();
         $this->queryExecutor = new QueryExecutor($this->connection);
 
-        // Configure query executor based on options
         if ($this->options['query_logging'] ?? false) {
             $this->queryExecutor->setLogging(true);
         }
@@ -82,9 +66,6 @@ class Database
         $this->registerInstance();
     }
 
-    /**
-     * Create PDO connection.
-     */
     private function createConnection(): \PDO
     {
         $dsn = "sqlite:{$this->path}";
@@ -92,62 +73,40 @@ class Database
         return new \PDO($dsn, null, null, $this->options);
     }
 
-    /**
-     * Setup custom SQLite functions.
-     */
     private function setupDatabaseFunctions(): void
     {
         $conn = $this->connection;
-        // PHP 8.5+ deprecated PDO::sqliteCreateFunction() in favor of Pdo\Sqlite::createFunction()
-        // Use @ to suppress deprecation warnings on PHP 8.5+ while maintaining compatibility
         @\call_user_func([$conn, 'sqliteCreateFunction'], 'document_key', [$this, 'createDocumentKeyFunction'], 2);
         @\call_user_func([$conn, 'sqliteCreateFunction'], 'document_criteria', ['\\BangronDB\\Database', 'staticCallCriteria'], 2);
     }
 
-    /**
-     * Configure database settings for performance.
-     */
     private function configureDatabaseSettings(): void
     {
-        // Apply encryption key if set
         if ($this->encryptionKey) {
-            $escapedKey = \BangronDB\Security\FieldValidator::escapePragmaKey($this->encryptionKey);
+            $escapedKey = FieldValidator::escapePragmaKey($this->encryptionKey);
             $this->connection->exec("PRAGMA key = '{$escapedKey}'");
         }
 
-        // Set busy timeout for concurrent access (5 seconds)
         $this->connection->exec('PRAGMA busy_timeout = 5000');
 
-        // Apply Config settings with whitelist validation
         $journalMode = Config::get('journal_mode', 'WAL');
         $synchronous = Config::get('synchronous', 'NORMAL');
         $pageSize = Config::get('page_size', 4096);
         $cacheSize = Config::get('cache_size', -1024);
         $autoVacuum = Config::get('auto_vacuum', 'INCREMENTAL');
 
-        // Validate PRAGMA values against whitelists to prevent injection
         $this->execPragma('journal_mode', $journalMode, ['DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'WAL', 'OFF']);
         $this->connection->exec('PRAGMA PAGE_SIZE = ' . (int) $pageSize);
         $this->connection->exec('PRAGMA cache_size = ' . (int) $cacheSize);
         $this->execPragma('auto_vacuum', $autoVacuum, ['NONE', 'INCREMENTAL', 'FULL']);
         $this->execPragma('synchronous', $synchronous, ['OFF', 'NORMAL', 'FULL', 'EXTRA']);
 
-        // WAL auto-checkpoint threshold (in pages) for better write performance
         if (strtoupper($journalMode) === 'WAL') {
             $walAutocheckpoint = Config::get('wal_autocheckpoint', 1000);
             $this->connection->exec('PRAGMA wal_autocheckpoint = ' . (int) $walAutocheckpoint);
         }
     }
 
-    /**
-     * Execute a PRAGMA with whitelist value validation.
-     *
-     * @param string   $name       PRAGMA name (already safe - hardcoded)
-     * @param string   $value      Value to validate against whitelist
-     * @param string[] $allowed    Allowed values
-     *
-     * @throws \InvalidArgumentException If value is not in whitelist
-     */
     private function execPragma(string $name, string $value, array $allowed): void
     {
         $upper = strtoupper($value);
@@ -159,9 +118,6 @@ class Database
         $this->connection->exec("PRAGMA {$name} = {$upper}");
     }
 
-    /**
-     * Ensure the metadata table for change tracking exists.
-     */
     private function ensureMetadataTable(): void
     {
         $this->connection->exec('
@@ -171,18 +127,21 @@ class Database
             )
         ');
 
-        // Create collections configuration table (document-oriented)
         $this->connection->exec('
             CREATE TABLE IF NOT EXISTS _config (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 document TEXT
             )
         ');
+
+        $this->connection->exec('
+            CREATE TABLE IF NOT EXISTS _crypto (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        ');
     }
 
-    /**
-     * Register database instance for cleanup.
-     */
     private function registerInstance(): void
     {
         if (class_exists('WeakReference')) {
@@ -192,9 +151,6 @@ class Database
         }
     }
 
-    /**
-     * Document key function for SQLite.
-     */
     public function createDocumentKeyFunction(string $key, $document): string
     {
         if ($document === null) {
@@ -211,21 +167,11 @@ class Database
         return is_array($value) || is_object($value) ? json_encode($value) : (string) $value;
     }
 
-    /**
-     * Get the database-level encryption key (for internal library use only).
-     * Used by EncryptionTrait in Collection to access the database-level key.
-     *
-     * @internal This method is for internal library use only. Do not expose in public API.
-     * @deprecated Will be made private in a future version. Use getEncryptionKeyStatus() instead.
-     */
     public function getEncryptionKey(): ?string
     {
         return $this->encryptionKey;
     }
 
-    /**
-     * Prevent encryption key from being exposed via var_dump/print_r.
-     */
     public function __debugInfo(): array
     {
         return [
@@ -237,32 +183,19 @@ class Database
         ];
     }
 
-    /**
-     * Set the database-level encryption key.
-     *
-     * @param string|null $key Encryption key (minimum 32 characters)
-     */
     public function setEncryptionKey(?string $key): self
     {
         $this->encryptionKey = $key;
-
-        // Clear derived key cache since the key changed
         Collection::clearDerivedKeyCache();
 
         return $this;
     }
 
-    /**
-     * Check if database-level encryption is enabled.
-     */
     public function isEncryptionEnabled(): bool
     {
         return $this->encryptionKey !== null;
     }
 
-    /**
-     * Get the database-level encryption key status (does not expose the key itself).
-     */
     public function getEncryptionKeyStatus(): array
     {
         return [
@@ -271,9 +204,49 @@ class Database
         ];
     }
 
-    /**
-     * Close all known Database instances (best-effort).
-     */
+    public function getEncryptionSalt(): string
+    {
+        if ($this->encryptionSalt !== null) {
+            return $this->encryptionSalt;
+        }
+
+        if ($this->path === self::DSN_PATH_MEMORY) {
+            $this->encryptionSalt = base64_encode(random_bytes(16));
+
+            return $this->encryptionSalt;
+        }
+
+        $salt = $this->loadCryptoValue('kdf_salt');
+        if ($salt === null) {
+            $salt = base64_encode(random_bytes(16));
+            $this->saveCryptoValue('kdf_salt', $salt);
+        }
+
+        $this->encryptionSalt = $salt;
+
+        return $this->encryptionSalt;
+    }
+
+    private function loadCryptoValue(string $key): ?string
+    {
+        $stmt = $this->connection->prepare('SELECT value FROM _crypto WHERE key = ? LIMIT 1');
+        if (!$stmt || !$stmt->execute([$key])) {
+            return null;
+        }
+
+        $value = $stmt->fetchColumn();
+
+        return is_string($value) ? $value : null;
+    }
+
+    private function saveCryptoValue(string $key, string $value): void
+    {
+        $stmt = $this->connection->prepare('INSERT OR REPLACE INTO _crypto (key, value) VALUES (?, ?)');
+        if (!$stmt || !$stmt->execute([$key, $value])) {
+            throw new \RuntimeException('Failed to persist encryption salt metadata');
+        }
+    }
+
     public static function closeAll(): void
     {
         foreach (self::$instances as $key => $ref) {
@@ -282,9 +255,6 @@ class Database
         self::$instances = [];
     }
 
-    /**
-     * Close a single database instance.
-     */
     private static function closeInstance($ref, int $key): void
     {
         if (is_object($ref) && $ref instanceof \WeakReference) {
@@ -299,9 +269,6 @@ class Database
         unset(self::$instances[$key]);
     }
 
-    /**
-     * Close the database connection.
-     */
     public function close(): void
     {
         $this->cleanupCriteriaRegistry();
@@ -313,9 +280,6 @@ class Database
         }
     }
 
-    /**
-     * Clean up criteria registry.
-     */
     private function cleanupCriteriaRegistry(): void
     {
         foreach (array_keys($this->document_criterias) as $id) {
@@ -325,20 +289,12 @@ class Database
         }
     }
 
-    /**
-     * Destructor to ensure connection is closed.
-     */
     public function __destruct()
     {
         $this->close();
-        // Trigger cleanup on destruction
         $this->cleanupStaleCriteriaReferences();
     }
 
-    /**
-     * Register Criteria function.
-     * Uses random_bytes for unpredictable IDs instead of uniqid.
-     */
     public function registerCriteriaFunction($criteria): ?string
     {
         $id = 'criteria_' . bin2hex(random_bytes(8));
@@ -354,9 +310,6 @@ class Database
         return null;
     }
 
-    /**
-     * Register callable criteria function.
-     */
     private function registerCallableCriteria(string $id, callable $criteria): string
     {
         $this->document_criterias[$id] = $criteria;
@@ -365,9 +318,6 @@ class Database
         return $id;
     }
 
-    /**
-     * Register array-based criteria function.
-     */
     private function registerArrayCriteria(string $id, array $criteria): string
     {
         $fn = function ($document) use ($criteria) {
@@ -384,9 +334,6 @@ class Database
         return $id;
     }
 
-    /**
-     * Register weak reference for criteria.
-     */
     private function registerWeakReference(string $id): void
     {
         if (class_exists('WeakReference')) {
@@ -395,23 +342,13 @@ class Database
             self::$criteria_registry[$id] = $this;
         }
 
-        // Trigger periodic cleanup if registry is large
         $this->maybeCleanupCriteriaRegistry();
     }
 
-    /**
-     * Perform periodic cleanup of stale weak references.
-     *
-     * Removes entries where the weakly-referenced object has been garbage collected.
-     */
     private function maybeCleanupCriteriaRegistry(): void
     {
         $registrySize = count(self::$criteria_registry);
         $currentTime = time();
-
-        // Trigger cleanup if:
-        // 1. Registry exceeds max size, OR
-        // 2. Cleanup interval has elapsed
         $shouldCleanup = $registrySize > self::MAX_CRITERIA_REGISTRY_SIZE
             || ($currentTime - self::$lastCleanupTime) > self::CLEANUP_INTERVAL;
 
@@ -421,12 +358,6 @@ class Database
         }
     }
 
-    /**
-     * Clean up stale weak references from criteria registry.
-     *
-     * Removes dead weak references where the Database instance
-     * has been garbage collected.
-     */
     private function cleanupStaleCriteriaReferences(): void
     {
         foreach (self::$criteria_registry as $id => $ref) {
@@ -436,25 +367,11 @@ class Database
         }
     }
 
-    /**
-     * Check if a reference is stale (dead weak reference).
-     *
-     * @param mixed $ref The reference to check
-     *
-     * @return bool True if reference is stale
-     */
     private function isStaleReference($ref): bool
     {
-        if ($ref instanceof \WeakReference) {
-            return $ref->get() === null;
-        }
-
-        return false;
+        return $ref instanceof \WeakReference && $ref->get() === null;
     }
 
-    /**
-     * Execute registered criteria function.
-     */
     public function callCriteriaFunction(string $id, $document): bool
     {
         return isset($this->document_criterias[$id])
@@ -462,9 +379,6 @@ class Database
             : false;
     }
 
-    /**
-     * Static entrypoint called by SQLite extension.
-     */
     public static function staticCallCriteria(string $id, $document): bool
     {
         if (!isset(self::$criteria_registry[$id])) {
@@ -487,9 +401,6 @@ class Database
         return $db->callCriteriaFunction($id, $document);
     }
 
-    /**
-     * Resolve database reference from registry.
-     */
     private static function resolveDatabaseReference($ref): ?Database
     {
         if (is_object($ref) && $ref instanceof \WeakReference) {
@@ -499,37 +410,29 @@ class Database
         return $ref;
     }
 
-    /**
-     * Vacuum database to reclaim space.
-     */
     public function vacuum(): void
     {
         $this->connection->query('VACUUM');
     }
 
-    /**
-     * Drop database file (for non-memory databases).
-     */
     public function drop(): void
     {
         if ($this->path !== static::DSN_PATH_MEMORY) {
+            if (!str_ends_with($this->path, '.bangron')) {
+                throw new \RuntimeException('Refusing to drop a database file without .bangron extension');
+            }
+
             $this->close();
             unlink($this->path);
         }
     }
 
-    /**
-     * Ensure the physical table for a collection exists.
-     */
     public function ensureCollectionTable(string $name): void
     {
         $this->validateCollectionName($name);
         $this->executeCreateCollection($name);
     }
 
-    /**
-     * Create a collection.
-     */
     public function createCollection(string $name): Collection
     {
         $this->ensureCollectionTable($name);
@@ -541,9 +444,6 @@ class Database
         return $this->collections[$name];
     }
 
-    /**
-     * Check whether a collection exists.
-     */
     public function collectionExists(string $name): bool
     {
         $this->validateCollectionName($name);
@@ -555,9 +455,6 @@ class Database
         return in_array($name, $this->getCollectionNames(), true);
     }
 
-    /**
-     * Validate collection name.
-     */
     private function validateCollectionName(string $name): void
     {
         if (!preg_match(self::COLLECTION_NAME_REGEX, $name)) {
@@ -565,9 +462,6 @@ class Database
         }
     }
 
-    /**
-     * Execute collection creation.
-     */
     private function executeCreateCollection(string $name): void
     {
         $quoted = $this->quoteIdentifier($name);
@@ -575,9 +469,6 @@ class Database
         $this->connection->exec($sql);
     }
 
-    /**
-     * Drop a collection.
-     */
     public function dropCollection(string $name): void
     {
         $this->validateCollectionName($name);
@@ -585,9 +476,6 @@ class Database
         $this->removeCollectionFromCache($name);
     }
 
-    /**
-     * Execute collection drop.
-     */
     private function executeDropCollection(string $name): void
     {
         $quoted = $this->quoteIdentifier($name);
@@ -595,26 +483,17 @@ class Database
         $this->connection->exec($sql);
     }
 
-    /**
-     * Remove collection from cache.
-     */
     private function removeCollectionFromCache(string $name): void
     {
         unset($this->collections[$name]);
     }
 
-    /**
-     * Rename a cached collection reference.
-     */
     public function renameCollectionInCache(Collection $collection, string $oldName, string $newName): void
     {
         unset($this->collections[$oldName]);
         $this->collections[$newName] = $collection;
     }
 
-    /**
-     * Rename persisted metadata/config references for a collection.
-     */
     public function renameCollectionReferences(string $oldName, string $newName): void
     {
         $this->validateCollectionName($oldName);
@@ -631,21 +510,15 @@ class Database
         );
     }
 
-    /**
-     * Get all collection names in the database.
-     */
     public function getCollectionNames(): array
     {
-        $sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('sqlite_sequence', '_meta', '_config')";
+        $sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('sqlite_sequence', '_meta', '_config', '_crypto')";
         $stmt = $this->connection->query($sql);
         $tables = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
 
         return array_column($tables, 'name');
     }
 
-    /**
-     * Get all collections in the database.
-     */
     public function listCollections(): array
     {
         foreach ($this->getCollectionNames() as $name) {
@@ -655,11 +528,6 @@ class Database
         return $this->collections;
     }
 
-    /**
-     * Ensure collection is loaded into cache.
-     *
-     * @throws CollectionException If collection does not exist
-     */
     private function ensureCollectionLoaded(string $name): void
     {
         if (!isset($this->collections[$name])) {
@@ -673,9 +541,6 @@ class Database
         }
     }
 
-    /**
-     * Rename a collection by name.
-     */
     public function renameCollection(string $oldName, string $newName): bool
     {
         $this->validateCollectionName($oldName);
@@ -694,11 +559,6 @@ class Database
         return $collection->renameCollection($newName);
     }
 
-    /**
-     * Select collection.
-     *
-     * @throws CollectionException If collection does not exist
-     */
     public function selectCollection(string $name): Collection
     {
         $this->ensureCollectionLoaded($name);
@@ -706,44 +566,30 @@ class Database
         return $this->collections[$name];
     }
 
-    /**
-     * Magic getter for collection access.
-     */
     public function __get(string $collection): Collection
     {
         return $this->selectCollection($collection);
     }
 
-    /**
-     * Create an index for a JSON field using json_extract(document, '$.field').
-     *
-     * Security: Collection name and field path are validated and properly quoted.
-     */
     public function createJsonIndex(string $collection, string $field, ?string $indexName = null): void
     {
         $this->validateCollectionName($collection);
-
-        // Validate field name to prevent injection
-        \BangronDB\Security\FieldValidator::validateFieldName($field);
+        FieldValidator::validateFieldName($field);
 
         $indexName = $indexName ?? $this->generateIndexName($collection, $field);
 
-        // Validate index name
         if (!preg_match(self::IDENTIFIER_REGEX, $indexName)) {
             throw new \InvalidArgumentException('Invalid index name: ' . $indexName);
         }
 
         $quotedCollection = $this->quoteIdentifier($collection);
-        $path = '$.' . str_replace("'", "\\'", $field);
+        $path = '$.' . str_replace("'", "''", $field);
         $sql = 'CREATE INDEX IF NOT EXISTS `' . str_replace('`', '``', $indexName) . '` ON ' . $quotedCollection .
             " (json_extract(document, '" . $path . "'))";
 
         $this->connection->exec($sql);
     }
 
-    /**
-     * Generate index name.
-     */
     private function generateIndexName(string $collection, string $field): string
     {
         $sanitizedField = preg_replace('/[^a-zA-Z0-9_]/', '_', $field);
@@ -751,9 +597,6 @@ class Database
         return sprintf('idx_%s_%s', $collection, $sanitizedField);
     }
 
-    /**
-     * Quote an identifier (table/index/column name) in a safe manner.
-     */
     public function quoteIdentifier(string $name): string
     {
         if (!preg_match(self::IDENTIFIER_REGEX, $name)) {
@@ -763,12 +606,8 @@ class Database
         return '`' . str_replace('`', '``', $name) . '`';
     }
 
-    /**
-     * Drop an index by name.
-     */
     public function dropIndex(string $indexName): void
     {
-        // Validate index name to prevent SQL injection
         if (!preg_match(self::IDENTIFIER_REGEX, $indexName)) {
             throw new \InvalidArgumentException('Invalid index name: ' . $indexName);
         }
@@ -776,9 +615,6 @@ class Database
         $this->connection->exec($sql);
     }
 
-    /**
-     * Get or create cached DatabaseMetrics instance.
-     */
     private function getMetrics(): DatabaseMetrics
     {
         if ($this->metrics === null) {
@@ -787,49 +623,31 @@ class Database
         return $this->metrics;
     }
 
-    /**
-     * Get database health and metrics information.
-     */
     public function getHealthMetrics(): array
     {
         return $this->getMetrics()->getHealthMetrics();
     }
 
-    /**
-     * Check database integrity using SQLite's PRAGMA integrity_check.
-     */
     public function checkIntegrity(): array
     {
         return $this->getMetrics()->checkIntegrity();
     }
 
-    /**
-     * Get comprehensive data metrics for the database.
-     */
     public function getDataMetrics(): array
     {
         return $this->getMetrics()->getDataMetrics();
     }
 
-    /**
-     * Get performance metrics for the database.
-     */
     public function getPerformanceMetrics(): array
     {
         return $this->getMetrics()->getPerformanceMetrics();
     }
 
-    /**
-     * Get index metrics for the database.
-     */
     public function getIndexMetrics(): array
     {
         return $this->getMetrics()->getIndexMetrics();
     }
 
-    /**
-     * Check if a table has a specific column.
-     */
     public function tableHasColumn(string $tableName, string $columnName): bool
     {
         try {
@@ -847,19 +665,11 @@ class Database
         return false;
     }
 
-    /**
-     * Get detailed metrics for each collection.
-     */
     public function getCollectionMetrics(): array
     {
         return $this->getMetrics()->getCollectionMetrics();
     }
 
-    /**
-     * Increment metadata version for a collection and update its timestamp.
-     *
-     * @return array{version:int,last_updated:string|null}
-     */
     public function touchCollectionMetadata(string $collectionName): array
     {
         $this->validateCollectionName($collectionName);
@@ -897,11 +707,6 @@ class Database
         return $next;
     }
 
-    /**
-     * Get metadata for a single collection.
-     *
-     * @return array{version:int,last_updated:string|null}
-     */
     public function getCollectionMetadata(string $collectionName): array
     {
         $this->validateCollectionName($collectionName);
@@ -923,11 +728,6 @@ class Database
         return $this->decodeMetadataRow($row['document']);
     }
 
-    /**
-     * Get metadata for all collections.
-     *
-     * @return array<string,array{version:int,last_updated:string|null}>
-     */
     public function getAllCollectionMetadata(): array
     {
         try {
@@ -950,9 +750,6 @@ class Database
         return $metadata;
     }
 
-    /**
-     * Encode a metadata document for storage.
-     */
     private function encodeMetadataDocument(string $collectionName, array $metadata): string
     {
         $document = json_encode([
@@ -968,11 +765,6 @@ class Database
         return $document;
     }
 
-    /**
-     * Decode a metadata JSON string into a normalized array.
-     *
-     * @return array{version:int,last_updated:string|null}
-     */
     private function decodeMetadataRow(string $document): array
     {
         $decoded = json_decode($document, true);
@@ -983,11 +775,6 @@ class Database
         return $this->decodeMetadataArray($decoded);
     }
 
-    /**
-     * Normalize a decoded metadata array.
-     *
-     * @return array{version:int,last_updated:string|null}
-     */
     private function decodeMetadataArray(array $document): array
     {
         return [
@@ -998,19 +785,11 @@ class Database
         ];
     }
 
-    /**
-     * Return the default empty metadata structure.
-     *
-     * @return array{version:int,last_updated:string|null}
-     */
     private function getEmptyMetadata(): array
     {
         return ['version' => 0, 'last_updated' => null];
     }
 
-    /**
-     * Save collection configuration to database.
-     */
     public function saveCollectionConfig(string $collectionName, array $config): void
     {
         $this->validateCollectionName($collectionName);
@@ -1033,7 +812,6 @@ class Database
             throw new \RuntimeException('Failed to encode collection config as JSON');
         }
 
-        // Check if config already exists
         try {
             $stmt = $this->queryExecutor->executeQuery("SELECT id FROM _config WHERE json_extract(document, '$._id') = ?", [$collectionName]);
             $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -1042,17 +820,12 @@ class Database
         }
 
         if ($existing) {
-            // Update existing
             $this->queryExecutor->executeUpdate('UPDATE _config SET document = ? WHERE id = ?', [$encoded, $existing['id']]);
         } else {
-            // Insert new
             $this->queryExecutor->executeUpdate('INSERT INTO _config (document) VALUES (?)', [$encoded]);
         }
     }
 
-    /**
-     * Load collection configuration from database.
-     */
     public function loadCollectionConfig(string $collectionName): array
     {
         $this->validateCollectionName($collectionName);
@@ -1065,23 +838,19 @@ class Database
         }
 
         if (!$row) {
-            return []; // Return empty config if not found
+            return [];
         }
 
         $document = json_decode($row['document'], true);
         if ($document === null) {
-            return []; // Invalid JSON
+            return [];
         }
 
-        // Remove _id from returned config as it's internal
         unset($document['_id']);
 
         return $document;
     }
 
-    /**
-     * Get all collection configurations.
-     */
     public function getAllCollectionConfigs(): array
     {
         try {
@@ -1104,9 +873,6 @@ class Database
         return $configs;
     }
 
-    /**
-     * Delete collection configuration.
-     */
     public function deleteCollectionConfig(string $collectionName): void
     {
         $this->validateCollectionName($collectionName);
@@ -1114,11 +880,6 @@ class Database
         $this->queryExecutor->executeUpdate("DELETE FROM _config WHERE json_extract(document, '$._id') = ?", [$collectionName]);
     }
 
-    /**
-     * Generate a health report summary.
-     *
-     * @return array Health report
-     */
     public function getHealthReport(): array
     {
         $metrics = $this->getHealthMetrics();
@@ -1131,19 +892,16 @@ class Database
             'timestamp' => time(),
         ];
 
-        // Check integrity
         if ($metrics['integrity']['status'] !== 'healthy') {
             $report['status'] = 'critical';
             $report['issues'][] = 'Database integrity check failed';
         }
 
-        // Check fragmentation
         if (($metrics['performance']['fragmentation_ratio'] ?? 0) > 0.1) {
             $report['warnings'][] = 'High database fragmentation detected';
             $report['recommendations'][] = 'Consider running VACUUM to optimize database';
         }
 
-        // Check large collections
         foreach ($metrics['collections'] as $name => $collection) {
             if ($collection['documents'] > 10000) {
                 $report['warnings'][] = "Collection '{$name}' has many documents ({$collection['documents']})";
@@ -1151,13 +909,11 @@ class Database
             }
         }
 
-        // Check for unencrypted sensitive data
         if (!$metrics['database']['encryption_enabled']) {
             $report['warnings'][] = 'Database encryption is not enabled';
             $report['recommendations'][] = 'Consider enabling encryption for sensitive data';
         }
 
-        // Overall status determination
         if (!empty($report['issues'])) {
             $report['status'] = 'critical';
         } elseif (!empty($report['warnings'])) {
