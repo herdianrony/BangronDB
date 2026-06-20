@@ -50,3 +50,4 @@ temp/
 # Cache
 .cache/
 *.cache
+composer
