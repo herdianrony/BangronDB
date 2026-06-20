@@ -137,43 +137,14 @@ class CollectionManager
     public function updateMetadata(string $collectionName, array $metadata = []): void
     {
         try {
-            // First, check if metadata exists directly from database to avoid cache issues
-            $stmt = $this->database->queryExecutor->executeQuery(
-                "SELECT id, document FROM _meta WHERE json_extract(document, '$._id') = ?",
-                [$collectionName]
-            );
-            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            $currentVersion = 0;
-            if ($existing) {
-                $doc = json_decode($existing['document'], true);
-                $currentVersion = $doc['version'] ?? 0;
-            }
-            $newVersion = $currentVersion + 1;
-
-            $document = json_encode([
-                '_id' => $collectionName,
-                'version' => $newVersion,
-                'last_updated' => date('c'),
-            ]);
-
-            if ($existing) {
-                $this->database->queryExecutor->executeUpdate(
-                    'UPDATE _meta SET document = ? WHERE id = ?',
-                    [$document, $existing['id']]
-                );
-            } else {
-                $this->database->queryExecutor->executeUpdate(
-                    'INSERT INTO _meta (document) VALUES (?)',
-                    [$document]
-                );
-            }
+            // $metadata is reserved for future expansion; current behavior is version bump + timestamp refresh.
+            $this->database->touchCollectionMetadata($collectionName);
 
             // Clear cache for this collection to force refresh
             if ($this->cacheEnabled) {
                 unset($this->metadataCache[$collectionName]);
             }
-        } catch (QueryExecutionException $e) {
+        } catch (QueryExecutionException | \RuntimeException | \InvalidArgumentException $e) {
             // Silently fail if metadata table isn't ready or other DB issues
             error_log("Failed to update metadata for collection {$collectionName}: ".$e->getMessage());
         }
@@ -189,28 +160,14 @@ class CollectionManager
         }
 
         try {
-            $stmt = $this->database->queryExecutor->executeQuery(
-                "SELECT document FROM _meta WHERE json_extract(document, '$._id') = ?",
-                [$collectionName]
-            );
-            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-            if (!$result) {
-                $metadata = ['version' => 0, 'last_updated' => null];
-            } else {
-                $document = json_decode($result['document'], true);
-                $metadata = [
-                    'version' => $document['version'] ?? 0,
-                    'last_updated' => $document['last_updated'] ?? null,
-                ];
-            }
+            $metadata = $this->database->getCollectionMetadata($collectionName);
 
             if ($this->cacheEnabled) {
                 $this->metadataCache[$collectionName] = $metadata;
             }
 
             return $metadata;
-        } catch (QueryExecutionException $e) {
+        } catch (QueryExecutionException | \RuntimeException | \InvalidArgumentException $e) {
             return ['version' => 0, 'last_updated' => null];
         }
     }
@@ -236,22 +193,8 @@ class CollectionManager
     private function loadAllMetadata(): array
     {
         try {
-            $stmt = $this->database->queryExecutor->executeQuery('SELECT document FROM _meta');
-            $rows = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
-
-            $metadata = [];
-            foreach ($rows as $row) {
-                $document = json_decode($row['document'], true);
-                if ($document && isset($document['_id'])) {
-                    $metadata[$document['_id']] = [
-                        'version' => $document['version'] ?? 0,
-                        'last_updated' => $document['last_updated'] ?? null,
-                    ];
-                }
-            }
-
-            return $metadata;
-        } catch (QueryExecutionException $e) {
+            return $this->database->getAllCollectionMetadata();
+        } catch (QueryExecutionException | \RuntimeException $e) {
             return [];
         }
     }
@@ -340,16 +283,10 @@ class CollectionManager
     public function isModifiedSince(string $collectionName, int $timestamp): bool
     {
         $metadata = $this->getMetadata($collectionName);
+        $lastUpdatedTime = $this->normalizeMetadataTimestamp($metadata['last_updated'] ?? null);
 
-        if (!$metadata['last_updated']) {
+        if ($lastUpdatedTime === null) {
             return true; // If no last_updated, consider it modified
-        }
-
-        // SQLite CURRENT_TIMESTAMP returns format like '2026-01-22 12:51:41'
-        if (is_string($metadata['last_updated'])) {
-            $lastUpdatedTime = strtotime($metadata['last_updated']);
-        } else {
-            $lastUpdatedTime = (int) $metadata['last_updated'];
         }
 
         return $lastUpdatedTime > $timestamp;
@@ -364,23 +301,34 @@ class CollectionManager
         $modified = [];
 
         foreach ($allMetadata as $collectionName => $metadata) {
-            if (!$metadata['last_updated']) {
-                $modified[$collectionName] = $metadata; // No last_updated means modified
-                continue;
-            }
-
-            // SQLite CURRENT_TIMESTAMP returns format like '2026-01-22 12:51:41'
-            if (is_string($metadata['last_updated'])) {
-                $lastUpdatedTime = strtotime($metadata['last_updated']);
-            } else {
-                $lastUpdatedTime = (int) $metadata['last_updated'];
-            }
-
-            if ($lastUpdatedTime > $timestamp) {
+            $lastUpdatedTime = $this->normalizeMetadataTimestamp($metadata['last_updated'] ?? null);
+            if ($lastUpdatedTime === null || $lastUpdatedTime > $timestamp) {
                 $modified[$collectionName] = $metadata;
             }
         }
 
         return $modified;
+    }
+
+    /**
+     * Normalize metadata timestamps to a Unix timestamp.
+     */
+    private function normalizeMetadataTimestamp($lastUpdated): ?int
+    {
+        if ($lastUpdated === null || $lastUpdated === '') {
+            return null;
+        }
+
+        if (is_int($lastUpdated)) {
+            return $lastUpdated;
+        }
+
+        if (is_string($lastUpdated)) {
+            $timestamp = strtotime($lastUpdated);
+
+            return $timestamp === false ? null : $timestamp;
+        }
+
+        return null;
     }
 }

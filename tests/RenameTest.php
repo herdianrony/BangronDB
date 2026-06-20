@@ -136,6 +136,10 @@ class RenameTest extends TestCase
 
         // Verify collection object was updated
         $this->assertEquals('updated_collection', $this->collection->name);
+
+        // Database cache should now return the same object under the new key
+        $renamed = $this->db->selectCollection('updated_collection');
+        $this->assertSame($this->collection, $renamed);
     }
 
     public function testRenameCollectionWithManyDocuments()
@@ -206,5 +210,20 @@ class RenameTest extends TestCase
         $this->assertEquals(1, $newCollection->count());
         $item = $newCollection->findOne();
         $this->assertEquals('updated', $item['data']);
+    }
+
+    public function testRenameCollectionPreservesMetadataAndConfigurationReferences()
+    {
+        $this->collection->setSearchableFields(['code']);
+        $this->collection->saveConfiguration();
+        $this->collection->insert(['code' => 'A-1']);
+        $beforeRename = $this->collection->getLastModified();
+
+        $result = $this->collection->renameCollection('renamed_with_refs');
+        $this->assertTrue($result);
+
+        $this->assertEmpty($this->db->loadCollectionConfig('original_collection'));
+        $this->assertNotEmpty($this->db->loadCollectionConfig('renamed_with_refs'));
+        $this->assertSame($beforeRename['version'], $this->collection->getLastModified()['version']);
     }
 }

@@ -227,4 +227,25 @@ class HooksTest extends TestCase
         $this->assertTrue($doc['step1']);
         $this->assertTrue($doc['step2']);
     }
+
+    public function testSaveWithExplicitIdTriggersInsertAndUpdateHooks()
+    {
+        $events = [];
+
+        $this->collection->on('afterInsert', function ($doc, $id) use (&$events) {
+            $events[] = ['afterInsert', $id];
+        });
+
+        $this->collection->on('afterUpdate', function ($original, $updated) use (&$events) {
+            $events[] = ['afterUpdate', $updated['_id'] ?? null];
+        });
+
+        $this->collection->save(['_id' => 'hooked-id', 'name' => 'first']);
+        $this->collection->save(['_id' => 'hooked-id', 'name' => 'second']);
+
+        $this->assertSame([
+            ['afterInsert', 'hooked-id'],
+            ['afterUpdate', 'hooked-id'],
+        ], $events);
+    }
 }

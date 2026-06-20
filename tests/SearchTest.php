@@ -165,15 +165,29 @@ class SearchTest extends TestCase
 
     public function testSearchFieldsPersistAfterReopeningCollection()
     {
-        $this->collection->setSearchableFields(['priority', 'type']);
-        $this->collection->saveConfiguration();
+        $path = sys_get_temp_dir() . '/bangrondb-search-' . bin2hex(random_bytes(4)) . '.sqlite';
 
-        // Simulate reopening collection
-        $freshCollection = $this->db->selectCollection('test_collection');
+        try {
+            $db1 = new Database($path);
+            $collection1 = $db1->selectCollection('test_collection');
+            $collection1->setSearchableFields(['priority', 'type']);
+            $collection1->saveConfiguration();
+            $db1->close();
 
-        $searchable = $freshCollection->getSearchableFields();
-        $this->assertArrayHasKey('priority', $searchable);
-        $this->assertArrayHasKey('type', $searchable);
+            $db2 = new Database($path);
+            $freshCollection = $db2->selectCollection('test_collection');
+
+            $searchable = $freshCollection->getSearchableFields();
+            $this->assertArrayHasKey('priority', $searchable);
+            $this->assertArrayHasKey('type', $searchable);
+            $this->assertFalse($searchable['priority']['hash']);
+            $this->assertFalse($searchable['type']['hash']);
+            $db2->close();
+        } finally {
+            if (file_exists($path)) {
+                @unlink($path);
+            }
+        }
     }
 
     public function testSearchComplexQuery()

@@ -96,6 +96,18 @@ class CollectionTest extends TestCase
         $this->assertEquals('Jane', $remaining[0]['name']);
     }
 
+    public function testRemoveReturnsAccurateBulkDeleteCount()
+    {
+        $this->collection->insert(['status' => 'inactive', 'name' => 'A']);
+        $this->collection->insert(['status' => 'inactive', 'name' => 'B']);
+        $this->collection->insert(['status' => 'active', 'name' => 'C']);
+
+        $removed = $this->collection->remove(['status' => 'inactive']);
+
+        $this->assertEquals(2, $removed);
+        $this->assertEquals(1, $this->collection->count());
+    }
+
     public function testCount()
     {
         $this->collection->insert(['name' => 'John']);

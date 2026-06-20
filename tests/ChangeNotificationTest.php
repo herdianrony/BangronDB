@@ -196,8 +196,8 @@ class ChangeNotificationTest extends TestCase
     {
         $before = $this->collection->getLastModified()['version'];
 
-        // Insert new document
-        $doc = ['name' => 'Test'];
+        // Insert new document with explicit ID so the second save becomes a true upsert update
+        $doc = ['_id' => 'save-upsert-test', 'name' => 'Test'];
         $this->collection->save($doc);
 
         $afterInsert = $this->collection->getLastModified()['version'];
