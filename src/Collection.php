@@ -36,20 +36,20 @@ class Collection
      * ID Generation Mode Constants.
      */
     // Backward-compatible enum references
-    public const ID_MODE_AUTO = IdMode::Auto->value;          // Generate UUID v4 automatically
-    public const ID_MODE_MANUAL = IdMode::Manual->value;      // Use provided _id only
-    public const ID_MODE_PREFIX = IdMode::Prefix->value;      // Generate with prefix
+    public const ID_MODE_AUTO = 'auto';          // Generate UUID v4 automatically
+    public const ID_MODE_MANUAL = 'manual';      // Use provided _id only
+    public const ID_MODE_PREFIX = 'prefix';      // Generate with prefix
 
     /**
      * Hook Event Constants.
      */
     // Backward-compatible enum references
-    public const HOOK_BEFORE_INSERT = HookEvent::BeforeInsert->value;
-    public const HOOK_AFTER_INSERT = HookEvent::AfterInsert->value;
-    public const HOOK_BEFORE_UPDATE = HookEvent::BeforeUpdate->value;
-    public const HOOK_AFTER_UPDATE = HookEvent::AfterUpdate->value;
-    public const HOOK_BEFORE_REMOVE = HookEvent::BeforeRemove->value;
-    public const HOOK_AFTER_REMOVE = HookEvent::AfterRemove->value;
+    public const HOOK_BEFORE_INSERT = 'beforeInsert';
+    public const HOOK_AFTER_INSERT = 'afterInsert';
+    public const HOOK_BEFORE_UPDATE = 'beforeUpdate';
+    public const HOOK_AFTER_UPDATE = 'afterUpdate';
+    public const HOOK_BEFORE_REMOVE = 'beforeRemove';
+    public const HOOK_AFTER_REMOVE = 'afterRemove';
 
     public readonly Database $database;
 
