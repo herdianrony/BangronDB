@@ -10,9 +10,9 @@
         }
     ],
     "homepage": "https://github.com/herdianrony/BangronDB",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/herdianrony/BangronDB.git"
+    "support": {
+        "issues": "https://github.com/herdianrony/BangronDB/issues",
+        "source": "https://github.com/herdianrony/BangronDB"
     },
     "keywords": [
         "database",
