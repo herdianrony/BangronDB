@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BangronDB — SQLite Document Database untuk PHP</title>
   <meta name="description" content="BangronDB adalah database dokumen berbasis SQLite untuk PHP dengan API bergaya MongoDB, enkripsi, searchable fields, hooks, schema validation, dan lifecycle API yang eksplisit." />
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="canonical" href="https://herdianrony.github.io/BangronDB/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="BangronDB" />
+  <meta property="og:title" content="BangronDB — SQLite Document Database untuk PHP" />
+  <meta property="og:description" content="Database dokumen ringan untuk PHP dengan API bergaya MongoDB, AES-256-GCM, searchable fields, hooks, schema validation, dan lifecycle API eksplisit." />
+  <meta property="og:url" content="https://herdianrony.github.io/BangronDB/" />
+  <meta property="og:image" content="https://herdianrony.github.io/BangronDB/assets/og-image.svg" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BangronDB — SQLite Document Database untuk PHP" />
+  <meta name="twitter:description" content="SQLite document database untuk PHP dengan explicit lifecycle API, encryption, searchable fields, hooks, dan examples yang tervalidasi." />
+  <meta name="twitter:image" content="https://herdianrony.github.io/BangronDB/assets/og-image.svg" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -39,14 +54,7 @@
   <header class="sticky top-0 z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur">
     <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
       <a href="#top" class="flex items-center gap-3">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-glow">
-          <svg viewBox="0 0 48 48" class="h-6 w-6 text-white" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="10" y="8" width="28" height="32" rx="6" fill="currentColor" opacity="0.18"/>
-            <rect x="14" y="12" width="20" height="24" rx="4" stroke="currentColor" stroke-width="3"/>
-            <path d="M19 20H29M19 26H29" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-            <circle cx="19" cy="32" r="2.5" fill="currentColor"/>
-          </svg>
-        </span>
+        <img src="./assets/logo.svg" alt="BangronDB logo" class="h-10 w-10 rounded-2xl shadow-glow" />
         <div>
           <div class="text-base font-semibold tracking-tight text-white">BangronDB</div>
           <div class="text-xs text-slate-400">SQLite document database for PHP</div>
@@ -83,8 +91,8 @@
             </a>
           </div>
           <div class="mt-4 flex flex-col gap-3 sm:flex-row">
-            <a href="https://github.com/herdianrony/BangronDB/blob/master/README.md" class="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-brand-500/10">
-              Baca Docs
+            <a href="./getting-started.html" class="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-brand-500/10">
+              Getting Started
             </a>
             <a href="https://github.com/herdianrony/BangronDB/blob/master/examples/README.md" class="inline-flex items-center justify-center rounded-xl border border-white/10 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-brand-400/40 hover:bg-brand-500/10">
               Lihat Examples
@@ -140,7 +148,7 @@ $id = $users-&gt;insert([
 
 $user = $users-&gt;findOne([<span class="text-emerald-300">'_id'</span> =&gt; $id]);</code></pre>
           <div class="mt-4 rounded-2xl border border-brand-400/20 bg-brand-500/5 p-4 text-sm text-brand-100">
-            <strong>Migration note:</strong> <code>selectDB()</code> dan <code>selectCollection()</code> kini non-lazy. Gunakan <code>createDB()</code> dan <code>createCollection()</code> untuk membuat resource baru.
+            <strong>Migration note:</strong> <code>selectDB()</code> dan <code>selectCollection()</code> sekarang non-lazy. Gunakan <code>createDB()</code> dan <code>createCollection()</code> untuk membuat resource baru.
           </div>
         </div>
       </div>
