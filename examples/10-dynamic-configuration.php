@@ -45,6 +45,7 @@ $users->setCustomConfig('theme', 'dark');
 // WAJIB: saveConfiguration() untuk persist
 $users->saveConfiguration();
 echo "Configuration saved to database\n";
+echo "Catatan: ID prefix yang dipersist akan dinormalisasi ke format prefix:USR\n";
 
 // ── Insert dengan Config ──────────────────────────────────
 sub('Insert Data');
@@ -114,7 +115,7 @@ echo "Custom config keys: " . implode(', ', array_keys($allConfig)) . "\n";
 sub('Database-level Config');
 
 $config = $db2->loadCollectionConfig('users');
-echo "ID mode: {$config['id_mode']}\n";
+echo "ID mode (persisted format): {$config['id_mode']}\n";
 echo "Soft deletes: " . ($config['soft_deletes_enabled'] ? 'yes' : 'no') . "\n";
 
 $allConfigs = $db2->getAllCollectionConfigs();
