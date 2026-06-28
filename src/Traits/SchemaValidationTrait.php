@@ -83,6 +83,51 @@ trait SchemaValidationTrait
     }
 
     /**
+     * Validate `unique` schema constraints against existing documents.
+     *
+     * Unlike validate(), this is collection-aware (it queries the collection),
+     * so it lives separately and is invoked by the insert/update paths. For
+     * each field declared with `'unique' => true`, it checks that no OTHER
+     * document already holds the same value.
+     *
+     * @param array<string, mixed> $document  The document being inserted/updated.
+     * @param string|null          $excludeId  _id to ignore (the document being updated).
+     *
+     * @throws ValidationException If a unique value already exists.
+     */
+    public function validateUnique(array $document, ?string $excludeId = null): bool
+    {
+        if (empty($this->schema)) {
+            return true;
+        }
+
+        foreach ($this->schema as $field => $rules) {
+            if (!is_array($rules) || empty($rules['unique'])) {
+                continue;
+            }
+
+            // Only check fields actually present in the document (partial
+            // updates that don't touch a unique field can't create a duplicate).
+            if (!array_key_exists($field, $document)) {
+                continue;
+            }
+
+            $value = $document[$field];
+            // Null/absent values are not subject to uniqueness (SQL-like NULL).
+            if ($value === null) {
+                continue;
+            }
+
+            $existing = $this->findOne([$field => $value]);
+            if ($existing !== null && ($excludeId === null || ($existing['_id'] ?? null) !== $excludeId)) {
+                throw ValidationException::uniqueConstraintViolation($field, $value);
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Sanitize schema rules before use.
      */
     protected function sanitizeSchemaRules(array $schema): array
