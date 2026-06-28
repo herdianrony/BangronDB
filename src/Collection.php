@@ -174,6 +174,7 @@ class Collection
     protected function _insert(array $document): mixed
     {
         $this->validate($document);
+        $this->validateUnique($document);
         $this->ensureCollectionExists();
         $doc = $this->applyBeforeInsertHooks($document);
         if ($doc === false) {
@@ -355,6 +356,7 @@ class Collection
             if (!$merge) {
                 $this->validate($document);
             }
+            $this->validateUnique($document, $_doc['_id'] ?? null);
             $encoded = $this->encodeStored($document);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 continue;
@@ -437,6 +439,9 @@ class Collection
         } elseif (!$merge) {
             $this->validate($document);
         }
+
+        // Enforce unique constraints, ignoring the document being updated itself.
+        $this->validateUnique($document, $_doc['_id'] ?? ($doc['_id'] ?? null));
 
         $encoded = $this->encodeStored($document);
         if (json_last_error() !== JSON_ERROR_NONE) {

@@ -36,6 +36,24 @@ class ValidationException extends BangronDBException
     }
 
     /**
+     * Create exception for a unique constraint violation.
+     *
+     * @param string              $field   Field name declared unique in the schema
+     * @param mixed               $value   The duplicate value
+     * @param array<string, mixed> $context Additional context
+     */
+    public static function uniqueConstraintViolation(string $field, $value, array $context = []): self
+    {
+        $message = "Field '{$field}' must be unique; value already exists";
+        $context = array_merge($context, [
+            'field' => $field,
+            'value' => $value,
+        ]);
+
+        return new self($message, 'UNIQUE_CONSTRAINT_VIOLATION', $context);
+    }
+
+    /**
      * Create exception for required field missing.
      *
      * @param string $field   Field name
