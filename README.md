@@ -102,6 +102,7 @@ $db = $client->app; // magic getter, untuk database yang sudah ada
 
 $client->createCollection('app', 'users');
 $client->collectionExists('app', 'users'); // true
+$client->listCollections('app');           // ['users', ...] (alias: listCollection)
 
 $users = $client->selectCollection('app', 'users');
 $users = $db->users; // magic getter, untuk collection yang sudah ada
@@ -305,7 +306,7 @@ $users->saveConfiguration();
 ```php
 $users->setSchema([
     'username' => ['required' => true, 'type' => 'string', 'min' => 3, 'max' => 50],
-    'email'    => ['required' => true, 'type' => 'string', 'regex' => '/^[^\s@]+@[^\s@]+\.[^\s@]+$/'],
+    'email'    => ['required' => true, 'type' => 'string', 'unique' => true, 'regex' => '/^[^\s@]+@[^\s@]+\.[^\s@]+$/'],
     'age'      => ['type' => 'int', 'min' => 13, 'max' => 120],
     'role'     => ['type' => 'string', 'enum' => ['admin', 'user', 'moderator']],
 ]);
@@ -317,6 +318,26 @@ $users->validate([
 ```
 
 > Validasi `enum` menggunakan strict comparison. Misalnya, nilai `0`, `false`, dan `'0'` dianggap berbeda.
+
+### Unique constraint
+
+Tandai sebuah field dengan `'unique' => true` agar BangronDB menolak dokumen baru
+(atau update) yang nilainya sudah ada di koleksi. Pengecekan dijalankan otomatis
+saat `insert()` / `update()` dan melempar `ValidationException`
+(`UNIQUE_CONSTRAINT_VIOLATION`). Nilai `null` tidak dikenai constraint, dan update
+pada dokumen yang sama (nilai tidak berubah) tidak dianggap duplikat.
+
+```php
+$users->setSchema(['email' => ['type' => 'string', 'unique' => true]]);
+$users->insert(['email' => 'a@example.com']);
+$users->insert(['email' => 'a@example.com']); // throws ValidationException
+```
+
+> Catatan untuk field **terenkripsi**: pengecekan unik memakai query equality,
+> sehingga pada koleksi terenkripsi field tersebut harus juga dijadikan
+> **searchable** (`setSearchableFields([... => ['hash' => true]])`) agar nilai
+> dapat dicari lewat blind index. Tanpa itu, dokumen terenkripsi tidak bisa
+> di-query per-nilai dan constraint tidak akan menemukan duplikat.
 
 ## Soft Deletes
 
@@ -474,6 +495,7 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 | `dropDB($name)` | Hapus database |
 | `createCollection($db, $collection)` | Membuat collection langsung dari level client |
 | `collectionExists($db, $collection)` | Mengecek collection dari level client |
+| `listCollections($db)` / `listCollection($db)` | Daftar nama collection di sebuah database (`[]` jika DB tidak ada) |
 | `renameCollection($db, $oldName, $newName)` | Rename collection dari level client |
 | `dropCollection($db, $collection)` | Hapus collection dari level client |
 | `selectCollection($db, $collection)` | Ambil collection langsung |
