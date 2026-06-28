@@ -126,6 +126,25 @@ $users->setSearchableFields(['email', 'phone'], true); // true = hash
 $users->saveConfiguration();
 ```
 
+### Cara kerja hashing (blind index)
+
+- Untuk collection **terenkripsi**, nilai hash searchable disimpan sebagai
+  **HMAC-SHA256 berkunci** ("blind index"). Kunci HMAC diturunkan dari
+  encryption key via PBKDF2 dengan salt khusus (`searchindex:`), sehingga
+  terpisah dari kunci enkripsi data.
+- Artinya: jika file `.bangron` bocor, penyerang **tidak bisa** brute-force /
+  rainbow-table nilai email/phone dari kolom `si_*` tanpa mengetahui kunci, dan
+  nilai yang sama **tidak** berkorelasi antar-database (kunci berbeda → hash
+  berbeda).
+- Untuk collection **tanpa** encryption key, nilai tetap memakai SHA-256 biasa
+  (kompatibel ke belakang; data tersebut memang tidak rahasia).
+- Migrasi data lama (SHA-256 polos → HMAC) setelah mengaktifkan enkripsi:
+  panggil `$collection->rehashSearchableField('email')`.
+
+> Catatan: query `$in` / `$nin` pada field searchable yang di-hash kini
+> dijalankan lewat SQL fast-path agar nilai query ikut di-hash dengan blind
+> index yang sama (sebelumnya bisa diam-diam mengembalikan kosong).
+
 ### Rekomendasi
 
 - gunakan hashing (`true`) untuk field sensitif seperti email, phone, username login
