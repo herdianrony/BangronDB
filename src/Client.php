@@ -101,6 +101,33 @@ class Client
         return $this->selectDB($database)->collectionExists($collection);
     }
 
+    /**
+     * List the names of all collections in a database.
+     *
+     * Returns an empty array if the database does not exist (mirrors
+     * collectionExists() behaviour — no exception for a missing DB).
+     *
+     * @return array<int, string> Collection names.
+     */
+    public function listCollections(string $database): array
+    {
+        if (!$this->dbExists($database)) {
+            return [];
+        }
+
+        return $this->selectDB($database)->getCollectionNames();
+    }
+
+    /**
+     * Alias of listCollections() for convenience / discoverability.
+     *
+     * @return array<int, string> Collection names.
+     */
+    public function listCollection(string $database): array
+    {
+        return $this->listCollections($database);
+    }
+
     public function renameCollection(string $database, string $oldName, string $newName): bool
     {
         if (!$this->dbExists($database)) {
