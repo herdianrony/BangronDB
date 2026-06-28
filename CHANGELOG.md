@@ -6,8 +6,18 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) dan [S
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-28
+
+### Added
+
+- `Client::listCollections($database)` (alias `listCollection()`) untuk menampilkan daftar nama collection dalam sebuah database; mengembalikan `[]` jika database tidak ada
+- Constraint schema `'unique' => true` — `insert()` / `update()` menolak nilai duplikat dengan `ValidationException` (`UNIQUE_CONSTRAINT_VIOLATION`); nilai `null` dikecualikan, dan update pada dokumen yang sama tidak dianggap duplikat
+- `ValidationException::uniqueConstraintViolation()` dan `Collection::validateUnique()`
+- Regression tests: `ListCollectionsTest`, `UniqueConstraintTest`, `BlindIndexTest`
+
 ### Changed
 
+- **Security:** searchable field ber-hash pada collection terenkripsi kini memakai **keyed HMAC blind index** (diturunkan dari encryption key via PBKDF2 salt khusus), menggantikan SHA-256 polos yang rentan brute-force/korelasi antar-DB; collection tanpa enkripsi tetap memakai SHA-256 (kompatibel)
 - Validasi konfigurasi collection diperketat dengan `in_array(..., true)` untuk key config dan pengecekan collection existence di `CollectionManager`
 - Validasi enum schema sekarang menggunakan strict comparison agar nilai seperti `0`, `false`, dan `'0'` tidak tertukar
 - Format persistensi `id_mode` prefix dinormalisasi menjadi `prefix:VALUE`
@@ -15,8 +25,13 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) dan [S
 
 ### Fixed
 
+- `$in` / `$nin` pada searchable field ber-hash kini diarahkan ke SQL fast-path (nilai query ikut di-hash dengan blind index); sebelumnya jatuh ke matcher in-memory dan diam-diam mengembalikan kosong
 - Edge case nested array pada operator `$in` / `$nin` sekarang ditolak eksplisit dengan exception yang jelas, alih-alih lolos ke PDO sebagai string `Array`
 - Regression tests ditambahkan untuk enum strictness, prefix config compatibility, dan validasi `$in` / `$nin`
+
+### Migration
+
+- Setelah upgrade, jalankan `Collection::rehashSearchableField($field)` pada koleksi terenkripsi yang memakai searchable hashed field agar index lama (SHA-256) dimigrasikan ke keyed HMAC
 
 ## [1.0.0] - 2026-06-20
 
