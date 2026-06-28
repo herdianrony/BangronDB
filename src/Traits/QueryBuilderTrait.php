@@ -38,7 +38,18 @@ trait QueryBuilderTrait
                     if (!in_array($op, $allowedOps, true)) {
                         return false;
                     }
-                    if (isset($this->searchableFields[(string) $k]) && in_array($op, ['$in', '$nin'], true)) {
+                    // For $in/$nin on a searchable field:
+                    //  - HASHED scalar fields MUST use the SQL fast-path: it hashes
+                    //    each value through the blind index (buildInCondition). The
+                    //    in-memory fallback compares a plaintext query value against
+                    //    the hashed stored value and would never match.
+                    //  - NON-HASHED fields (which may store comma-joined arrays) keep
+                    //    the in-memory fallback, which supports array membership.
+                    if (
+                        isset($this->searchableFields[(string) $k])
+                        && in_array($op, ['$in', '$nin'], true)
+                        && empty($this->searchableFields[(string) $k]['hash'])
+                    ) {
                         return false;
                     }
                 }
@@ -151,7 +162,7 @@ trait QueryBuilderTrait
         if ($this->isSearchableExpression($expr, $field)) {
             $value = strtolower((string) $value);
             if ($this->searchableFields[$field]['hash']) {
-                $value = hash('sha256', $value);
+                $value = $this->hashSearchableValue($value);
             }
         }
 
@@ -180,7 +191,7 @@ trait QueryBuilderTrait
             $values = array_map(function ($v) use ($field) {
                 $normalized = strtolower((string) $v);
 
-                return $this->searchableFields[$field]['hash'] ? hash('sha256', $normalized) : $normalized;
+                return $this->searchableFields[$field]['hash'] ? $this->hashSearchableValue($normalized) : $normalized;
             }, $values);
         }
 
@@ -203,7 +214,7 @@ trait QueryBuilderTrait
         if ($this->isSearchableExpression($expr, $field)) {
             $value = strtolower((string) $value);
             if ($this->searchableFields[$field]['hash']) {
-                $value = hash('sha256', $value);
+                $value = $this->hashSearchableValue($value);
             }
         }
 
