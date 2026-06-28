@@ -27,6 +27,65 @@ trait SearchableFieldsTrait
     private static string $searchablePrefix = 'si_';
 
     /**
+     * Compute the deterministic search-index hash for a (normalized) value.
+     *
+     * SECURITY: a plain SHA-256 of a low-entropy value such as an email address
+     * is brute-forceable / rainbow-tableable if the .bangron file leaks, and
+     * lets the same value be correlated across databases. When an encryption key
+     * is available we therefore use a KEYED HMAC-SHA256 ("blind index"): a
+     * dedicated search key is derived from the encryption key via PBKDF2 with a
+     * distinct salt so it is domain-separated from the data-encryption key.
+     * Without that key, an attacker with only the file cannot brute-force the
+     * index.
+     *
+     * Backward compatibility: collections with NO encryption key keep the
+     * legacy unkeyed SHA-256 (those values were never secret anyway). Existing
+     * encrypted data hashed with the old scheme can be migrated with
+     * rehashSearchableField().
+     */
+    protected function hashSearchableValue(string $normalized): string
+    {
+        $key = $this->encryptionKey ?? ($this->database->getEncryptionKey() ?? null);
+        if (empty($key)) {
+            // No secret available — legacy plain hash (non-encrypted collection).
+            return hash('sha256', $normalized);
+        }
+
+        $searchKey = $this->getSearchIndexKey($key);
+
+        return hash_hmac('sha256', $normalized, $searchKey);
+    }
+
+    /**
+     * Derive (and cache) the dedicated HMAC key for blind-index hashing.
+     * Uses PBKDF2 over the encryption key with a search-specific salt so it is
+     * independent of the data-encryption key derivation.
+     *
+     * @var array<string,string>
+     */
+    private static array $searchKeyCache = [];
+
+    private function getSearchIndexKey(string $key): string
+    {
+        $baseSalt = isset($this->database) ? $this->database->getEncryptionSalt() : 'bangrondb_encryption_salt';
+        $salt = 'searchindex:' . $baseSalt;
+        $cacheKey = hash('sha256', $key . "\0" . $salt);
+
+        if (isset(self::$searchKeyCache[$cacheKey])) {
+            return self::$searchKeyCache[$cacheKey];
+        }
+
+        $derived = hash_pbkdf2('sha256', $key, $salt, 100000, 32, true);
+
+        if (count(self::$searchKeyCache) >= 16) {
+            array_shift(self::$searchKeyCache);
+        }
+        self::$searchKeyCache[$cacheKey] = $derived;
+
+        return $derived;
+    }
+
+    /**
      * Get searchable fields configuration.
      */
     public function getSearchableFields(): array
@@ -222,7 +281,7 @@ trait SearchableFieldsTrait
 
             if ($val !== null) {
                 if ($cfg['hash']) {
-                    $val = hash('sha256', $val);
+                    $val = $this->hashSearchableValue($val);
                 }
             }
 
@@ -238,5 +297,44 @@ trait SearchableFieldsTrait
     protected function getSearchablePrefix(): string
     {
         return self::$searchablePrefix;
+    }
+
+    /**
+     * Recompute the search-index column for one hashed field across all rows.
+     *
+     * Use this to migrate data that was previously indexed with the legacy
+     * unkeyed SHA-256 to the keyed HMAC blind index (after an encryption key was
+     * configured). It re-reads each document, recomputes the index value with
+     * the current scheme, and updates the si_{field} column.
+     *
+     * @return int Number of rows updated.
+     */
+    public function rehashSearchableField(string $field): int
+    {
+        \BangronDB\Security\FieldValidator::validateFieldName($field);
+        if (!isset($this->searchableFields[$field]) || !$this->searchableFields[$field]['hash']) {
+            return 0;
+        }
+
+        $table = $this->database->quoteIdentifier($this->name);
+        $col = '`' . str_replace('`', '``', $this->buildSearchableColumnName($field)) . '`';
+        $pdo = $this->database->connection;
+
+        $rows = $pdo->query("SELECT id, document FROM {$table}")->fetchAll(\PDO::FETCH_ASSOC);
+        $update = $pdo->prepare("UPDATE {$table} SET {$col} = ? WHERE id = ?");
+
+        $count = 0;
+        foreach ($rows as $row) {
+            $doc = $this->decodeStored((string) $row['document']);
+            if (!is_array($doc)) {
+                continue;
+            }
+            $values = $this->_computeSearchIndexValues($doc);
+            $newVal = $values[$this->buildSearchableColumnName($field)] ?? null;
+            $update->execute([$newVal, $row['id']]);
+            $count++;
+        }
+
+        return $count;
     }
 }
