@@ -8,9 +8,24 @@ trait ConfigurationPersistenceTrait
 {
     /** @var array<string, mixed> user-defined non-sensitive custom config values */
     protected array $customConfig = [];
-    private const SENSITIVE_CONFIG_KEYS = [
-        'encryption_key','encryptionkey','password','passwd','secret','token','api_key','apikey','private_key','credential',
-    ];
+
+    /**
+     * Sensitive config keys that must never be persisted.
+     *
+     * Declared as a static method (not a constant) because PHP 8.1 does not
+     * allow constants in traits — that feature was added in PHP 8.2. The
+     * project targets PHP ^8.1, so a static method is the compatible,
+     * immutable equivalent.
+     *
+     * @return list<string>
+     */
+    private static function sensitiveConfigKeys(): array
+    {
+        return [
+            'encryption_key', 'encryptionkey', 'password', 'passwd',
+            'secret', 'token', 'api_key', 'apikey', 'private_key', 'credential',
+        ];
+    }
 
     protected function loadConfiguration(): void
     {
@@ -57,7 +72,7 @@ trait ConfigurationPersistenceTrait
      */
     private function filterSensitiveConfig(array $config): array
     {
-        foreach (self::SENSITIVE_CONFIG_KEYS as $sensitive) {
+        foreach (self::sensitiveConfigKeys() as $sensitive) {
             foreach (array_keys($config) as $key) {
                 if (strtolower((string)$key) === $sensitive) {
                     unset($config[$key]);
@@ -69,7 +84,7 @@ trait ConfigurationPersistenceTrait
 
     private function isSensitiveConfigKey(string $key): bool
     {
-        return in_array(strtolower($key), self::SENSITIVE_CONFIG_KEYS, true);
+        return in_array(strtolower($key), self::sensitiveConfigKeys(), true);
     }
 
     /**
