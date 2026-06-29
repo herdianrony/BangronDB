@@ -24,7 +24,7 @@ class Database
     protected array $options = [];
     protected array $collections = [];
     private ?string $encryptionSalt = null;
-    protected ?int $encryptionKeyVersion = null;
+    protected ?string $encryptionKeyVersion = null;
 
     /** @var \PDO Database connection */
     public \PDO $connection;
@@ -50,7 +50,8 @@ class Database
             : FieldValidator::validateDatabasePath($path, $basePath);
         $this->options = $options;
         $this->encryptionKey = $options['encryption_key'] ?? null;
-        $this->encryptionKeyVersion = $options['encryption_key_version'] ?? null;
+        $version = $options['encryption_key_version'] ?? null;
+        $this->encryptionKeyVersion = $version === null ? null : (string) $version;
 
         $this->connection = $this->createConnection();
         $this->queryExecutor = new QueryExecutor($this->connection);
@@ -186,20 +187,23 @@ class Database
         ];
     }
 
-    public function setEncryptionKey(?string $key): self
+    public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
     {
         $this->encryptionKey = $key;
+        if ($keyVersion !== null) {
+            $this->encryptionKeyVersion = $keyVersion;
+        }
         Collection::clearDerivedKeyCache();
 
         return $this;
     }
 
-    public function getEncryptionKeyVersion(): ?int
+    public function getEncryptionKeyVersion(): ?string
     {
         return $this->encryptionKeyVersion;
     }
 
-    public function setEncryptionKeyVersion(?int $version): self
+    public function setEncryptionKeyVersion(?string $version): self
     {
         $this->encryptionKeyVersion = $version;
 

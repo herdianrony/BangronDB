@@ -301,20 +301,32 @@ trait EncryptionTrait
             throw new \RuntimeException('Current encryption key not set - cannot rotate');
         }
         $this->validateEncryptionKey($newKey);
-        $rotated = 0;
-        $cursor = $this->find([]);
-        $oldKey = $this->encryptionKey;
-        $oldKeyVersion = $this->encryptionKeyVersion;
-        $this->setEncryptionKey($newKey, $newKeyVersion);
-        try {
-            foreach ($cursor as $doc) {
-                $id = $doc['_id'] ?? null;
-                if ($id) {
-                    $this->update(['_id' => $id], ['$set' => $doc]);
-                    $rotated++;
-                }
+
+        // 1. Fetch & decrypt ALL documents with the CURRENT (old) key BEFORE switching.
+        //    This is critical: once we call setEncryptionKey($newKey), decodeStored()
+        //    would use the new key and fail to decrypt data that is still encrypted
+        //    with the old key in the database (causing data loss).
+        $documents = [];
+        foreach ($this->find([]) as $doc) {
+            if (is_array($doc) && isset($doc['_id'])) {
+                $documents[] = $doc;
             }
-        } finally {}
+        }
+
+        // 2. Switch to the new key (any future read/write uses the new key).
+        $this->setEncryptionKey($newKey, $newKeyVersion);
+
+        // 3. Re-encrypt each decrypted document with the new key.
+        //    If an exception occurs mid-rotation, the already-rotated documents
+        //    will be readable with the new key, and un-rotated ones with the old key.
+        //    Callers can retry rotateEncryptionKey() after verifying the old key is
+        //    still configured for fallback decrypt (decryptData tries both salts).
+        $rotated = 0;
+        foreach ($documents as $doc) {
+            $this->update(['_id' => $doc['_id']], ['$set' => $doc]);
+            $rotated++;
+        }
+
         return $rotated;
     }
 

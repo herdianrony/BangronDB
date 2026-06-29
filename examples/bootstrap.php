@@ -47,3 +47,18 @@ function sub(string $title): void
 {
     echo "\n--- {$title} ---\n";
 }
+
+/**
+ * Helper: print value (string or array/anything printable).
+ * Used by examples that need pretty output of mixed values.
+ *
+ * @param mixed $value Value to print
+ */
+function p($value): void
+{
+    if (is_array($value) || is_object($value)) {
+        echo json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
+    } else {
+        echo $value . "\n";
+    }
+}

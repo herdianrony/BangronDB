@@ -121,7 +121,7 @@ echo "Tanpa key: " . ($unreadable === null ? 'null (tidak bisa decrypt)' : 'terb
 
 // Reconnect DENGAN key → data bisa dibaca
 $client2->close();
-$client3 = new Client($examplePath, ['encryption_key' => $envKey, 'encryption_key_version' => $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026']  // v1.2.0);
+$client3 = new Client($examplePath, ['encryption_key' => $envKey, 'encryption_key_version' => $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026']);  // v1.2.0
 $db3 = $client3->selectDB('secrets');
 $vault3 = $db3->selectCollection('vault');
 $readable = $vault3->findOne(['_id' => $vaultId]);

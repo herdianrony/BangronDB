@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  * - Sensitive config blocking
  * - Legacy decrypt (16-byte IV)
  */
-class SecurityValidationTest_v120 extends TestCase
+class SecurityValidationV120Test extends TestCase
 {
     private string $dir;
     private Client $client;
@@ -88,7 +88,7 @@ class SecurityValidationTest_v120 extends TestCase
         // Verify decryptData accepts 12 and 16 byte IV via reflection
         $ref = new \ReflectionClass($this->collection);
         $method = $ref->getMethod('decryptData');
-        $method->setAccessible(true);
+        // Note: setAccessible() is a no-op since PHP 8.1 and deprecated in 8.5
         $this->assertTrue($method->isPrivate());
 
         // If we got here, decrypt worked (v2 12-byte IV)
@@ -198,9 +198,9 @@ class SecurityValidationTest_v120 extends TestCase
     {
         // Simulate old dirty data in custom_config (e.g., from pre-v1.2.0)
         // setCustomConfig() now blocks, so inject via reflection
+        // Note: setAccessible() is a no-op since PHP 8.1 and deprecated in 8.5
         $ref = new \ReflectionClass($this->collection);
         $prop = $ref->getProperty('customConfig');
-        $prop->setAccessible(true);
         $prop->setValue($this->collection, [
             'theme' => 'dark',
             'password' => 'should-be-filtered',
@@ -235,19 +235,19 @@ class SecurityValidationTest_v120 extends TestCase
     {
         $dbPath = $this->dir . '/kvtest.bangron';
         $db = new Database($dbPath, [
-            'encryption_key' => 'test-key-32-chars-minimum-!!!!!',
+            'encryption_key' => 'test-key-32-chars-minimum-!!!!!!',
             'encryption_key_version' => 'test-v1'
         ]);
 
         $this->assertEquals('test-v1', $db->getEncryptionKeyVersion());
-        
+
         $status = $db->getEncryptionKeyStatus();
         $this->assertTrue($status['enabled']);
         $this->assertEquals(32, $status['key_length']);
         $this->assertEquals('test-v1', $status['key_version']);
 
         // Test setEncryptionKey with version at runtime
-        $db->setEncryptionKey('new-key-32-chars-minimum-@@@@@', 'test-v2');
+        $db->setEncryptionKey('new-key-32-chars-minimum-@@@@@@', 'test-v2');
         $this->assertEquals('test-v2', $db->getEncryptionKeyVersion());
 
         $db->close();
