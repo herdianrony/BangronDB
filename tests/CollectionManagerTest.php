@@ -28,7 +28,8 @@ class CollectionManagerTest extends TestCase
     {
         $config = [
             'id_mode' => 'prefix',
-            'encryption_key' => 'test-secret-key',
+            'encryption_enabled' => true,
+            'encryption_key_version' => 1,
             'searchable_fields' => [
                 'email' => true,
                 'phone' => false,
@@ -49,7 +50,8 @@ class CollectionManagerTest extends TestCase
 
         // Verify config
         $this->assertEquals('prefix', $loadedConfig['id_mode']);
-        $this->assertEquals('test-secret-key', $loadedConfig['encryption_key']);
+        $this->assertEquals(true, $loadedConfig['encryption_enabled']);
+        $this->assertEquals(1, $loadedConfig['encryption_key_version']);
         $this->assertEquals(['email' => true, 'phone' => false], $loadedConfig['searchable_fields']);
         $this->assertEquals($config['schema'], $loadedConfig['schema']);
         $this->assertTrue($loadedConfig['soft_deletes_enabled']);
@@ -71,7 +73,8 @@ class CollectionManagerTest extends TestCase
         // Initial config
         $this->manager->saveCollectionConfig('users', [
             'id_mode' => 'auto',
-            'encryption_key' => 'old-key',
+            'encryption_enabled' => true,
+            'encryption_key_version' => 1,
         ]);
 
         $loaded = $this->manager->loadCollectionConfig('users');
@@ -84,12 +87,13 @@ class CollectionManagerTest extends TestCase
         // Update config
         $this->manager->saveCollectionConfig('users', [
             'id_mode' => 'manual',
-            'encryption_key' => 'new-key',
+            'encryption_enabled' => true,
+            'encryption_key_version' => 2,
         ]);
 
         $updated = $this->manager->loadCollectionConfig('users');
         $this->assertEquals('manual', $updated['id_mode']);
-        $this->assertEquals('new-key', $updated['encryption_key']);
+        $this->assertEquals(2, $updated['encryption_key_version']);
         $this->assertGreaterThanOrEqual($oldUpdatedAt, $updated['updated_at']);
     }
 
@@ -274,7 +278,8 @@ class CollectionManagerTest extends TestCase
         // Valid config should not throw exception
         $validConfig = [
             'id_mode' => 'auto',
-            'encryption_key' => 'key',
+            'encryption_enabled' => true,
+            'encryption_key_version' => 1,
             'searchable_fields' => ['field' => true],
             'schema' => ['field' => ['type' => 'string']],
             'soft_deletes_enabled' => true,
@@ -284,7 +289,8 @@ class CollectionManagerTest extends TestCase
         $this->manager->saveCollectionConfig('valid', $validConfig);
         $loadedValid = $this->manager->loadCollectionConfig('valid');
         $this->assertEquals($validConfig['id_mode'], $loadedValid['id_mode']);
-        $this->assertEquals($validConfig['encryption_key'], $loadedValid['encryption_key']);
+        $this->assertEquals($validConfig['encryption_enabled'], $loadedValid['encryption_enabled']);
+        $this->assertEquals($validConfig['encryption_key_version'], $loadedValid['encryption_key_version']);
         $this->assertEquals($validConfig['searchable_fields'], $loadedValid['searchable_fields']);
         $this->assertEquals($validConfig['schema'], $loadedValid['schema']);
         $this->assertEquals($validConfig['soft_deletes_enabled'], $loadedValid['soft_deletes_enabled']);

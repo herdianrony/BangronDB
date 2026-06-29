@@ -207,7 +207,7 @@ class CollectionManager
         $validKeys = [
             'id_mode', 'searchable_fields', 'schema',
             'soft_deletes_enabled', 'deleted_at_field', 'created_at', 'updated_at',
-            'custom_config',
+            'custom_config', 'encryption_enabled', 'encryption_key_version',
         ];
 
         foreach (array_keys($config) as $key) {

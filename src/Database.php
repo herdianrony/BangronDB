@@ -24,6 +24,7 @@ class Database
     protected array $options = [];
     protected array $collections = [];
     private ?string $encryptionSalt = null;
+    protected ?int $encryptionKeyVersion = null;
 
     /** @var \PDO Database connection */
     public \PDO $connection;
@@ -189,6 +190,18 @@ class Database
     {
         $this->encryptionKey = $key;
         Collection::clearDerivedKeyCache();
+
+        return $this;
+    }
+
+    public function getEncryptionKeyVersion(): ?int
+    {
+        return $this->encryptionKeyVersion;
+    }
+
+    public function setEncryptionKeyVersion(?int $version): self
+    {
+        $this->encryptionKeyVersion = $version;
 
         return $this;
     }

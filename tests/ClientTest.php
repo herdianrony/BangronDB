@@ -38,7 +38,7 @@ class ClientTest extends TestCase
     {
         $client = new Client($this->tempDir);
         $this->assertInstanceOf(Client::class, $client);
-        $this->assertEquals($this->tempDir, $client->path);
+        $this->assertEquals(realpath($this->tempDir), $client->path);
     }
 
     public function testListDBsEmpty()

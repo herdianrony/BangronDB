@@ -123,6 +123,7 @@ class DatabaseTest extends TestCase
         $this->assertSame([
             'enabled' => true,
             'key_length' => 32,
+            'key_version' => null,
         ], $this->db->getEncryptionKeyStatus());
     }
 
