@@ -186,11 +186,6 @@ parameters:
 			path: src/Collection.php
 
 		-
-			message: "#^Method BangronDB\\\\Collection\\:\\:getAllCustomConfig\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Collection.php
-
-		-
 			message: "#^Method BangronDB\\\\Collection\\:\\:getDebugEncryptionInfo\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Collection.php
@@ -207,11 +202,6 @@ parameters:
 
 		-
 			message: "#^Method BangronDB\\\\Collection\\:\\:getSearchableFields\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Collection.php
-
-		-
-			message: "#^Method BangronDB\\\\Collection\\:\\:getSearchableFieldsForConfig\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Collection.php
 
@@ -282,11 +272,6 @@ parameters:
 
 		-
 			message: "#^Method BangronDB\\\\Collection\\:\\:save\\(\\) has parameter \\$document with no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Collection.php
-
-		-
-			message: "#^Method BangronDB\\\\Collection\\:\\:setCustomConfigArray\\(\\) has parameter \\$config with no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Collection.php
 
@@ -372,11 +357,6 @@ parameters:
 
 		-
 			message: "#^PHPDoc tag @return with type object is not subtype of native type BangronDB\\\\Cursor\\.$#"
-			count: 1
-			path: src/Collection.php
-
-		-
-			message: "#^Property BangronDB\\\\Collection\\:\\:\\$customConfig type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Collection.php
 

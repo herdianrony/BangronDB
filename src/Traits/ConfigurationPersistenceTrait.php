@@ -6,6 +6,7 @@ namespace BangronDB\Traits;
 
 trait ConfigurationPersistenceTrait
 {
+    /** @var array<string, mixed> user-defined non-sensitive custom config values */
     protected array $customConfig = [];
     private const SENSITIVE_CONFIG_KEYS = [
         'encryption_key','encryptionkey','password','passwd','secret','token','api_key','apikey','private_key','credential',
@@ -47,6 +48,13 @@ trait ConfigurationPersistenceTrait
         $this->database->saveCollectionConfig($this->name, $config);
     }
 
+    /**
+     * Strip sensitive keys (encryption_key, password, token, etc.) from a
+     * config array. Used as a defence-in-depth filter on save and load.
+     *
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function filterSensitiveConfig(array $config): array
     {
         foreach (self::SENSITIVE_CONFIG_KEYS as $sensitive) {
@@ -64,7 +72,12 @@ trait ConfigurationPersistenceTrait
         return in_array(strtolower($key), self::SENSITIVE_CONFIG_KEYS, true);
     }
 
-    public function setCustomConfig(string $key, $value): self
+    /**
+     * Set a non-sensitive custom config value.
+     *
+     * @param mixed $value Any serialisable value (string, int, bool, array, null).
+     */
+    public function setCustomConfig(string $key, mixed $value): self
     {
         if ($this->isSensitiveConfigKey($key)) {
             throw new \InvalidArgumentException("Custom config key '{$key}' is forbidden - sensitive credentials must not be persisted. Provide encryption keys at runtime via setEncryptionKey() / \$_ENV.");
@@ -73,16 +86,28 @@ trait ConfigurationPersistenceTrait
         return $this;
     }
 
-    public function getCustomConfig(string $key, $default = null)
+    /**
+     * Get a custom config value, returning $default when the key is absent.
+     *
+     * @param mixed $default Fallback value returned when the key is not set.
+     * @return mixed The stored value, or $default when absent.
+     */
+    public function getCustomConfig(string $key, mixed $default = null): mixed
     {
         return $this->customConfig[$key] ?? $default;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getAllCustomConfig(): array
     {
         return $this->customConfig;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function setCustomConfigArray(array $config): self
     {
         foreach (array_keys($config) as $key) {
@@ -111,6 +136,9 @@ trait ConfigurationPersistenceTrait
         return $this->idPrefix !== null && $this->idPrefix !== '' ? 'prefix:' . $this->idPrefix : 'prefix';
     }
 
+    /**
+     * @return array<string, bool>
+     */
     private function getSearchableFieldsForConfig(): array
     {
         $config = [];

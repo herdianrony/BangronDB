@@ -5,3 +5,8 @@ parameters:
     level: 6
     paths:
         - src
+    # Disable parallel workers — required when running under FrankenPHP
+    # (its `php-cli` subcommand is not compatible with PHPStan's worker
+    # spawning which expects a standard `php` binary on PATH).
+    parallel:
+        maximumNumberOfProcesses: 1

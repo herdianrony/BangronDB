@@ -12,6 +12,7 @@ trait EncryptionTrait
 {
     protected ?string $encryptionKey = null;
     protected ?string $encryptionKeyVersion = null;
+    /** @var array<string, string> cache of PBKDF2-derived keys keyed by sha256(key+salt) */
     private static array $derivedKeyCache = [];
 
     protected function getDebugEncryptionInfo(): array
