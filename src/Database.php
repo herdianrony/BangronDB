@@ -49,6 +49,7 @@ class Database
             : FieldValidator::validateDatabasePath($path, $basePath);
         $this->options = $options;
         $this->encryptionKey = $options['encryption_key'] ?? null;
+        $this->encryptionKeyVersion = $options['encryption_key_version'] ?? null;
 
         $this->connection = $this->createConnection();
         $this->queryExecutor = new QueryExecutor($this->connection);
@@ -178,6 +179,7 @@ class Database
             'path' => $this->path,
             'encryptionEnabled' => $this->encryptionKey !== null,
             'encryptionKeyLength' => $this->encryptionKey !== null ? strlen($this->encryptionKey) : 0,
+            'keyVersion' => $this->encryptionKeyVersion,
             'collections' => array_keys($this->collections),
             'options' => array_diff_key($this->options, ['encryption_key' => '']),
         ];
@@ -201,6 +203,7 @@ class Database
         return [
             'enabled' => $this->encryptionKey !== null,
             'key_length' => $this->encryptionKey !== null ? strlen($this->encryptionKey) : 0,
+            'key_version' => $this->encryptionKeyVersion,
         ];
     }
 
@@ -798,6 +801,7 @@ class Database
             '_id' => $collectionName,
             'id_mode' => $config['id_mode'] ?? 'auto',
             'encryption_enabled' => $config['encryption_enabled'] ?? false,
+            'encryption_key_version' => $config['encryption_key_version'] ?? null,
             'searchable_fields' => $config['searchable_fields'] ?? [],
             'schema' => $config['schema'] ?? [],
             'soft_deletes_enabled' => $config['soft_deletes_enabled'] ?? false,

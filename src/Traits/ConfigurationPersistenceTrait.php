@@ -4,39 +4,18 @@ declare(strict_types=1);
 
 namespace BangronDB\Traits;
 
-/**
- * Trait for persisting and loading collection configuration to/from the database.
- *
- * Handles serialization and deserialization of collection settings such as
- * ID mode, encryption status, searchable fields, schema, and soft delete options.
- */
 trait ConfigurationPersistenceTrait
 {
-    /**
-     * Custom configuration values.
-     */
     protected array $customConfig = [];
+    private const SENSITIVE_CONFIG_KEYS = [
+        'encryption_key','encryptionkey','password','passwd','secret','token','api_key','apikey','private_key','credential',
+    ];
 
-    /**
-     * Load collection configuration from database.
-     *
-     * Restores previously saved settings including ID mode, searchable fields,
-     * schema validation, soft delete configuration, and custom config values.
-     */
     protected function loadConfiguration(): void
     {
         $config = $this->database->loadCollectionConfig($this->name);
-
         if (!empty($config)) {
-            // Apply loaded configuration
-            if (isset($config['id_mode'])) {
-                $this->setIdModeFromString($config['id_mode']);
-            }
-
-            // Note: encryption_key should be provided at runtime from external sources (.env, vault, etc.)
-            // The config only stores encryption_enabled status
-            // Use $collection->setEncryptionKey('your-key') to enable encryption
-
+            if (isset($config['id_mode'])) { $this->setIdModeFromString($config['id_mode']); }
             if (isset($config['searchable_fields']) && is_array($config['searchable_fields'])) {
                 $searchableFields = [];
                 foreach ($config['searchable_fields'] as $field => $hashed) {
@@ -44,143 +23,100 @@ trait ConfigurationPersistenceTrait
                 }
                 $this->setSearchableFields($searchableFields);
             }
-
-            if (isset($config['schema']) && is_array($config['schema'])) {
-                $this->setSchema($config['schema']);
-            }
-
-            if (isset($config['soft_deletes_enabled'])) {
-                $this->useSoftDeletes($config['soft_deletes_enabled']);
-            }
-
-            if (isset($config['deleted_at_field']) && is_string($config['deleted_at_field'])) {
-                $this->setDeletedAtField($config['deleted_at_field']);
-            }
-
-            // Load custom configuration
+            if (isset($config['schema']) && is_array($config['schema'])) { $this->setSchema($config['schema']); }
+            if (isset($config['soft_deletes_enabled'])) { $this->useSoftDeletes($config['soft_deletes_enabled']); }
+            if (isset($config['deleted_at_field']) && is_string($config['deleted_at_field'])) { $this->setDeletedAtField($config['deleted_at_field']); }
             if (isset($config['custom_config']) && is_array($config['custom_config'])) {
-                $this->customConfig = $config['custom_config'];
+                $this->customConfig = $this->filterSensitiveConfig($config['custom_config']);
             }
         }
     }
 
-    /**
-     * Save current collection configuration to database.
-     *
-     * Persists all current collection settings so they can be restored
-     * when the collection is loaded again in the future.
-     */
     public function saveConfiguration(): void
     {
         $config = [
             'id_mode' => $this->getIdModeString(),
             'encryption_enabled' => $this->encryptionKey !== null,
+            'encryption_key_version' => $this->encryptionKeyVersion ?? null,
             'searchable_fields' => $this->getSearchableFieldsForConfig(),
             'schema' => $this->getSchema(),
             'soft_deletes_enabled' => $this->softDeletesEnabled(),
             'deleted_at_field' => $this->getDeletedAtField(),
-            'custom_config' => $this->customConfig,
+            'custom_config' => $this->filterSensitiveConfig($this->customConfig),
         ];
-
         $this->database->saveCollectionConfig($this->name, $config);
     }
 
-    /**
-     * Set a custom configuration value.
-     *
-     * @param string $key   Configuration key
-     * @param mixed  $value Configuration value
-     */
+    private function filterSensitiveConfig(array $config): array
+    {
+        foreach (self::SENSITIVE_CONFIG_KEYS as $sensitive) {
+            foreach (array_keys($config) as $key) {
+                if (strtolower((string)$key) === $sensitive) {
+                    unset($config[$key]);
+                }
+            }
+        }
+        return $config;
+    }
+
+    private function isSensitiveConfigKey(string $key): bool
+    {
+        return in_array(strtolower($key), self::SENSITIVE_CONFIG_KEYS, true);
+    }
+
     public function setCustomConfig(string $key, $value): self
     {
+        if ($this->isSensitiveConfigKey($key)) {
+            throw new \InvalidArgumentException("Custom config key '{$key}' is forbidden - sensitive credentials must not be persisted. Provide encryption keys at runtime via setEncryptionKey() / \$_ENV.");
+        }
         $this->customConfig[$key] = $value;
-
         return $this;
     }
 
-    /**
-     * Get a custom configuration value.
-     *
-     * @param string $key     Configuration key
-     * @param mixed  $default Default value if key not found
-     *
-     * @return mixed Configuration value
-     */
     public function getCustomConfig(string $key, $default = null)
     {
         return $this->customConfig[$key] ?? $default;
     }
 
-    /**
-     * Get all custom configuration values.
-     *
-     * @return array Custom configuration values
-     */
     public function getAllCustomConfig(): array
     {
         return $this->customConfig;
     }
 
-    /**
-     * Set multiple custom configuration values at once.
-     *
-     * @param array $config Array of key-value pairs
-     */
     public function setCustomConfigArray(array $config): self
     {
-        $this->customConfig = array_merge($this->customConfig, $config);
-
+        foreach (array_keys($config) as $key) {
+            if (is_string($key) && $this->isSensitiveConfigKey($key)) {
+                throw new \InvalidArgumentException("Custom config key '{$key}' is forbidden - sensitive credentials must not be persisted.");
+            }
+        }
+        $this->customConfig = array_merge($this->customConfig, $this->filterSensitiveConfig($config));
         return $this;
     }
 
-    /**
-     * Set ID mode from string representation.
-     */
     private function setIdModeFromString(string $mode): void
     {
         switch ($mode) {
-            case 'auto':
-                $this->setIdModeAuto();
-                break;
-            case 'manual':
-                $this->setIdModeManual();
-                break;
+            case 'auto': $this->setIdModeAuto(); break;
+            case 'manual': $this->setIdModeManual(); break;
             default:
-                if (str_starts_with($mode, 'prefix:')) {
-                    $this->setIdModePrefix(substr($mode, strlen('prefix:')));
-                    break;
-                }
-
-                // Backward compatibility: older configs stored the raw prefix directly.
-                $this->setIdModePrefix($mode);
-                break;
+                if (str_starts_with($mode, 'prefix:')) { $this->setIdModePrefix(substr($mode, strlen('prefix:'))); break; }
+                $this->setIdModePrefix($mode); break;
         }
     }
 
-    /**
-     * Get ID mode as string representation.
-     */
     private function getIdModeString(): string
     {
-        if ($this->idMode !== 'prefix') {
-            return $this->idMode;
-        }
-
-        return $this->idPrefix !== null && $this->idPrefix !== ''
-            ? 'prefix:' . $this->idPrefix
-            : 'prefix';
+        if ($this->idMode !== 'prefix') { return $this->idMode; }
+        return $this->idPrefix !== null && $this->idPrefix !== '' ? 'prefix:' . $this->idPrefix : 'prefix';
     }
 
-    /**
-     * Get searchable fields configuration for saving.
-     */
     private function getSearchableFieldsForConfig(): array
     {
         $config = [];
         foreach ($this->searchableFields as $field => $settings) {
             $config[$field] = $settings['hash'];
         }
-
         return $config;
     }
 }

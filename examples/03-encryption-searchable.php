@@ -27,8 +27,8 @@ $db = $client->createDB('secure_app');
 $patients = $db->createCollection('patients');
 
 // Set encryption key (min 32 karakter)
-$encKey = 'this-is-a-32-char-secret-key-secure!!';
-$patients->setEncryptionKey($encKey);
+$encKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'this-is-a-32-char-secret-key-secure!!'; // v1.1.0: use $_ENV in production
+$patients->setEncryptionKey($encKey, $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026');
 
 // Insert data sensitif
 $patientId = $patients->insert([
@@ -66,7 +66,7 @@ $users = $db->createCollection('users');
 
 // Set searchable fields + hashing untuk email
 $users->setSearchableFields(['email'], true); // true = SHA-256 hash
-$users->setEncryptionKey($encKey);
+$users->setEncryptionKey($encKey, $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026');
 
 $users->insert([
     ['name' => 'Alice',   'email' => 'alice@example.com',   'role' => 'admin'],
@@ -94,11 +94,11 @@ echo "Found by plain name: " . count($byName) . " result(s)\n";
 sub('BAGIAN 3: Enkripsi dengan Key dari .env');
 
 // Simulasi key dari .env (di production: $_ENV['DB_ENCRYPTION_KEY'])
-$envKey = 'env-secret-key-at-least-32-chars!!!';
+$envKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'env-secret-key-at-least-32-chars!!!'; // v1.1.0: use $_ENV
 
 $secretDb = $client->createDB('secrets');
 $vault = $secretDb->createCollection('vault');
-$vault->setEncryptionKey($envKey);
+$vault->setEncryptionKey($envKey, $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026');
 
 $vaultId = $vault->insert([
     'label'     => 'API Key Production',
@@ -121,7 +121,7 @@ echo "Tanpa key: " . ($unreadable === null ? 'null (tidak bisa decrypt)' : 'terb
 
 // Reconnect DENGAN key → data bisa dibaca
 $client2->close();
-$client3 = new Client($examplePath, ['encryption_key' => $envKey]);
+$client3 = new Client($examplePath, ['encryption_key' => $envKey, 'encryption_key_version' => $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026']  // v1.1.0);
 $db3 = $client3->selectDB('secrets');
 $vault3 = $db3->selectCollection('vault');
 $readable = $vault3->findOne(['_id' => $vaultId]);

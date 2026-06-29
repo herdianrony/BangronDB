@@ -58,6 +58,7 @@ class Collection
     private const LEGACY_PBKDF2_SALT = 'bangrondb_encryption_salt';
     private const MAX_DOCUMENT_DEPTH = 64;
     private const MIN_KEY_LENGTH = 32;
+    private const ENCRYPTION_VERSION = 2;
 
     public readonly Database $database;
 

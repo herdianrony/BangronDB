@@ -205,7 +205,7 @@ class CollectionManager
     private function validateCollectionConfig(array $config): void
     {
         $validKeys = [
-            'id_mode', 'encryption_key', 'searchable_fields', 'schema',
+            'id_mode', 'searchable_fields', 'schema',
             'soft_deletes_enabled', 'deleted_at_field', 'created_at', 'updated_at',
             'custom_config',
         ];

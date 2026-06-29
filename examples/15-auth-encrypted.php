@@ -32,14 +32,14 @@ sep('Contoh 15: Autentikasi dengan Data Terenkripsi');
 
 sub('BAGIAN 1: Masalah - Tanpa Searchable Fields');
 
-$encKey = 'super-secret-encryption-key-32ch!!';
+$encKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'super-secret-encryption-key-32ch!!'; // v1.1.0: use $_ENV
 
 $client = createIsolatedClient('example15');
 $db = $client->createDB('auth_demo');
 $users = $db->createCollection('users_no_searchable');
 
 // Enkripsi TANPA searchable fields
-$users->setEncryptionKey($encKey);
+$users->setEncryptionKey($encKey), $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026';
 
 $users->insert([
     'name'     => 'Alice',
@@ -346,7 +346,7 @@ class AuthService
         $users->setSearchableFields([
             'email' => ['hash' => true],    // SHA-256 untuk privasi
         ]);
-        $users->setEncryptionKey($encryptionKey);
+        $users->setEncryptionKey($encryptionKey), $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026';
     }
 
     /**
