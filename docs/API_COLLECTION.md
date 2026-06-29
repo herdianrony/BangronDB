@@ -197,6 +197,7 @@ Enum bersifat strict: `0 !== false !== '0'`
 ```php
 public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
 public function getEncryptionKeyVersion(): ?string
+public function setEncryptionKeyVersion(?string $version): self   // v1.2.0
 public function isEncrypted(): bool
 public function rotateEncryptionKey(string $newKey, ?string $newKeyVersion = null): int
 public function reencryptAll(): int

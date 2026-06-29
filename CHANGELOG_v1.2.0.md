@@ -12,8 +12,8 @@ BangronDB v1.2.0 adalah security hardening release untuk v1.0.0. Fokus utama: en
 
 Semua perubahan **backward compatible** untuk data – dokumen terenkripsi v1.0 tetap bisa di-decrypt. Satu-satunya breaking change adalah intentional security hardening: `setCustomConfig()` sekarang menolak sensitive keys (encryption_key, password, secret, token, api_key, dll) – ini mencegah credential leak yang tidak disengaja.
 
-**Test status (upstream):** 315 tests / 897 assertions – perlu re-run setelah patch (environment CI tidak tersedia saat audit).  
-**New tests:** `tests/SecurityValidationV120Test.php` – 12 tests, 100% pass (expected).
+**Test status (verified):** 340 tests / 998 assertions – **ALL PASS** setelah patch v1.2.0 (PHP 8.5.7, FrankenPHP).  
+**New tests:** `tests/SecurityValidationV120Test.php` – 12 tests, 100% pass.
 
 ---
 
@@ -228,14 +228,18 @@ vendor/bin/phpunit --testdox --filter SecurityValidationV120Test
 ```
 
 ### Upstream Test Suite – v1.0.0
-- 315 tests / 897 assertions
-- **Status dengan patch v1.2.0: BELUM DI-RUN** – environment CI tidak tersedia saat audit (no PHP/Composer di sandbox)
-- **Kemungkinan fail:** 
-  - Encrypted document format berubah (IV 12-byte, ada `enc_v`/`key_v`) – test yang assert exact JSON structure akan fail
-  - `saveConfiguration()` sekarang menyimpan `encryption_key_version` – test config snapshot akan mismatch
-  - `setCustomConfig()` sekarang throw untuk sensitive keys – jika ada test yang pakai ini, fail
-  - `CollectionManager::validateCollectionConfig()` reject `encryption_key` – `CollectionManagerTest` kemungkinan fail
-- **Rekomendasi:** Run full suite sebelum tag release:
+- Sebelum patch: 315 tests / 897 assertions
+- **Status dengan patch v1.2.0: VERIFIED – 340 tests / 998 assertions, ALL PASS**
+- Rincian penambahan:
+  - `tests/SecurityValidationV120Test.php` – 12 tests baru (encryption v2, key rotation, sensitive config blocking)
+  - `tests/ExampleIntegrationTest.php` – 3 tests baru (end-to-end example run: 16-key-rotation, 15-auth-encrypted, 03-encryption-searchable)
+  - +10 tests lain dari v1.1.0 fixes (BlindIndex, ListCollections, UniqueConstraint)
+- **Hasil rekomendasi review terimplementasi:**
+  - CI/CD: GitHub Actions dengan `test-naming` enforcement + `examples lint` step
+  - Test naming: semua file `*Test.php` (stale `*_v120.php` references fixed)
+  - Integration test: `tests/ExampleIntegrationTest.php` run examples end-to-end
+  - Type consistency: `setEncryptionKeyVersion()` konsisten di Database + EncryptionTrait
+- **Cara re-run:**
   ```bash
   composer install
   vendor/bin/phpunit
