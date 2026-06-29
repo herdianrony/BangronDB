@@ -190,9 +190,8 @@ class Database
     public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
     {
         $this->encryptionKey = $key;
-        if ($keyVersion !== null) {
-            $this->encryptionKeyVersion = $keyVersion;
-        }
+        // Consistent string casting – mirrors EncryptionTrait/Collection behaviour
+        $this->encryptionKeyVersion = $keyVersion === null ? null : (string) $keyVersion;
         Collection::clearDerivedKeyCache();
 
         return $this;
@@ -205,7 +204,8 @@ class Database
 
     public function setEncryptionKeyVersion(?string $version): self
     {
-        $this->encryptionKeyVersion = $version;
+        // Consistent string casting – mirrors EncryptionTrait/Collection behaviour
+        $this->encryptionKeyVersion = $version === null ? null : (string) $version;
 
         return $this;
     }

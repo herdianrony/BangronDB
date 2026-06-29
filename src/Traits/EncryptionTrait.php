@@ -46,13 +46,27 @@ trait EncryptionTrait
             $this->validateEncryptionKey($key);
         }
         $this->encryptionKey = $key;
-        $this->encryptionKeyVersion = $keyVersion;
+        // Consistent string casting – mirrors Database::__construct() behaviour
+        $this->encryptionKeyVersion = $keyVersion === null ? null : (string) $keyVersion;
+        // Invalidate derived-key cache so the new key takes effect immediately
+        // (mirrors Database::setEncryptionKey() which calls Collection::clearDerivedKeyCache())
+        self::clearDerivedKeyCache();
         return $this;
     }
 
     public function getEncryptionKeyVersion(): ?string
     {
         return $this->encryptionKeyVersion;
+    }
+
+    /**
+     * Set only the encryption key version without changing the key material.
+     * Mirrors Database::setEncryptionKeyVersion() for API consistency.
+     */
+    public function setEncryptionKeyVersion(?string $version): self
+    {
+        $this->encryptionKeyVersion = $version === null ? null : (string) $version;
+        return $this;
     }
 
     private function validateEncryptionKey(string $key): void

@@ -13,7 +13,7 @@ BangronDB v1.2.0 adalah security hardening release untuk v1.0.0. Fokus utama: en
 Semua perubahan **backward compatible** untuk data – dokumen terenkripsi v1.0 tetap bisa di-decrypt. Satu-satunya breaking change adalah intentional security hardening: `setCustomConfig()` sekarang menolak sensitive keys (encryption_key, password, secret, token, api_key, dll) – ini mencegah credential leak yang tidak disengaja.
 
 **Test status (upstream):** 315 tests / 897 assertions – perlu re-run setelah patch (environment CI tidak tersedia saat audit).  
-**New tests:** `tests/SecurityValidationTest_v120.php` – 12 tests, 100% pass (expected).
+**New tests:** `tests/SecurityValidationV120Test.php` – 12 tests, 100% pass (expected).
 
 ---
 
@@ -202,7 +202,7 @@ Semua example yang sebelumnya hardcode encryption key sudah diupdate ke `$_ENV['
 ## Tests
 
 ### New Test Suite – v1.2.0
-**File:** `tests/SecurityValidationTest_v120.php`
+**File:** `tests/SecurityValidationV120Test.php`
 
 12 test methods, ~180 assertions:
 
@@ -224,7 +224,7 @@ Semua example yang sebelumnya hardcode encryption key sudah diupdate ke `$_ENV['
 **Cara run:**
 ```bash
 composer install
-vendor/bin/phpunit --testdox --filter SecurityValidationTest_v120
+vendor/bin/phpunit --testdox --filter SecurityValidationV120Test
 ```
 
 ### Upstream Test Suite – v1.0.0
@@ -373,7 +373,7 @@ Expected: 315 + 12 = 327 tests – mungkin ada beberapa fail di test lama karena
 ### Tests
 | File | Tests |
 |---|---|
-| `tests/SecurityValidationTest_v120.php` | **NEW** – 12 tests, ~180 assertions – encryption v2, key rotation, sensitive config blocking, key version persistence |
+| `tests/SecurityValidationV120Test.php` | **NEW** – 12 tests, ~180 assertions – encryption v2, key rotation, sensitive config blocking, key version persistence |
 
 ### Documentation
 | File | Pages | Content |
