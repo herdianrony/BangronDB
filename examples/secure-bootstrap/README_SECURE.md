@@ -1,4 +1,4 @@
-# BangronDB Hardening Kit – v1.1.0
+# BangronDB Hardening Kit – v1.2.0
 
 
 3 rekomendasi audit yang Anda maksud sudah di-handle di sini:

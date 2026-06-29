@@ -1,4 +1,4 @@
-# Database API – BangronDB v1.1.0
+# Database API – BangronDB v1.2.0
 
 `BangronDB\Database`
 
@@ -13,7 +13,7 @@ Biasanya via `Client::createDB()`.
 
 **Options**
 - `encryption_key string|null`
-- `encryption_key_version string|null`  // v1.1.0
+- `encryption_key_version string|null`  // v1.2.0
 - `base_path string` – untuk path confinement
 
 ---
@@ -22,7 +22,7 @@ Biasanya via `Client::createDB()`.
 
 ```php
 public function getEncryptionKey(): ?string
-public function getEncryptionKeyVersion(): ?string   // v1.1.0
+public function getEncryptionKeyVersion(): ?string   // v1.2.0
 public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
 public function isEncryptionEnabled(): bool
 public function getEncryptionKeyStatus(): array

@@ -9,7 +9,7 @@ use BangronDB\Collection;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Security Validation Tests – BangronDB v1.1.0
+ * Security Validation Tests – BangronDB v1.2.0
  * 
  * Tests new security hardening:
  * - Encryption v2: 12-byte IV, enc_v, key_v
@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  * - Sensitive config blocking
  * - Legacy decrypt (16-byte IV)
  */
-class SecurityValidationTest_v110 extends TestCase
+class SecurityValidationTest_v120 extends TestCase
 {
     private string $dir;
     private Client $client;
@@ -26,7 +26,7 @@ class SecurityValidationTest_v110 extends TestCase
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/bangrondb_test_v110_' . bin2hex(random_bytes(4));
+        $this->dir = sys_get_temp_dir() . '/bangrondb_test_v120_' . bin2hex(random_bytes(4));
         mkdir($this->dir, 0700, true);
         $this->client = new Client($this->dir);
         $this->client->createDB('test');
@@ -68,7 +68,7 @@ class SecurityValidationTest_v110 extends TestCase
         $this->assertArrayHasKey('tag', $doc);
         $this->assertArrayHasKey('hmac', $doc);
         $this->assertArrayHasKey('enc_v', $doc);
-        $this->assertEquals(2, $doc['enc_v'], 'Encryption version must be 2 (v1.1.0)');
+        $this->assertEquals(2, $doc['enc_v'], 'Encryption version must be 2 (v1.2.0)');
         $this->assertEquals('v2-test', $doc['key_v'] ?? null);
 
         $iv = base64_decode($doc['iv']);
@@ -77,7 +77,7 @@ class SecurityValidationTest_v110 extends TestCase
 
     public function testDecryptLegacy16ByteIV(): void
     {
-        // v1.1.0 decryptor must accept both 12-byte (v2) and 16-byte (v1 legacy) IVs
+        // v1.2.0 decryptor must accept both 12-byte (v2) and 16-byte (v1 legacy) IVs
         $key = 'test-encryption-key-32-chars-min!!';
         $this->collection->setEncryptionKey($key, 'v1-legacy');
 
@@ -196,7 +196,7 @@ class SecurityValidationTest_v110 extends TestCase
 
     public function testSaveConfigurationFiltersSensitiveData(): void
     {
-        // Simulate old dirty data in custom_config (e.g., from pre-v1.1.0)
+        // Simulate old dirty data in custom_config (e.g., from pre-v1.2.0)
         // setCustomConfig() now blocks, so inject via reflection
         $ref = new \ReflectionClass($this->collection);
         $prop = $ref->getProperty('customConfig');

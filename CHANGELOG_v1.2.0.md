@@ -1,4 +1,4 @@
-# Changelog – BangronDB v1.1.0
+# Changelog – BangronDB v1.2.0
 **Security Hardening Release**
 Date: 2026-06-29  
 Author: Rony Herdian <herdianrony@gmail.com>  
@@ -8,12 +8,12 @@ Repository: https://github.com/herdianrony/BangronDB
 
 ## Summary
 
-BangronDB v1.1.0 adalah security hardening release untuk v1.0.0. Fokus utama: encryption IV NIST-compliant, key versioning / rotation, dan credential leak prevention di configuration persistence layer.
+BangronDB v1.2.0 adalah security hardening release untuk v1.0.0. Fokus utama: encryption IV NIST-compliant, key versioning / rotation, dan credential leak prevention di configuration persistence layer.
 
 Semua perubahan **backward compatible** untuk data – dokumen terenkripsi v1.0 tetap bisa di-decrypt. Satu-satunya breaking change adalah intentional security hardening: `setCustomConfig()` sekarang menolak sensitive keys (encryption_key, password, secret, token, api_key, dll) – ini mencegah credential leak yang tidak disengaja.
 
 **Test status (upstream):** 315 tests / 897 assertions – perlu re-run setelah patch (environment CI tidak tersedia saat audit).  
-**New tests:** `tests/SecurityValidationTest_v110.php` – 12 tests, 100% pass (expected).
+**New tests:** `tests/SecurityValidationTest_v120.php` – 12 tests, 100% pass (expected).
 
 ---
 
@@ -23,7 +23,7 @@ Semua perubahan **backward compatible** untuk data – dokumen terenkripsi v1.0 
 
 **File:** `src/Traits/EncryptionTrait.php`, `src/Collection.php`, `src/Database.php`
 
-| Item | v1.0.0 | v1.1.0 |
+| Item | v1.0.0 | v1.2.0 |
 |---|---|---|
 | Cipher | AES-256-GCM | AES-256-GCM |
 | Key derivation | PBKDF2-SHA256, 100k iter, 32 byte | sama |
@@ -33,9 +33,9 @@ Semua perubahan **backward compatible** untuk data – dokumen terenkripsi v1.0 
 | Document version | – (none) | `enc_v: 2` |
 | Key version | – (none) | `key_v: string\|null` |
 
-**Backward compatibility:** Decryptor di v1.1.0 menerima **baik IV 12-byte (v2) maupun IV 16-byte (v1 legacy)**. Data lama tetap bisa dibaca tanpa migrasi.
+**Backward compatibility:** Decryptor di v1.2.0 menerima **baik IV 12-byte (v2) maupun IV 16-byte (v1 legacy)**. Data lama tetap bisa dibaca tanpa migrasi.
 
-**Stored document format v1.1.0:**
+**Stored document format v1.2.0:**
 ```json
 {
   "_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -99,7 +99,7 @@ Kedua method menggunakan cursor streaming – aman untuk collection besar, tidak
 
 **Masalah di v1.0.0:** `setCustomConfig()` menerima key apapun, termasuk `encryption_key`, `password`, `api_key`, dll. Jika developer tidak sengaja memanggil `$collection->setCustomConfig('encryption_key', $key)` lalu `$collection->saveConfiguration()`, maka encryption key akan ter-persist ke database dalam plaintext – credential leak.
 
-**Fix v1.1.0:**
+**Fix v1.2.0:**
 - `setCustomConfig(string $key, $value)` sekarang **throw `InvalidArgumentException`** jika key termasuk daftar sensitive
 - `setCustomConfigArray(array $config)` – validasi semua key, throw jika ada yang sensitif
 - `saveConfiguration()` – auto-filter sensitive keys sebelum persist
@@ -172,7 +172,7 @@ $col->saveConfiguration(); // OK
 
 ---
 
-## Examples – Updated for v1.1.0
+## Examples – Updated for v1.2.0
 
 Semua example yang sebelumnya hardcode encryption key sudah diupdate ke `$_ENV['DB_ENCRYPTION_KEY']` + `encryption_key_version`:
 
@@ -182,7 +182,7 @@ Semua example yang sebelumnya hardcode encryption key sudah diupdate ke `$_ENV['
 - `examples/15-auth-encrypted.php` – Auth encrypted – encryption key dari ENV
 
 **Example baru:**
-- `examples/16-key-rotation.php` – **Encryption Key Rotation – v1.1.0**
+- `examples/16-key-rotation.php` – **Encryption Key Rotation – v1.2.0**
   - AES-256-GCM v2, IV 12-byte NIST
   - Key versioning (`enc_v`, `key_v`)
   - `rotateEncryptionKey()`
@@ -201,8 +201,8 @@ Semua example yang sebelumnya hardcode encryption key sudah diupdate ke `$_ENV['
 
 ## Tests
 
-### New Test Suite – v1.1.0
-**File:** `tests/SecurityValidationTest_v110.php`
+### New Test Suite – v1.2.0
+**File:** `tests/SecurityValidationTest_v120.php`
 
 12 test methods, ~180 assertions:
 
@@ -224,12 +224,12 @@ Semua example yang sebelumnya hardcode encryption key sudah diupdate ke `$_ENV['
 **Cara run:**
 ```bash
 composer install
-vendor/bin/phpunit --testdox --filter SecurityValidationTest_v110
+vendor/bin/phpunit --testdox --filter SecurityValidationTest_v120
 ```
 
 ### Upstream Test Suite – v1.0.0
 - 315 tests / 897 assertions
-- **Status dengan patch v1.1.0: BELUM DI-RUN** – environment CI tidak tersedia saat audit (no PHP/Composer di sandbox)
+- **Status dengan patch v1.2.0: BELUM DI-RUN** – environment CI tidak tersedia saat audit (no PHP/Composer di sandbox)
 - **Kemungkinan fail:** 
   - Encrypted document format berubah (IV 12-byte, ada `enc_v`/`key_v`) – test yang assert exact JSON structure akan fail
   - `saveConfiguration()` sekarang menyimpan `encryption_key_version` – test config snapshot akan mismatch
@@ -246,7 +246,7 @@ vendor/bin/phpunit --testdox --filter SecurityValidationTest_v110
 
 ## Documentation
 
-### API Reference – Baru – v1.1.0
+### API Reference – Baru – v1.2.0
 
 Lengkap dengan signature, parameter, contoh request (PHP), contoh response (JSON), dan error cases.
 
@@ -266,7 +266,7 @@ Total: **~110+ public methods terdokumentasi**, dengan contoh request/response.
 
 ---
 
-## Upgrade Guide – v1.0.0 → v1.1.0
+## Upgrade Guide – v1.0.0 → v1.2.0
 
 ### 1. Backup
 ```bash
@@ -286,7 +286,7 @@ git pull origin main
 $collection->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
 ```
 
-**Sesudah (v1.1.0):**
+**Sesudah (v1.2.0):**
 ```php
 $collection->setEncryptionKey(
     $_ENV['DB_ENCRYPTION_KEY'],
@@ -318,7 +318,7 @@ $collection->setCustomConfig('api_key', $token);
 // ...
 $collection->saveConfiguration();
 ```
-Maka di v1.1.0, pemanggilan `setCustomConfig()` tersebut akan **throw `InvalidArgumentException`** – ini intentional.
+Maka di v1.2.0, pemanggilan `setCustomConfig()` tersebut akan **throw `InvalidArgumentException`** – ini intentional.
 
 **Fix:** Hapus pemanggilan tersebut. Supply encryption key / API key via ENV / vault saat runtime, jangan persist ke DB.
 
@@ -341,7 +341,7 @@ composer install
 vendor/bin/phpunit --testdox
 vendor/bin/phpstan analyse --configuration=phpstan.neon --no-progress --memory-limit=512M
 ```
-Expected: 315 + 12 = 327 tests – mungkin ada beberapa fail di test lama karena format encrypted document berubah – update test expectation sesuai v1.1.0 (enc_v, key_v, IV 12-byte).
+Expected: 315 + 12 = 327 tests – mungkin ada beberapa fail di test lama karena format encrypted document berubah – update test expectation sesuai v1.2.0 (enc_v, key_v, IV 12-byte).
 
 ---
 
@@ -368,12 +368,12 @@ Expected: 315 + 12 = 327 tests – mungkin ada beberapa fail di test lama karena
 | `examples/secure-bootstrap/migrate_blind_index.php` | **NEW** – Rehash blind index SHA-256 → HMAC |
 | `examples/secure-bootstrap/.env.example` | **NEW** – `DB_ENCRYPTION_KEY`, `DB_ENCRYPTION_KEY_VERSION`, etc. |
 | `examples/secure-bootstrap/README_SECURE.md` | **NEW** |
-| `examples/README.md` | Tambah entry #16 key rotation, update security notes untuk v1.1.0 |
+| `examples/README.md` | Tambah entry #16 key rotation, update security notes untuk v1.2.0 |
 
 ### Tests
 | File | Tests |
 |---|---|
-| `tests/SecurityValidationTest_v110.php` | **NEW** – 12 tests, ~180 assertions – encryption v2, key rotation, sensitive config blocking, key version persistence |
+| `tests/SecurityValidationTest_v120.php` | **NEW** – 12 tests, ~180 assertions – encryption v2, key rotation, sensitive config blocking, key version persistence |
 
 ### Documentation
 | File | Pages | Content |
@@ -396,13 +396,13 @@ Total: **~110+ public methods terdokumentasi** dengan contoh request/response.
 - [ ] Run PHPStan: `phpstan analyse --configuration=phpstan.neon --no-progress` – expected 0 errors
 - [ ] Run `examples/16-key-rotation.php` – verify rotateEncryptionKey / reencryptAll works end-to-end
 - [ ] If upgrading from pre-v1.0: run `examples/secure-bootstrap/migrate_blind_index.php` – rehash searchable fields
-- [ ] Audit your app code: grep for `setCustomConfig.*encryption_key|password|secret|api_key` – remove if found – v1.1.0 will throw, which is correct
+- [ ] Audit your app code: grep for `setCustomConfig.*encryption_key|password|secret|api_key` – remove if found – v1.2.0 will throw, which is correct
 - [ ] Update your bootstrap to pass `encryption_key_version`: `$collection->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY'], $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2')`
 - [ ] Rotate your GitHub PAT if you ever committed it to repo / chat / logs – **penting!**
-- [ ] Update `composer.json` version tag: `"version": "1.1.0"`
-- [ ] Tag release: `git tag -a v1.1.0 -m "Security Hardening – Encryption v2, Key Rotation, Config Hardening"`
+- [ ] Update `composer.json` version tag: `"version": "1.2.0"`
+- [ ] Tag release: `git tag -a v1.2.0 -m "Security Hardening – Encryption v2, Key Rotation, Config Hardening"`
 - [ ] Push: `git push origin master --tags`
-- [ ] Update `CHANGELOG.md` (root) – merge `CHANGELOG_v1.1.0.md` ke atas
+- [ ] Update `CHANGELOG.md` (root) – merge `CHANGELOG_v1.2.0.md` ke atas
 
 ---
 

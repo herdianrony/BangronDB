@@ -57,7 +57,7 @@ class SecureClientFactory
 
         return new Client($dataPath, [
             'encryption_key' => $key,
-            'encryption_key_version' => $keyVersion,  // v1.1.0
+            'encryption_key_version' => $keyVersion,  // v1.2.0
             'query_logging' => filter_var($_ENV['DB_QUERY_LOGGING'] ?? false, FILTER_VALIDATE_BOOLEAN) && !$isProd,
             'performance_monitoring' => filter_var($_ENV['DB_PERFORMANCE_MONITORING'] ?? false, FILTER_VALIDATE_BOOLEAN) && !$isProd,
         ]);

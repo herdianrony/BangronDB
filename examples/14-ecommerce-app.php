@@ -52,7 +52,7 @@ $users->saveConfiguration();
 // Orders
 $orders = $db->createCollection('orders');
 $orders->setIdModePrefix('ORD');
-$orders->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY'] ?? 'ecommerce-encryption-key-32char!!!', $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026'); // v1.1.0
+$orders->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY'] ?? 'ecommerce-encryption-key-32char!!!', $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026'); // v1.2.0
 $orders->on('beforeInsert', function ($doc) {
     $doc['created_at'] = date('c');
     $doc['status'] = $doc['status'] ?? 'pending';

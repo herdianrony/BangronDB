@@ -1,4 +1,4 @@
-# Client API – BangronDB v1.1.0
+# Client API – BangronDB v1.2.0
 
 `BangronDB\Client` – Mengelola multiple database dalam satu path.
 

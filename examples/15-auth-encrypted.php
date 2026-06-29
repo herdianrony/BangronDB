@@ -32,7 +32,7 @@ sep('Contoh 15: Autentikasi dengan Data Terenkripsi');
 
 sub('BAGIAN 1: Masalah - Tanpa Searchable Fields');
 
-$encKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'super-secret-encryption-key-32ch!!'; // v1.1.0: use $_ENV
+$encKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'super-secret-encryption-key-32ch!!'; // v1.2.0: use $_ENV
 
 $client = createIsolatedClient('example15');
 $db = $client->createDB('auth_demo');

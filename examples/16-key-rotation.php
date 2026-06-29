@@ -1,6 +1,6 @@
 <?php
 /**
- * Example 16: Encryption Key Rotation – BangronDB v1.1.0
+ * Example 16: Encryption Key Rotation – BangronDB v1.2.0
  * 
  * Demonstrates:
  * - Encryption v2: AES-256-GCM with 12-byte IV (NIST SP 800-38D)
@@ -17,12 +17,12 @@ require __DIR__ . '/bootstrap.php';
 
 use BangronDB\Client;
 
-sub('BangronDB v1.1.0 – Key Rotation Demo');
+sub('BangronDB v1.2.0 – Key Rotation Demo');
 
 $examplePath = __DIR__ . '/data_example_16';
 @mkdir($examplePath, 0700, true);
 
-// v1.1.0: Always load encryption key from ENV / vault, never hardcode in production
+// v1.2.0: Always load encryption key from ENV / vault, never hardcode in production
 $keyV1 = $_ENV['DB_ENCRYPTION_KEY'] ?? 'test-key-v1-32-chars-minimum-!!!!';
 $keyV2 = $_ENV['DB_ENCRYPTION_KEY_V2'] ?? 'test-key-v2-32-chars-minimum-@@@@';
 $keyVersion1 = $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026-06';
@@ -37,7 +37,7 @@ $client->createDB('secure_app');
 $client->createCollection('secure_app', 'users');
 $users = $client->selectCollection('secure_app', 'users');
 
-// Enable encryption with key version – v1.1.0
+// Enable encryption with key version – v1.2.0
 $users->setEncryptionKey($keyV1, $keyVersion1);
 $users->setSearchableFields(['email' => ['hash' => true]]);
 
@@ -51,7 +51,7 @@ $db = $client->selectDB('secure_app');
 $stmt = $db->connection->query("SELECT document FROM users LIMIT 1");
 $raw = $stmt->fetchColumn();
 $decoded = json_decode($raw, true);
-p("Encrypted document format – BangronDB v1.1.0:");
+p("Encrypted document format – BangronDB v1.2.0:");
 p([
     'enc_v' => $decoded['enc_v'] ?? 'missing (v1 legacy)',
     'key_v' => $decoded['key_v'] ?? null,
@@ -66,7 +66,7 @@ $user = $users->findOne(['email' => 'alice@example.com']);
 p("Found user via searchable blind index:");
 p($user);
 
-sub('3. Key Rotation – rotateEncryptionKey() – v1.1.0');
+sub('3. Key Rotation – rotateEncryptionKey() – v1.2.0');
 p("Rotating encryption key:");
 p("  From: key_version = $keyVersion1");
 p("  To:   key_version = $keyVersion2");
@@ -85,7 +85,7 @@ $reencrypted = $users->reencryptAll();
 p("Re-encrypted documents: $reencrypted");
 p("Use case: key version bump, metadata refresh, post-migration cleanup");
 
-sub('5. Sensitive config blocking – v1.1.0 security hardening');
+sub('5. Sensitive config blocking – v1.2.0 security hardening');
 p("Trying to save encryption_key via setCustomConfig() …");
 try {
     $users->setCustomConfig('encryption_key', 'hacked!!!');
@@ -111,12 +111,12 @@ p("\n✓ Safe custom_config saved successfully:");
 p($users->getAllCustomConfig());
 
 sub('6. Legacy decrypt – v1.0 IV 16-byte still readable – backward compatible');
-p("EncryptionTrait v1.1.0 decryptData() accepts:");
+p("EncryptionTrait v1.2.0 decryptData() accepts:");
 p("- v2 current: IV 12-byte, enc_v = 2, key_v set");
 p("- v1 legacy: IV 16-byte, enc_v missing, no key_v");
-p("Tested in: tests/SecurityValidationTest_v110.php – testDecryptLegacy16ByteIV()");
+p("Tested in: tests/SecurityValidationTest_v120.php – testDecryptLegacy16ByteIV()");
 
-sub('Summary – BangronDB v1.1.0 Security Features');
+sub('Summary – BangronDB v1.2.0 Security Features');
 p([
     'encryption' => 'AES-256-GCM, PBKDF2-SHA256 100k iter',
     'iv' => '12-byte random (NIST), legacy 16-byte still decryptable',
@@ -127,7 +127,7 @@ p([
     'config_security' => 'setCustomConfig() blocks: encryption_key, password, secret, token, api_key, private_key, credential',
 ]);
 
-sub('Done – Key Rotation Demo v1.1.0');
+sub('Done – Key Rotation Demo v1.2.0');
 $client->close();
 
 // Cleanup hint:

@@ -1,4 +1,4 @@
-# Query Operators – BangronDB v1.1.0
+# Query Operators – BangronDB v1.2.0
 
 Semua operator di-pass sebagai array criteria ke `find()`, `findOne()`, `update()`, `remove()`, `count()`.
 

@@ -1,4 +1,4 @@
-# Cursor API – BangronDB v1.1.0
+# Cursor API – BangronDB v1.2.0
 
 `BangronDB\Cursor` – Returned by `Collection::find()`
 

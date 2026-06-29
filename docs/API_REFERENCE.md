@@ -1,4 +1,4 @@
-# BangronDB API Reference v1.1.0
+# BangronDB API Reference v1.2.0
 
 SQLite-based NoSQL document database dengan API MongoDB-like untuk PHP 8.1+
 
@@ -54,11 +54,11 @@ $user = $users->findOne(['_id' => $id]);
 ## Contoh E2E
 
 `/examples/` – 16 contoh:
-01 CRUD, 02 query operators, 03 encryption searchable, 04 schema validation, 05 soft deletes, 06 hooks, 07 relationships populate, 08 transactions, 09 indexing health monitoring, 10 dynamic configuration, 11 multiple databases, 12 id modes, 13 security features, 14 ecommerce app, 15 auth encrypted, **16 key rotation – v1.1.0**
+01 CRUD, 02 query operators, 03 encryption searchable, 04 schema validation, 05 soft deletes, 06 hooks, 07 relationships populate, 08 transactions, 09 indexing health monitoring, 10 dynamic configuration, 11 multiple databases, 12 id modes, 13 security features, 14 ecommerce app, 15 auth encrypted, **16 key rotation – v1.2.0**
 
 ---
 
-## Changelog v1.1.0
+## Changelog v1.2.0
 
 - Encryption: IV 16-byte → **12-byte NIST GCM**, `enc_v = 2`, `key_v`
 - `Collection::setEncryptionKey($key, $keyVersion = null)`

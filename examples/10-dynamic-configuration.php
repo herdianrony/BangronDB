@@ -50,7 +50,7 @@ echo "Catatan: ID prefix yang dipersist akan dinormalisasi ke format prefix:USR\
 // ── Insert dengan Config ──────────────────────────────────
 sub('Insert Data');
 
-$users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY'] ?? 'config-app-encryption-key-32-char!!!', $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026'); // v1.1.0: key from ENV + version
+$users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY'] ?? 'config-app-encryption-key-32-char!!!', $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026'); // v1.2.0: key from ENV + version
 
 $adminId  = $users->insert(['name' => 'Admin',  'email' => 'admin@test.com',  'role' => 'admin']);
 $editorId = $users->insert(['name' => 'Editor', 'email' => 'editor@test.com', 'role' => 'editor']);

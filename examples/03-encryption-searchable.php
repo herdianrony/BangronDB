@@ -27,7 +27,7 @@ $db = $client->createDB('secure_app');
 $patients = $db->createCollection('patients');
 
 // Set encryption key (min 32 karakter)
-$encKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'this-is-a-32-char-secret-key-secure!!'; // v1.1.0: use $_ENV in production
+$encKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'this-is-a-32-char-secret-key-secure!!'; // v1.2.0: use $_ENV in production
 $patients->setEncryptionKey($encKey, $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026');
 
 // Insert data sensitif
@@ -94,7 +94,7 @@ echo "Found by plain name: " . count($byName) . " result(s)\n";
 sub('BAGIAN 3: Enkripsi dengan Key dari .env');
 
 // Simulasi key dari .env (di production: $_ENV['DB_ENCRYPTION_KEY'])
-$envKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'env-secret-key-at-least-32-chars!!!'; // v1.1.0: use $_ENV
+$envKey = $_ENV['DB_ENCRYPTION_KEY'] ?? 'env-secret-key-at-least-32-chars!!!'; // v1.2.0: use $_ENV
 
 $secretDb = $client->createDB('secrets');
 $vault = $secretDb->createCollection('vault');
@@ -121,7 +121,7 @@ echo "Tanpa key: " . ($unreadable === null ? 'null (tidak bisa decrypt)' : 'terb
 
 // Reconnect DENGAN key → data bisa dibaca
 $client2->close();
-$client3 = new Client($examplePath, ['encryption_key' => $envKey, 'encryption_key_version' => $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026']  // v1.1.0);
+$client3 = new Client($examplePath, ['encryption_key' => $envKey, 'encryption_key_version' => $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026']  // v1.2.0);
 $db3 = $client3->selectDB('secrets');
 $vault3 = $db3->selectCollection('vault');
 $readable = $vault3->findOne(['_id' => $vaultId]);

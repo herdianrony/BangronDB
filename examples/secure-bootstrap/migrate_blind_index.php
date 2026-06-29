@@ -26,7 +26,7 @@ foreach ($toMigrate as $dbName => $collections) {
         continue;
     }
     foreach ($collections as $collectionName => $fields) {
-        // v1.1.0: encryption key + version sudah di-set via SecureClientFactory / Client options
+        // v1.2.0: encryption key + version sudah di-set via SecureClientFactory / Client options
         if (!$client->collectionExists($dbName, $collectionName)) {
             echo "Skip $dbName.$collectionName - tidak ada\n";
             continue;

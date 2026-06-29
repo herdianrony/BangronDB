@@ -21,7 +21,7 @@ Folder `examples/` berisi contoh penggunaan BangronDB untuk fitur inti sampai sk
 | 13 | `13-security-features.php` | Security | Closure-only operators, field validation, path safety, PRAGMA escaping |
 | 14 | `14-ecommerce-app.php` | Real-World Example | schema, hooks, encryption, searchable fields, soft deletes, transactions, populate |
 | 15 | `15-auth-encrypted.php` | Authentication Example | data auth terenkripsi, query aman, praktik penyimpanan secret |
-| 16 | `16-key-rotation.php` | Encryption Key Rotation – v1.1.0 | AES-256-GCM v2 (IV 12-byte), key_version, rotateEncryptionKey(), reencryptAll(), sensitive config blocking |
+| 16 | `16-key-rotation.php` | Encryption Key Rotation – v1.2.0 | AES-256-GCM v2 (IV 12-byte), key_version, rotateEncryptionKey(), reencryptAll(), sensitive config blocking |
 
 ## Cara Menjalankan
 

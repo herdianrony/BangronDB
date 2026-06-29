@@ -1,4 +1,4 @@
-# Collection API – BangronDB v1.1.0
+# Collection API – BangronDB v1.2.0
 
 `BangronDB\Collection`
 
@@ -192,7 +192,7 @@ Enum bersifat strict: `0 !== false !== '0'`
 
 ---
 
-## Encryption – v1.1.0
+## Encryption – v1.2.0
 
 ```php
 public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
@@ -273,7 +273,7 @@ $user = $users->findOne(['email' => 'john@example.com']);
 Blind index di DB: `si_email = HMAC-SHA256(strtolower(email), searchKey)`  
 `searchKey = PBKDF2(encryption_key, salt="searchindex:", 100k)`
 
-**Migration v1.0 → v1.1.0 – Request**
+**Migration v1.0 → v1.2.0 – Request**
 ```php
 $users->rehashSearchableField('email');
 ```
@@ -403,7 +403,7 @@ public function getAllCustomConfig(): array
 public function setCustomConfigArray(array $config): self
 ```
 
-**v1.1.0 Security – Blocked keys – Request**
+**v1.2.0 Security – Blocked keys – Request**
 ```php
 $col->setCustomConfig('encryption_key', 'secret123');
 ```

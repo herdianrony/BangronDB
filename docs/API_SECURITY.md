@@ -1,4 +1,4 @@
-# Security API – BangronDB v1.1.0
+# Security API – BangronDB v1.2.0
 
 `BangronDB\Security\FieldValidator` + Encryption v2
 
@@ -100,7 +100,7 @@ Escape key untuk SQLite PRAGMA, tolak control chars `\x00-\x1F`.
 
 `BangronDB\Traits\EncryptionTrait`
 
-| Item | v1.1.0 |
+| Item | v1.2.0 |
 |---|---|
 | Cipher | AES-256-GCM |
 | Key derivation | PBKDF2-SHA256, 100k iter, 32 byte |
@@ -199,7 +199,7 @@ rows updated – upgrade SHA-256 plain → HMAC keyed
 
 ---
 
-## Custom Config – Sensitive Key Blocking (v1.1.0)
+## Custom Config – Sensitive Key Blocking (v1.2.0)
 
 ```php
 $col->setCustomConfig('theme', 'dark'); // OK
