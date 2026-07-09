@@ -469,14 +469,14 @@ try {
 
 BangronDB menerapkan beberapa guardrail penting:
 
-| Fitur | Tujuan |
-|------|--------|
-| Closure-only untuk `$where` / `$func` | Mencegah RCE |
-| Validasi field name | Mencegah injection |
-| PRAGMA key escaping | Mencegah SQLite injection |
-| Regex hardening | Mengurangi risiko ReDoS |
-| Validasi path | Mengurangi risiko path traversal |
-| `strict_types=1` | Type safety |
+| Fitur                                 | Tujuan                           |
+| ------------------------------------- | -------------------------------- |
+| Closure-only untuk `$where` / `$func` | Mencegah RCE                     |
+| Validasi field name                   | Mencegah injection               |
+| PRAGMA key escaping                   | Mencegah SQLite injection        |
+| Regex hardening                       | Mengurangi risiko ReDoS          |
+| Validasi path                         | Mengurangi risiko path traversal |
+| `strict_types=1`                      | Type safety                      |
 
 Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 
@@ -484,86 +484,86 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 
 ### Client
 
-| Method | Keterangan |
-|--------|------------|
-| `new Client($path, $options = [])` | Membuat client |
-| `createDB($name, $options = [])` | Membuat database secara eksplisit |
-| `dbExists($name)` | Mengecek apakah database ada |
-| `listDBs()` | Daftar database |
-| `selectDB($name)` | Ambil database |
-| `renameDB($oldName, $newName)` | Rename database |
-| `dropDB($name)` | Hapus database |
-| `createCollection($db, $collection)` | Membuat collection langsung dari level client |
-| `collectionExists($db, $collection)` | Mengecek collection dari level client |
+| Method                                         | Keterangan                                                         |
+| ---------------------------------------------- | ------------------------------------------------------------------ |
+| `new Client($path, $options = [])`             | Membuat client                                                     |
+| `createDB($name, $options = [])`               | Membuat database secara eksplisit                                  |
+| `dbExists($name)`                              | Mengecek apakah database ada                                       |
+| `listDBs()`                                    | Daftar database                                                    |
+| `selectDB($name)`                              | Ambil database                                                     |
+| `renameDB($oldName, $newName)`                 | Rename database                                                    |
+| `dropDB($name)`                                | Hapus database                                                     |
+| `createCollection($db, $collection)`           | Membuat collection langsung dari level client                      |
+| `collectionExists($db, $collection)`           | Mengecek collection dari level client                              |
 | `listCollections($db)` / `listCollection($db)` | Daftar nama collection di sebuah database (`[]` jika DB tidak ada) |
-| `renameCollection($db, $oldName, $newName)` | Rename collection dari level client |
-| `dropCollection($db, $collection)` | Hapus collection dari level client |
-| `selectCollection($db, $collection)` | Ambil collection langsung |
-| `close()` | Tutup koneksi |
+| `renameCollection($db, $oldName, $newName)`    | Rename collection dari level client                                |
+| `dropCollection($db, $collection)`             | Hapus collection dari level client                                 |
+| `selectCollection($db, $collection)`           | Ambil collection langsung                                          |
+| `close()`                                      | Tutup koneksi                                                      |
 
 ### Database
 
-| Method | Keterangan |
-|--------|------------|
-| `selectCollection($name)` | Ambil collection |
-| `createCollection($name)` | Buat collection |
-| `collectionExists($name)` | Mengecek apakah collection ada |
-| `renameCollection($oldName, $newName)` | Rename collection |
-| `dropCollection($name)` | Hapus collection |
-| `getCollectionNames()` | Daftar nama collection |
-| `createJsonIndex($collection, $field, $indexName = null)` | Buat index JSON |
-| `dropIndex($indexName)` | Hapus index |
-| `getHealthMetrics()` | Ambil health metrics |
-| `getHealthReport()` | Ambil health report |
-| `getPerformanceMetrics()` | Ambil metrik performa |
-| `getCollectionMetrics()` | Ambil metrik per collection |
-| `saveCollectionConfig($name, $config)` | Simpan konfigurasi |
-| `loadCollectionConfig($name)` | Muat konfigurasi |
-| `deleteCollectionConfig($name)` | Hapus konfigurasi |
-| `checkIntegrity()` | Jalankan integrity check |
-| `vacuum()` | Optimasi file database |
+| Method                                                    | Keterangan                     |
+| --------------------------------------------------------- | ------------------------------ |
+| `selectCollection($name)`                                 | Ambil collection               |
+| `createCollection($name)`                                 | Buat collection                |
+| `collectionExists($name)`                                 | Mengecek apakah collection ada |
+| `renameCollection($oldName, $newName)`                    | Rename collection              |
+| `dropCollection($name)`                                   | Hapus collection               |
+| `getCollectionNames()`                                    | Daftar nama collection         |
+| `createJsonIndex($collection, $field, $indexName = null)` | Buat index JSON                |
+| `dropIndex($indexName)`                                   | Hapus index                    |
+| `getHealthMetrics()`                                      | Ambil health metrics           |
+| `getHealthReport()`                                       | Ambil health report            |
+| `getPerformanceMetrics()`                                 | Ambil metrik performa          |
+| `getCollectionMetrics()`                                  | Ambil metrik per collection    |
+| `saveCollectionConfig($name, $config)`                    | Simpan konfigurasi             |
+| `loadCollectionConfig($name)`                             | Muat konfigurasi               |
+| `deleteCollectionConfig($name)`                           | Hapus konfigurasi              |
+| `checkIntegrity()`                                        | Jalankan integrity check       |
+| `vacuum()`                                                | Optimasi file database         |
 
 ### Collection
 
-| Method | Keterangan |
-|--------|------------|
-| `insert($document)` | Insert satu/banyak dokumen |
-| `find($criteria = null, $projection = null)` | Query dokumen |
-| `findOne($criteria = null, $projection = null)` | Query satu dokumen |
-| `update($criteria, $data, $merge = true)` | Update dokumen |
-| `remove($criteria)` | Hapus dokumen |
-| `count($criteria = null)` | Hitung dokumen |
-| `save($document)` | Insert / upsert dokumen |
-| `drop()` | Hapus collection |
-| `renameCollection($newName)` | Rename collection |
-| `setIdModeAuto()` / `setIdModeManual()` / `setIdModePrefix($prefix)` | Atur mode ID |
-| `setEncryptionKey($key, $version = null)` | Atur key enkripsi + versi (v1.2.0) |
-| `setSearchableFields($fields, $hash = false)` | Atur searchable fields |
-| `removeSearchableField($field, $dropColumn = false)` | Hapus searchable field |
-| `setSchema($schema)` | Atur schema |
-| `useSoftDeletes($enabled = true)` | Aktifkan soft delete |
-| `restore($criteria)` | Restore dokumen terhapus |
-| `forceDelete($criteria)` | Hapus permanen |
-| `on($event, $callback)` | Register hook |
-| `off($event, $callback = null)` | Hapus hook |
-| `createIndex($field, $indexName = null)` | Buat index |
-| `getLastModified()` | Ambil metadata perubahan |
-| `notifyChange()` | Trigger manual change notification |
-| `saveConfiguration()` | Simpan konfigurasi collection |
+| Method                                                               | Keterangan                         |
+| -------------------------------------------------------------------- | ---------------------------------- |
+| `insert($document)`                                                  | Insert satu/banyak dokumen         |
+| `find($criteria = null, $projection = null)`                         | Query dokumen                      |
+| `findOne($criteria = null, $projection = null)`                      | Query satu dokumen                 |
+| `update($criteria, $data, $merge = true)`                            | Update dokumen                     |
+| `remove($criteria)`                                                  | Hapus dokumen                      |
+| `count($criteria = null)`                                            | Hitung dokumen                     |
+| `save($document)`                                                    | Insert / upsert dokumen            |
+| `drop()`                                                             | Hapus collection                   |
+| `renameCollection($newName)`                                         | Rename collection                  |
+| `setIdModeAuto()` / `setIdModeManual()` / `setIdModePrefix($prefix)` | Atur mode ID                       |
+| `setEncryptionKey($key, $version = null)`                            | Atur key enkripsi + versi (v1.2.0) |
+| `setSearchableFields($fields, $hash = false)`                        | Atur searchable fields             |
+| `removeSearchableField($field, $dropColumn = false)`                 | Hapus searchable field             |
+| `setSchema($schema)`                                                 | Atur schema                        |
+| `useSoftDeletes($enabled = true)`                                    | Aktifkan soft delete               |
+| `restore($criteria)`                                                 | Restore dokumen terhapus           |
+| `forceDelete($criteria)`                                             | Hapus permanen                     |
+| `on($event, $callback)`                                              | Register hook                      |
+| `off($event, $callback = null)`                                      | Hapus hook                         |
+| `createIndex($field, $indexName = null)`                             | Buat index                         |
+| `getLastModified()`                                                  | Ambil metadata perubahan           |
+| `notifyChange()`                                                     | Trigger manual change notification |
+| `saveConfiguration()`                                                | Simpan konfigurasi collection      |
 
 ### Cursor
 
-| Method | Keterangan |
-|--------|------------|
-| `limit($n)` | Batas hasil |
-| `skip($n)` | Lewati hasil awal |
-| `sort($fields)` | Urutkan hasil |
-| `populate($field, $collection, $options = [])` | Populate relasi |
-| `withTrashed()` | Sertakan soft-deleted |
-| `onlyTrashed()` | Hanya soft-deleted |
-| `toArray()` | Materialisasi ke array |
-| `toArraySafe($maxResults = null)` | Materialisasi dengan batas aman |
-| `each($callback)` | Iterasi tiap dokumen |
+| Method                                         | Keterangan                      |
+| ---------------------------------------------- | ------------------------------- |
+| `limit($n)`                                    | Batas hasil                     |
+| `skip($n)`                                     | Lewati hasil awal               |
+| `sort($fields)`                                | Urutkan hasil                   |
+| `populate($field, $collection, $options = [])` | Populate relasi                 |
+| `withTrashed()`                                | Sertakan soft-deleted           |
+| `onlyTrashed()`                                | Hanya soft-deleted              |
+| `toArray()`                                    | Materialisasi ke array          |
+| `toArraySafe($maxResults = null)`              | Materialisasi dengan batas aman |
+| `each($callback)`                              | Iterasi tiap dokumen            |
 
 ## Konfigurasi Environment
 
