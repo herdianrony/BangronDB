@@ -36,7 +36,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testInsertManyReturnsInsertedIds(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('users');
 
         $result = $collection->insertMany([
@@ -52,7 +52,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testInsertManyRollsBackOnHookRejection(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('items');
 
         // Register a beforeInsert hook that rejects the second document
@@ -80,7 +80,7 @@ class RoadmapFeaturesTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('non-empty array');
 
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->insertMany([]);
     }
@@ -90,14 +90,14 @@ class RoadmapFeaturesTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('not an array');
 
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->insertMany(['valid' => ['a' => 1], 'invalid' => 'not-array']);
     }
 
     public function testUpdateManyReturnsMatchedAndModifiedCounts(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('items');
 
         $collection->insertMany([
@@ -117,7 +117,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testDeleteManyReturnsDeletedCount(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('items');
 
         $collection->insertMany([
@@ -136,7 +136,7 @@ class RoadmapFeaturesTest extends TestCase
 
     private function seedSalesData(): \BangronDB\Collection
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('sales');
 
         $collection->insertMany([
@@ -358,7 +358,7 @@ class RoadmapFeaturesTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('non-empty pipeline');
 
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->aggregate([]);
     }
@@ -368,7 +368,7 @@ class RoadmapFeaturesTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown pipeline operator');
 
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->insert(['a' => 1]);
         $collection->aggregate([['$unknown' => []]]);
@@ -378,7 +378,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testExplainReturnsQueryPlan(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('users');
 
         $collection->insertMany([
@@ -399,7 +399,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testExplainNoFilter(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->insert(['a' => 1]);
 
@@ -413,7 +413,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testStreamYieldsDocuments(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('items');
 
         $collection->insertMany([
@@ -432,7 +432,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testStreamWithCriteria(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('items');
 
         $collection->insertMany([
@@ -454,7 +454,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testStreamWithSortAndLimit(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('items');
 
         $collection->insertMany([
@@ -475,7 +475,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testStreamWithProjection(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('items');
 
         $collection->insert(['name' => 'Alice', 'password' => 'secret']);
@@ -492,7 +492,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testStreamReturnsGenerator(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->insert(['a' => 1]);
 
@@ -505,7 +505,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlEnableAndDisable(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('sessions');
 
         $this->assertFalse($collection->isTtlEnabled());
@@ -520,7 +520,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlDefaultExpiryOnInsert(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('otp');
         $collection->enableTtl('expires_at', 3600);
 
@@ -535,7 +535,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlDoesNotOverrideExplicitExpiry(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('otp');
         $collection->enableTtl('expires_at', 3600);
 
@@ -548,7 +548,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlCleanExpired(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('sessions');
         $collection->enableTtl('expires_at');
 
@@ -570,7 +570,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlExpiredCount(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('cache');
         $collection->enableTtl('expires_at');
 
@@ -585,7 +585,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlStats(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('tokens');
         $collection->enableTtl('expires_at', 600);
 
@@ -608,7 +608,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlStatsWhenDisabled(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
 
         $stats = $collection->ttlStats();
@@ -619,7 +619,7 @@ class RoadmapFeaturesTest extends TestCase
 
     public function testTtlCleanExpiredReturnsZeroWhenDisabled(): void
     {
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->insert(['a' => 1]);
 
@@ -630,7 +630,7 @@ class RoadmapFeaturesTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $db = $this->client->selectDB('test');
+        $db = $this->client->createDB('test');
         $collection = $db->selectCollection('test');
         $collection->enableTtl('expires_at', -1);
     }
