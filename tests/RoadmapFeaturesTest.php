@@ -56,10 +56,11 @@ class RoadmapFeaturesTest extends TestCase
         $collection = $db->createCollection('items');
 
         // Register a beforeInsert hook that rejects the second document
-        $rejectIndex = 1;
-        $collection->on('beforeInsert', function ($doc) use (&$rejectIndex) {
-            if (isset($doc['fail']) && $rejectIndex-- <= 0) {
-                return false; // reject
+        $callCount = 0;
+        $collection->on('beforeInsert', function ($doc) use (&$callCount) {
+            $callCount++;
+            if ($callCount === 2) {
+                return false; // reject second document
             }
             return $doc;
         });
