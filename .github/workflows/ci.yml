@@ -55,8 +55,42 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Check syntax errors
+      - name: Check syntax errors (src + tests)
         run: composer lint
+
+      - name: Check syntax errors (examples)
+        run: find examples/ -name "*.php" -not -path "examples/secure-bootstrap/*" -exec php -l {} \;
+
+  # Enforce that every test file ends with `Test.php` so phpunit's
+  # `<directory suffix="Test.php">` discovery includes it. A file named
+  # e.g. `FooTest_v120.php` would silently be skipped by the suite.
+  test-naming:
+    runs-on: ubuntu-latest
+    name: Test File Naming Convention
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_sqlite, openssl
+
+      - name: Verify all test files end with Test.php
+        run: |
+          set -e
+          echo "Checking that every file in tests/ ends with Test.php ..."
+          # Find PHP files in tests/ that do NOT end with Test.php
+          bad=$(find tests/ -name "*.php" ! -name "*Test.php" -print)
+          if [ -n "$bad" ]; then
+            echo "::error::The following test files do not end with 'Test.php' and will NOT be discovered by phpunit:"
+            echo "$bad"
+            echo ""
+            echo "Rename them to end with 'Test.php' (e.g. SecurityValidationV120Test.php, not SecurityValidationTest_v120.php)"
+            exit 1
+          fi
+          echo "✓ All test files follow the *Test.php naming convention."
 
   static-analysis:
     runs-on: ubuntu-latest

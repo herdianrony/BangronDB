@@ -115,13 +115,17 @@ Escape key untuk SQLite PRAGMA, tolak control chars `\x00-\x1F`.
 ```php
 // Collection
 public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
+public function setEncryptionKeyVersion(?string $version): self   // v1.2.0
 // Database
 public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
+public function setEncryptionKeyVersion(?string $version): self   // v1.2.0
 ```
 
 **Example Request**
 ```php
 $users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY'], 'v2-2026-06');
+// atau ubah hanya versi key tanpa mengganti key material:
+$users->setEncryptionKeyVersion('v3-2026-12');
 ```
 
 Key validation:

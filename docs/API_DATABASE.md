@@ -24,6 +24,7 @@ Biasanya via `Client::createDB()`.
 public function getEncryptionKey(): ?string
 public function getEncryptionKeyVersion(): ?string   // v1.2.0
 public function setEncryptionKey(?string $key, ?string $keyVersion = null): self
+public function setEncryptionKeyVersion(?string $version): self   // v1.2.0
 public function isEncryptionEnabled(): bool
 public function getEncryptionKeyStatus(): array
 ```
