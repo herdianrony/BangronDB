@@ -143,17 +143,17 @@ class ExampleIntegrationTest extends TestCase
      * Catches: syntax errors, runtime bugs in rotateEncryptionKey(),
      * reencryptAll(), sensitive config blocking, and legacy IV decrypt.
      */
-    public function testExample16KeyRotationRunsCleanly(): void
+    public function testExample21KeyRotationRunsCleanly(): void
     {
-        $this->assertExampleRunsCleanly('16-key-rotation.php');
+        $this->assertExampleRunsCleanly('21-key-rotation.php');
     }
 
     /**
      * Example 15: Auth + Encryption – searchable encrypted fields for login.
      */
-    public function testExample15AuthEncryptedRunsCleanly(): void
+    public function testExample20AuthEncryptedRunsCleanly(): void
     {
-        $this->assertExampleRunsCleanly('15-auth-encrypted.php');
+        $this->assertExampleRunsCleanly('20-auth-encrypted.php');
     }
 
     /**
