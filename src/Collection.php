@@ -114,7 +114,7 @@ class Collection
     public function insert(array $document = [])
     {
         // Reject empty document (not a batch, just [])
-        if (empty($document) && !isset($document[0])) {
+        if ($document === [] && !isset($document[0])) {
             throw new \InvalidArgumentException(
                 'insert() requires a non-empty document. ' .
                 'Pass an associative array like ["name" => "John"] to insert a single document.'
@@ -820,7 +820,7 @@ class Collection
      * Analyzes encryption configuration, schema validation, searchable fields,
      * and provides actionable security recommendations.
      *
-     * @return array{encryption: array, configuration: array, recommendations: array, overall_score: int, score_label: string}
+     * @return array{encryption: array, configuration: array, recommendations: array, overall_score: int, score_label: string, audited_at: int}
      *
      * @example
      *   $audit = $collection->securityAudit();

@@ -215,7 +215,7 @@ trait TtlTrait
      * Returns information about current TTL state including
      * expired count, time until next expiration, etc.
      *
-     * @return array{TTL status information}
+     * @return array TTL status information
      *
      * @example
      *   $stats = $collection->ttlStats();

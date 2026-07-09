@@ -39,15 +39,15 @@ class SecurityAuditor
      * Perform a full security audit on a collection.
      *
      * @param  \BangronDB\Collection $collection The collection to audit
-     * @return array{encryption: array, configuration: array, recommendations: array, overall_score: int}
+     * @return array{encryption: array, configuration: array, recommendations: array, overall_score: int, score_label: string, audited_at: int}
      */
-    public static function auditCollection($collection): array
+    public static function auditCollection(\BangronDB\Collection $collection): array
     {
         $encryptionAudit = self::auditEncryption($collection);
         $configAudit = self::auditConfiguration($collection);
         $recommendations = array_merge(
-            $encryptionAudit['recommendations'] ?? [],
-            $configAudit['recommendations'] ?? []
+            $encryptionAudit['recommendations'],
+            $configAudit['recommendations']
         );
 
         $score = self::calculateSecurityScore($encryptionAudit, $configAudit);
@@ -66,7 +66,7 @@ class SecurityAuditor
      * Perform a full security audit on a database.
      *
      * @param  Database $database The database to audit
-     * @return array{database: array, collections: array, recommendations: array}
+     * @return array{database: array, collections: array, recommendations: array, audited_at: int}
      */
     public static function auditDatabase(Database $database): array
     {
@@ -92,7 +92,7 @@ class SecurityAuditor
     /**
      * Audit encryption configuration and health.
      */
-    private static function auditEncryption($collection): array
+    private static function auditEncryption(\BangronDB\Collection $collection): array
     {
         $recommendations = [];
         $issues = [];
@@ -164,7 +164,7 @@ class SecurityAuditor
     /**
      * Audit collection-level security configuration.
      */
-    private static function auditConfiguration($collection): array
+    private static function auditConfiguration(\BangronDB\Collection $collection): array
     {
         $recommendations = [];
         $checks = [];
