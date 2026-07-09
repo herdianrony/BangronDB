@@ -23,7 +23,7 @@ class RoadmapFeaturesTest extends TestCase
     protected function setUp(): void
     {
         Config::reset();
-        $this->client = new Client(['path' => ':memory:']);
+        $this->client = new Client(':memory:');
     }
 
     protected function tearDown(): void

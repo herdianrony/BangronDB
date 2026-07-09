@@ -36,8 +36,9 @@ class ExampleIntegrationTest extends TestCase
         $tmpWorkspace = sys_get_temp_dir() . '/bangrondb_example_' . uniqid();
         @mkdir($tmpWorkspace, 0700, true);
 
+        $nullDev = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
         $descriptors = [
-            0 => ['file', '/dev/null', 'r'],
+            0 => ['file', $nullDev, 'r'],
             1 => ['pipe', 'w'],
             2 => ['pipe', 'w'],
         ];
@@ -99,16 +100,21 @@ class ExampleIntegrationTest extends TestCase
      */
     private function resolvePhpCommand(): string
     {
+        // 1. Try FrankenPHP binary (Linux/macOS)
         $frankenphp = '/home/z/frankenphp';
         if (file_exists($frankenphp) && is_executable($frankenphp)) {
             return escapeshellarg($frankenphp) . ' php-cli';
         }
 
-        $which = shell_exec('command -v php 2>/dev/null');
+        // 2. Try system 'php' on PATH (works on Windows and Unix)
+        $which = DIRECTORY_SEPARATOR === '\\'
+            ? shell_exec('where php 2>NUL')
+            : shell_exec('command -v php 2>/dev/null');
         if ($which !== null && trim($which) !== '') {
             return 'php';
         }
 
+        // 3. Fall back to PHP_BINARY
         return escapeshellarg(PHP_BINARY);
     }
 
