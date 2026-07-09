@@ -26,20 +26,10 @@ use BangronDB\Database;
 class SecurityAuditor
 {
     /**
-     * Minimum recommended key length in characters.
-     */
-    private const MIN_RECOMMENDED_KEY_LENGTH = 32;
-
-    /**
-     * Maximum recommended key age in seconds (90 days).
-     */
-    private const MAX_KEY_AGE_SECONDS = 90 * 24 * 3600;
-
-    /**
      * Perform a full security audit on a collection.
      *
      * @param  \BangronDB\Collection $collection The collection to audit
-     * @return array{encryption: array, configuration: array, recommendations: array, overall_score: int, score_label: string, audited_at: int}
+     * @return array{encryption: array{is_encrypted: bool, key_version: mixed, db_encrypted: bool, is_secure: bool, issues: array<int, string>, recommendations: array<int, string>}, configuration: array{schema: bool, searchable_fields: int, soft_deletes: bool, is_secure: bool, checks: array<int, string>, recommendations: array<int, string>}, recommendations: array<int, string>, overall_score: int, score_label: string, audited_at: int}
      */
     public static function auditCollection(\BangronDB\Collection $collection): array
     {
@@ -66,7 +56,7 @@ class SecurityAuditor
      * Perform a full security audit on a database.
      *
      * @param  Database $database The database to audit
-     * @return array{database: array, collections: array, recommendations: array, audited_at: int}
+     * @return array{database: array<string, mixed>, collections: array<string, array<string, mixed>>, recommendations: array<int, string>, audited_at: int}
      */
     public static function auditDatabase(Database $database): array
     {
@@ -89,9 +79,7 @@ class SecurityAuditor
         ];
     }
 
-    /**
-     * Audit encryption configuration and health.
-     */
+    /** @return array{is_encrypted: bool, key_version: mixed, db_encrypted: bool, is_secure: bool, issues: array<int, string>, recommendations: array<int, string>} */
     private static function auditEncryption(\BangronDB\Collection $collection): array
     {
         $recommendations = [];
@@ -161,9 +149,7 @@ class SecurityAuditor
         ];
     }
 
-    /**
-     * Audit collection-level security configuration.
-     */
+    /** @return array{schema: bool, searchable_fields: int, soft_deletes: bool, is_secure: bool, checks: array<int, string>, recommendations: array<int, string>} */
     private static function auditConfiguration(\BangronDB\Collection $collection): array
     {
         $recommendations = [];
@@ -205,9 +191,7 @@ class SecurityAuditor
         ];
     }
 
-    /**
-     * Audit database-level security.
-     */
+    /** @return array<string, mixed> */
     private static function auditDatabaseLevel(Database $database): array
     {
         $recommendations = [];
@@ -240,9 +224,7 @@ class SecurityAuditor
         ];
     }
 
-    /**
-     * Calculate an overall security score (0-100).
-     */
+    /** @param array<string, mixed> $encryptionAudit @param array<string, mixed> $configAudit */
     private static function calculateSecurityScore(array $encryptionAudit, array $configAudit): int
     {
         $score = 50; // Base score

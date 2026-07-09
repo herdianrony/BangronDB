@@ -820,7 +820,7 @@ class Collection
      * Analyzes encryption configuration, schema validation, searchable fields,
      * and provides actionable security recommendations.
      *
-     * @return array{encryption: array, configuration: array, recommendations: array, overall_score: int, score_label: string, audited_at: int}
+     * @return array{encryption: array{is_encrypted: bool, key_version: mixed, db_encrypted: bool, is_secure: bool, issues: array<int, string>, recommendations: array<int, string>}, configuration: array{schema: bool, searchable_fields: int, soft_deletes: bool, is_secure: bool, checks: array<int, string>, recommendations: array<int, string>}, recommendations: array<int, string>, overall_score: int, score_label: string, audited_at: int}
      *
      * @example
      *   $audit = $collection->securityAudit();
@@ -848,6 +848,7 @@ class Collection
      *
      * @throws \InvalidArgumentException If documents is empty or contains non-array items
      */
+    /** @param array<int, array<string, mixed>> $documents */
     public function insertMany(array $documents): array
     {
         if (empty($documents)) {
@@ -908,6 +909,7 @@ class Collection
      * @param  array  $options   Options: ['merge' => bool (default true)]
      * @return array{matched_count: int, modified_count: int}
      */
+    /** @param array<string, mixed> $data @param array<string, mixed> $options */
     public function updateMany(mixed $criteria, array $data, array $options = []): array
     {
         $merge = $options['merge'] ?? true;
@@ -1042,6 +1044,7 @@ class Collection
      * @param  int                  $index     Stage index for error messages
      * @return array<int, array> Modified document set
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function executePipelineStage(array $documents, string $operator, mixed $arguments, int $index): array
     {
         return match ($operator) {
@@ -1063,6 +1066,7 @@ class Collection
     /**
      * $match stage: Filter documents using query criteria.
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageMatch(array $documents, mixed $criteria, int $index): array
     {
         if (!is_array($criteria)) {
@@ -1091,6 +1095,7 @@ class Collection
      *       'count' => ['$count' => null],
      *   ]]
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageGroup(array $documents, mixed $args, int $index): array
     {
         if (!is_array($args) || !array_key_exists('_id', $args)) {
@@ -1157,6 +1162,7 @@ class Collection
     /**
      * Resolve the group key for a document based on _id expression.
      */
+    /** @param array<string, mixed> $doc */
     private function resolveGroupKey(mixed $expression, array $doc): mixed
     {
         if ($expression === null) {
@@ -1173,6 +1179,7 @@ class Collection
     /**
      * Get the initial value for an accumulator.
      */
+    /** @param array<string, mixed> $accExpr */
     private function getAccumulatorInitialValue(array $accExpr): mixed
     {
         $operator = array_key_first($accExpr);
@@ -1195,6 +1202,7 @@ class Collection
     /**
      * Accumulate a value into the current accumulator state.
      */
+    /** @param array<string, mixed> $accExpr @param array<string, mixed> $doc */
     private function accumulateValue(mixed $current, array $accExpr, array $doc, string $field): mixed
     {
         $operator = array_key_first($accExpr);
@@ -1223,6 +1231,7 @@ class Collection
     /**
      * Add a value to a set (unique values only).
      */
+    /** @return array<int, mixed> */
     private function addToSet(mixed $current, mixed $value): array
     {
         $set = $current ?? [];
@@ -1235,6 +1244,7 @@ class Collection
     /**
      * Resolve the value for an accumulator expression.
      */
+    /** @param array<string, mixed> $doc */
     private function resolveAccumulatorValue(mixed $expression, array $doc): mixed
     {
         if ($expression === null) {
@@ -1251,6 +1261,7 @@ class Collection
     /**
      * $sort stage: Sort documents by specified fields.
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageSort(array $documents, mixed $sortFields, int $index): array
     {
         if (!is_array($sortFields) || empty($sortFields)) {
@@ -1309,6 +1320,7 @@ class Collection
     /**
      * $limit stage: Limit the number of documents.
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageLimit(array $documents, mixed $limit, int $index): array
     {
         if (!is_int($limit) || $limit < 0) {
@@ -1324,6 +1336,7 @@ class Collection
     /**
      * $skip stage: Skip N documents.
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageSkip(array $documents, mixed $skip, int $index): array
     {
         if (!is_int($skip) || $skip < 0) {
@@ -1346,6 +1359,7 @@ class Collection
      *   ['$project' => ['name' => 1, 'email' => 1, 'password' => 0]]
      *   ['$project' => ['userName' => '$name', 'userEmail' => '$email']]
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageProject(array $documents, mixed $projection, int $index): array
     {
         if (!is_array($projection) || empty($projection)) {
@@ -1367,6 +1381,7 @@ class Collection
     /**
      * Check if a projection spec is inclusive (has at least one truthy value).
      */
+    /** @param array<string, mixed> $projection */
     private function isInclusiveProjectionSpec(array $projection): bool
     {
         foreach ($projection as $value) {
@@ -1385,6 +1400,7 @@ class Collection
     /**
      * Apply inclusive projection (only include specified fields).
      */
+    /** @param array<string, mixed> $doc @param array<string, mixed> $projection @return array<string, mixed> */
     private function applyInclusiveProjectStage(array $doc, array $projection): array
     {
         $result = [];
@@ -1418,6 +1434,7 @@ class Collection
     /**
      * Apply exclusive projection (remove specified fields).
      */
+    /** @param array<string, mixed> $doc @param array<string, mixed> $projection @return array<string, mixed> */
     private function applyExclusiveProjectStage(array $doc, array $projection): array
     {
         foreach ($projection as $field => $spec) {
@@ -1432,6 +1449,7 @@ class Collection
     /**
      * $count stage: Count documents and return a single document with the count.
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageCount(array $documents, mixed $fieldName, int $index): array
     {
         if (!is_string($fieldName)) {
@@ -1447,6 +1465,7 @@ class Collection
     /**
      * $unset stage: Remove specific fields from all documents.
      */
+    /** @param array<int, array<string, mixed>> $documents */
     private function stageUnset(array $documents, mixed $fields, int $index): array
     {
         $fieldsToRemove = is_array($fields) ? $fields : [$fields];
@@ -1467,9 +1486,7 @@ class Collection
         }, $documents);
     }
 
-    /**
-     * Get all documents from the collection (used by aggregation pipeline).
-     */
+    /** @return array<int, array<string, mixed>> */
     private function getAllDocuments(): array
     {
         $this->ensureCollectionExists();
@@ -1519,6 +1536,7 @@ class Collection
      *   echo $explanation['query_plan']['uses_index'] ? 'Uses index' : 'Full scan';
      *   echo "Scanned: {$explanation['performance']['documents_scanned']} documents";
      */
+    /** @return array{query_plan: array<string, mixed>, performance: array<string, mixed>, suggestions: array<int, string>} */
     public function explain(mixed $criteria = null): array
     {
         $this->ensureCollectionExists();
@@ -1594,9 +1612,7 @@ class Collection
         ];
     }
 
-    /**
-     * Get indexes for this collection.
-     */
+    /** @return array<int, array<string, mixed>> */
     private function getCollectionIndexes(): array
     {
         try {
@@ -1610,9 +1626,7 @@ class Collection
         }
     }
 
-    /**
-     * Extract field names from query criteria.
-     */
+    /** @return array<int, string> */
     private function extractFieldsFromCriteria(mixed $criteria): array
     {
         if (!is_array($criteria)) {
@@ -1636,9 +1650,7 @@ class Collection
         return array_unique($fields);
     }
 
-    /**
-     * Find indexes that match the queried fields.
-     */
+    /** @param array<int, string> $fields @param array<int, array<string, mixed>> $indexes @return array<int, array<string, mixed>> */
     private function findMatchingIndexes(array $fields, array $indexes): array
     {
         $matching = [];
@@ -1657,9 +1669,7 @@ class Collection
         return array_unique($matching);
     }
 
-    /**
-     * Run SQLite EXPLAIN QUERY PLAN.
-     */
+    /** @return array<string, mixed> */
     private function runExplainQueryPlan(string $table, string $whereClause, mixed $criteria): array
     {
         try {
@@ -1711,9 +1721,7 @@ class Collection
         return 'unknown criteria type';
     }
 
-    /**
-     * Generate optimization suggestions based on query analysis.
-     */
+    /** @param array<int, string> $fields @param array<int, array<string, mixed>> $usedIndexes @return array<int, string> */
     private function generateQuerySuggestions(array $fields, array $usedIndexes, int $totalDocs, int $matchedDocs): array
     {
         $suggestions = [];
@@ -1761,6 +1769,7 @@ class Collection
      *       processDocument($doc);
      *   }
      */
+    /** @param array<string, mixed> $options @return \Generator<int, array<string, mixed>> */
     public function stream(mixed $criteria = null, array $options = []): \Generator
     {
         $cursor = $this->find($criteria, $options['projection'] ?? null);

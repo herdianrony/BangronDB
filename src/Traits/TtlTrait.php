@@ -146,8 +146,8 @@ trait TtlTrait
      * If TTL is enabled and the document doesn't have the TTL field set,
      * and a default TTL is configured, this method adds the expiration timestamp.
      *
-     * @param array $document The document to apply TTL to
-     * @return array The document with TTL applied if applicable
+     * @param array<string, mixed> $document The document to apply TTL to
+     * @return array<string, mixed> The document with TTL applied if applicable
      */
     public function applyTtlOnInsert(array $document): array
     {
@@ -215,7 +215,7 @@ trait TtlTrait
      * Returns information about current TTL state including
      * expired count, time until next expiration, etc.
      *
-     * @return array TTL status information
+     * @return array<string, mixed> TTL status information
      *
      * @example
      *   $stats = $collection->ttlStats();

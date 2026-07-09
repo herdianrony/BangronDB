@@ -950,7 +950,7 @@ class Database
      * Audits encryption configuration, key rotation status, schema validation,
      * and provides actionable security recommendations for all collections.
      *
-     * @return array{database: array, collections: array, recommendations: array, audited_at: int}
+     * @return array{database: array<string, mixed>, collections: array<string, array<string, mixed>>, recommendations: array<int, string>, audited_at: int}
      *
      * @example
      *   $audit = $database->securityAudit();
