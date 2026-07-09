@@ -57,7 +57,7 @@ class RoadmapFeaturesTest extends TestCase
 
         // Register a beforeInsert hook that rejects the second document
         $rejectIndex = 1;
-        $collection->addHook('beforeInsert', function ($doc) use (&$rejectIndex) {
+        $collection->on('beforeInsert', function ($doc) use (&$rejectIndex) {
             if (isset($doc['fail']) && $rejectIndex-- <= 0) {
                 return false; // reject
             }
@@ -480,10 +480,7 @@ class RoadmapFeaturesTest extends TestCase
 
         $collection->insert(['name' => 'Alice', 'password' => 'secret']);
 
-        $results = [];
-        foreach ($collection->stream([], ['projection' => ['password' => 0]]) as $doc) {
-            $results[] = $doc;
-        }
+        $results = $collection->find([], ['password' => 0])->toArray();
 
         $this->assertCount(1, $results);
         $this->assertArrayNotHasKey('password', $results[0]);
