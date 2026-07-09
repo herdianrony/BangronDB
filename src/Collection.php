@@ -114,7 +114,7 @@ class Collection
     public function insert(array $document = [])
     {
         // Reject empty document (not a batch, just [])
-        if ($document === [] && !isset($document[0])) {
+        if ($document === []) {
             throw new \InvalidArgumentException(
                 'insert() requires a non-empty document. ' .
                 'Pass an associative array like ["name" => "John"] to insert a single document.'
@@ -843,12 +843,11 @@ class Collection
      * provides an explicit MongoDB-compatible API and returns detailed results
      * including inserted IDs and any errors encountered.
      *
-     * @param  array<int, array> $documents  Array of documents to insert
-     * @return array{inserted_count: int, inserted_ids: array<string>}
+     * @param  array<int, array<string, mixed>> $documents  Array of documents to insert
+     * @return array{inserted_count: int, inserted_ids: array<int, string>}
      *
      * @throws \InvalidArgumentException If documents is empty or contains non-array items
      */
-    /** @param array<int, array<string, mixed>> $documents */
     public function insertMany(array $documents): array
     {
         if (empty($documents)) {
@@ -904,12 +903,11 @@ class Collection
      * This is an explicit MongoDB-compatible alias for update() with a
      * return type that includes the matched count for better DX.
      *
-     * @param  mixed  $criteria  Query criteria
-     * @param  array  $data      Update data (supports $set, $unset, $inc operators)
-     * @param  array  $options   Options: ['merge' => bool (default true)]
+     * @param  mixed               $criteria  Query criteria
+     * @param  array<string, mixed> $data      Update data (supports $set, $unset, $inc operators)
+     * @param  array<string, mixed> $options   Options: ['merge' => bool (default true)]
      * @return array{matched_count: int, modified_count: int}
      */
-    /** @param array<string, mixed> $data @param array<string, mixed> $options */
     public function updateMany(mixed $criteria, array $data, array $options = []): array
     {
         $merge = $options['merge'] ?? true;
@@ -1019,7 +1017,7 @@ class Collection
         // Stage 2: Process each pipeline stage sequentially
         foreach ($pipeline as $index => $stage) {
             if (!is_array($stage) || count($stage) !== 1) {
-                $stageStr = is_array($stage) ? json_encode($stage) : (string) $stage;
+                $stageStr = json_encode($stage);
                 throw new \InvalidArgumentException(
                     "Pipeline stage at index {$index} must be an associative array with exactly one key. " .
                     "Got: {$stageStr}. Each stage should be like ['\$match' => [...]]"
@@ -1038,13 +1036,12 @@ class Collection
     /**
      * Execute a single pipeline stage.
      *
-     * @param  array<int, array>    $documents Current document set
-     * @param  string               $operator  Pipeline operator name
-     * @param  mixed                $arguments Stage arguments
-     * @param  int                  $index     Stage index for error messages
-     * @return array<int, array> Modified document set
+     * @param  array<int, array<string, mixed>> $documents Current document set
+     * @param  string                              $operator  Pipeline operator name
+     * @param  mixed                               $arguments Stage arguments
+     * @param  int                                 $index     Stage index for error messages
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents */
     private function executePipelineStage(array $documents, string $operator, mixed $arguments, int $index): array
     {
         return match ($operator) {
@@ -1066,7 +1063,7 @@ class Collection
     /**
      * $match stage: Filter documents using query criteria.
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageMatch(array $documents, mixed $criteria, int $index): array
     {
         if (!is_array($criteria)) {
@@ -1095,7 +1092,7 @@ class Collection
      *       'count' => ['$count' => null],
      *   ]]
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageGroup(array $documents, mixed $args, int $index): array
     {
         if (!is_array($args) || !array_key_exists('_id', $args)) {
@@ -1261,7 +1258,7 @@ class Collection
     /**
      * $sort stage: Sort documents by specified fields.
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageSort(array $documents, mixed $sortFields, int $index): array
     {
         if (!is_array($sortFields) || empty($sortFields)) {
@@ -1320,7 +1317,7 @@ class Collection
     /**
      * $limit stage: Limit the number of documents.
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageLimit(array $documents, mixed $limit, int $index): array
     {
         if (!is_int($limit) || $limit < 0) {
@@ -1336,7 +1333,7 @@ class Collection
     /**
      * $skip stage: Skip N documents.
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageSkip(array $documents, mixed $skip, int $index): array
     {
         if (!is_int($skip) || $skip < 0) {
@@ -1359,7 +1356,7 @@ class Collection
      *   ['$project' => ['name' => 1, 'email' => 1, 'password' => 0]]
      *   ['$project' => ['userName' => '$name', 'userEmail' => '$email']]
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageProject(array $documents, mixed $projection, int $index): array
     {
         if (!is_array($projection) || empty($projection)) {
@@ -1449,7 +1446,7 @@ class Collection
     /**
      * $count stage: Count documents and return a single document with the count.
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageCount(array $documents, mixed $fieldName, int $index): array
     {
         if (!is_string($fieldName)) {
@@ -1465,7 +1462,7 @@ class Collection
     /**
      * $unset stage: Remove specific fields from all documents.
      */
-    /** @param array<int, array<string, mixed>> $documents */
+    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageUnset(array $documents, mixed $fields, int $index): array
     {
         $fieldsToRemove = is_array($fields) ? $fields : [$fields];
@@ -1650,7 +1647,7 @@ class Collection
         return array_unique($fields);
     }
 
-    /** @param array<int, string> $fields @param array<int, array<string, mixed>> $indexes @return array<int, array<string, mixed>> */
+    /** @param array<int, string> $fields @param array<int, array<string, string>> $indexes @return array<int, string> */
     private function findMatchingIndexes(array $fields, array $indexes): array
     {
         $matching = [];
@@ -1669,7 +1666,7 @@ class Collection
         return array_unique($matching);
     }
 
-    /** @return array<string, mixed> */
+    /** @return array<int, array<string, string>> */
     private function runExplainQueryPlan(string $table, string $whereClause, mixed $criteria): array
     {
         try {
@@ -1678,11 +1675,9 @@ class Collection
 
             if (!empty($whereClause)) {
                 $sql .= " WHERE {$whereClause}";
-            } elseif (is_string($criteria) && !empty($criteria)) {
+            } elseif (is_string($criteria) && $criteria !== '') {
                 $sql .= " WHERE document_criteria(?, document)";
-                $params[] = is_string($criteria)
-                    ? $criteria
-                    : $this->database->registerCriteriaFunction($criteria);
+                $params[] = $criteria;
             }
 
             $stmt = $this->database->queryExecutor->executeQuery($sql, $params);
@@ -1721,7 +1716,7 @@ class Collection
         return 'unknown criteria type';
     }
 
-    /** @param array<int, string> $fields @param array<int, array<string, mixed>> $usedIndexes @return array<int, string> */
+    /** @param array<int, string> $fields @param array<int, string> $usedIndexes @return array<int, string> */
     private function generateQuerySuggestions(array $fields, array $usedIndexes, int $totalDocs, int $matchedDocs): array
     {
         $suggestions = [];

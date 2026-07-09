@@ -29,7 +29,7 @@ class SecurityAuditor
      * Perform a full security audit on a collection.
      *
      * @param  \BangronDB\Collection $collection The collection to audit
-     * @return array{encryption: array{is_encrypted: bool, key_version: mixed, db_encrypted: bool, is_secure: bool, issues: array<int, string>, recommendations: array<int, string>}, configuration: array{schema: bool, searchable_fields: int, soft_deletes: bool, is_secure: bool, checks: array<int, string>, recommendations: array<int, string>}, recommendations: array<int, string>, overall_score: int, score_label: string, audited_at: int}
+     * @return array{encryption: array<string, mixed>, configuration: array<string, mixed>, recommendations: array<int, string>, overall_score: int, score_label: string, audited_at: int}
      */
     public static function auditCollection(\BangronDB\Collection $collection): array
     {
@@ -68,7 +68,7 @@ class SecurityAuditor
             $coll = $database->selectCollection($name);
             $audit = self::auditCollection($coll);
             $collectionAudits[$name] = $audit;
-            $allRecommendations = array_merge($allRecommendations, $audit['recommendations'] ?? []);
+            $allRecommendations = array_merge($allRecommendations, $audit['recommendations']);
         }
 
         return [
@@ -79,7 +79,7 @@ class SecurityAuditor
         ];
     }
 
-    /** @return array{is_encrypted: bool, key_version: mixed, db_encrypted: bool, is_secure: bool, issues: array<int, string>, recommendations: array<int, string>} */
+    /** @return array{is_encrypted: bool, is_secure: bool, key_version: string|null, searchable_fields_count: int<0, max>, mixed_encryption_detected: bool, issues: array<int, string>, recommendations: array<int, string>} */
     private static function auditEncryption(\BangronDB\Collection $collection): array
     {
         $recommendations = [];
@@ -149,7 +149,7 @@ class SecurityAuditor
         ];
     }
 
-    /** @return array{schema: bool, searchable_fields: int, soft_deletes: bool, is_secure: bool, checks: array<int, string>, recommendations: array<int, string>} */
+    /** @return array{checks: array<string, mixed>, recommendations: array<int, string>} */
     private static function auditConfiguration(\BangronDB\Collection $collection): array
     {
         $recommendations = [];
@@ -224,7 +224,10 @@ class SecurityAuditor
         ];
     }
 
-    /** @param array<string, mixed> $encryptionAudit @param array<string, mixed> $configAudit */
+    /**
+     * @param array<string, mixed> $encryptionAudit
+     * @param array<string, mixed> $configAudit
+     */
     private static function calculateSecurityScore(array $encryptionAudit, array $configAudit): int
     {
         $score = 50; // Base score
