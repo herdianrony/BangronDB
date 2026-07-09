@@ -943,4 +943,23 @@ class Database
 
         return $report;
     }
+
+    /**
+     * Perform a security audit on the entire database.
+     *
+     * Audits encryption configuration, key rotation status, schema validation,
+     * and provides actionable security recommendations for all collections.
+     *
+     * @return array{database: array, collections: array, recommendations: array, audited_at: int}
+     *
+     * @example
+     *   $audit = $database->securityAudit();
+     *   foreach ($audit['recommendations'] as $rec) {
+     *       echo "- {$rec}\n";
+     *   }
+     */
+    public function securityAudit(): array
+    {
+        return \BangronDB\Security\SecurityAuditor::auditDatabase($this);
+    }
 }

@@ -123,7 +123,15 @@ class DatabaseMetrics
             $metrics['page_size'] = (int) $pageSize;
             $metrics['total_pages_bytes'] = (int) $pageStats * (int) $pageSize;
             $metrics['freelist_count'] = (int) $freelistCount;
-            $metrics['fragmentation_ratio'] = (int) $freelistCount > 0 ? round((int) $freelistCount / (int) $pageStats, 4) : 0;
+            $metrics['fragmentation_ratio'] = (int) $pageStats > 0 ? round((int) $freelistCount / (int) $pageStats, 4) : 0;
+
+            // Prioritas 5: Detailed fragmentation analysis
+            $metrics['fragmentation'] = $this->analyzeFragmentation(
+                (int) $pageStats,
+                (int) $pageSize,
+                (int) $freelistCount,
+                $metrics['file_size_bytes'] ?? null
+            );
         } catch (\Exception $e) {
             $metrics['page_stats_error'] = $e->getMessage();
         }
@@ -136,7 +144,141 @@ class DatabaseMetrics
         } catch (\Exception $e) {
         }
 
+        // Prioritas 5: Query time analysis from QueryExecutor stats
+        if ($this->db->queryExecutor !== null) {
+            $metrics['query_stats'] = $this->db->queryExecutor->getQueryStats();
+        }
+
         return $metrics;
+    }
+
+    /**
+     * Analyze database fragmentation and provide VACUUM recommendations.
+     *
+     * Part of Prioritas 5 from the BangronDB roadmap.
+     *
+     * @return array{level: string, ratio: float, wasted_bytes: int, vacuum_recommended: bool, vacuum_savings_estimate_bytes: int, auto_vacuum_mode: string}
+     */
+    private function analyzeFragmentation(int $pageCount, int $pageSize, int $freelistCount, ?int $fileSize): array
+    {
+        $ratio = $pageCount > 0 ? round($freelistCount / $pageCount, 4) : 0;
+        $wastedBytes = $freelistCount * $pageSize;
+
+        // Determine fragmentation level
+        $level = 'none';
+        if ($ratio > 0.2) {
+            $level = 'high';
+        } elseif ($ratio > 0.1) {
+            $level = 'moderate';
+        } elseif ($ratio > 0.02) {
+            $level = 'low';
+        }
+
+        // Estimate VACUUM savings (freelist pages + page overhead)
+        $vacuumSavings = $wastedBytes;
+        if ($fileSize !== null && $fileSize > 0) {
+            // Account for additional btree overhead that VACUUM can reclaim
+            $vacuumSavings = (int) ($wastedBytes * 1.2);
+        }
+
+        // Check auto_vacuum mode
+        $autoVacuum = 'NONE';
+        try {
+            $autoVacuumResult = $this->db->connection->query('PRAGMA auto_vacuum')->fetch(\PDO::FETCH_COLUMN);
+            if ($autoVacuumResult !== false) {
+                $autoVacuumMap = [0 => 'NONE', 1 => 'FULL', 2 => 'INCREMENTAL'];
+                $autoVacuum = $autoVacuumMap[(int) $autoVacuumResult] ?? 'UNKNOWN';
+            }
+        } catch (\Exception $e) {
+        }
+
+        return [
+            'level' => $level,
+            'ratio' => $ratio,
+            'wasted_bytes' => $wastedBytes,
+            'wasted_pages' => $freelistCount,
+            'vacuum_recommended' => $ratio > 0.05,
+            'vacuum_savings_estimate_bytes' => $vacuumSavings,
+            'auto_vacuum_mode' => $autoVacuum,
+            'incremental_vacuum_hint' => $autoVacuum === 'INCREMENTAL'
+                ? 'Run PRAGMA incremental_vacuum to reclaim freelist pages without full VACUUM lock.'
+                : null,
+        ];
+    }
+
+    /**
+     * Run VACUUM on the database to reclaim wasted space.
+     *
+     * WARNING: VACUUM requires an exclusive lock. Do not run during peak traffic.
+     * For INCREMENTAL auto_vacuum mode, consider incrementalVacuum() instead.
+     *
+     * @return array{success: bool, bytes_before: int|null, bytes_after: int|null, bytes_reclaimed: int|null}
+     */
+    public function vacuum(): array
+    {
+        $sizeBefore = null;
+        $sizeAfter = null;
+
+        if ($this->db->path !== Database::DSN_PATH_MEMORY && file_exists($this->db->path)) {
+            $sizeBefore = filesize($this->db->path);
+        }
+
+        try {
+            $this->db->connection->exec('VACUUM');
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'bytes_before' => $sizeBefore,
+                'bytes_after' => null,
+                'bytes_reclaimed' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+
+        if ($this->db->path !== Database::DSN_PATH_MEMORY && file_exists($this->db->path)) {
+            $sizeAfter = filesize($this->db->path);
+        }
+
+        return [
+            'success' => true,
+            'bytes_before' => $sizeBefore,
+            'bytes_after' => $sizeAfter,
+            'bytes_reclaimed' => ($sizeBefore !== null && $sizeAfter !== null) ? $sizeBefore - $sizeAfter : null,
+        ];
+    }
+
+    /**
+     * Run incremental VACUUM to reclaim freelist pages.
+     *
+     * Safer than full VACUUM as it doesn't require an exclusive lock
+     * and can be run during normal operation. Only works when
+     * auto_vacuum is set to INCREMENTAL.
+     *
+     * @return array{success: bool, pages_reclaimed: int}
+     */
+    public function incrementalVacuum(): array
+    {
+        $freelistBefore = 0;
+        $freelistAfter = 0;
+
+        try {
+            $freelistBefore = (int) $this->db->connection->query('PRAGMA freelist_count')->fetch(\PDO::FETCH_COLUMN);
+            $this->db->connection->exec('PRAGMA incremental_vacuum');
+            $freelistAfter = (int) $this->db->connection->query('PRAGMA freelist_count')->fetch(\PDO::FETCH_COLUMN);
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'pages_reclaimed' => 0,
+                'error' => $e->getMessage(),
+            ];
+        }
+
+        return [
+            'success' => true,
+            'pages_reclaimed' => max(0, $freelistBefore - $freelistAfter),
+            'freelist_before' => $freelistBefore,
+            'freelist_after' => $freelistAfter,
+        ];
     }
 
     /**

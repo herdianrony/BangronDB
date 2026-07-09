@@ -51,3 +51,7 @@ temp/
 .cache/
 *.cache
 composer
+composer.phar
+php
+# Compiled PHP binary (FrankenPHP)
+/tmp/

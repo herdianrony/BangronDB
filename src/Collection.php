@@ -16,6 +16,7 @@ use BangronDB\Traits\QueryBuilderTrait;
 use BangronDB\Traits\SchemaValidationTrait;
 use BangronDB\Traits\SearchableFieldsTrait;
 use BangronDB\Traits\SoftDeleteTrait;
+use BangronDB\Traits\TtlTrait;
 
 /**
  * Collection object.
@@ -31,6 +32,7 @@ class Collection
     use SoftDeleteTrait;
     use ChangeTrackingTrait;
     use ConfigurationPersistenceTrait;
+    use TtlTrait;
 
     /**
      * ID Generation Mode Constants.
@@ -111,6 +113,14 @@ class Collection
      */
     public function insert(array $document = [])
     {
+        // Reject empty document (not a batch, just [])
+        if (empty($document) && !isset($document[0])) {
+            throw new \InvalidArgumentException(
+                'insert() requires a non-empty document. ' .
+                'Pass an associative array like ["name" => "John"] to insert a single document.'
+            );
+        }
+
         if (isset($document[0])) {
             $this->database->connection->beginTransaction();
 
@@ -177,6 +187,10 @@ class Collection
         $this->validate($document);
         $this->validateUnique($document);
         $this->ensureCollectionExists();
+
+        // Apply TTL: set default expiration if configured and not already set
+        $document = $this->applyTtlOnInsert($document);
+
         $doc = $this->applyBeforeInsertHooks($document);
         if ($doc === false) {
             return false;
@@ -466,7 +480,9 @@ class Collection
     {
         if ($merge) {
             $document = $originalDoc;
-            if (isset($newData['$set']) || isset($newData['$unset'])) {
+
+            // Handle atomic operators: $set, $unset, $inc
+            if (isset($newData['$set']) || isset($newData['$unset']) || isset($newData['$inc'])) {
                 if (isset($newData['$set']) && is_array($newData['$set'])) {
                     foreach ($newData['$set'] as $k => $v) {
                         $document[$k] = $v;
@@ -475,6 +491,23 @@ class Collection
                 if (isset($newData['$unset']) && is_array($newData['$unset'])) {
                     foreach ($newData['$unset'] as $k => $v) {
                         unset($document[$k]);
+                    }
+                }
+                if (isset($newData['$inc']) && is_array($newData['$inc'])) {
+                    foreach ($newData['$inc'] as $k => $v) {
+                        if (!is_numeric($v)) {
+                            throw new \InvalidArgumentException(
+                                "\$inc value for field '{$k}' must be numeric. Got: " . gettype($v)
+                            );
+                        }
+                        $current = $document[$k] ?? 0;
+                        if (!is_numeric($current)) {
+                            throw new \InvalidArgumentException(
+                                "Cannot \$inc field '{$k}': current value is not numeric ("
+                                . gettype($current) . '). Use $set to replace non-numeric values first.'
+                            );
+                        }
+                        $document[$k] = $current + $v;
                     }
                 }
             } else {
@@ -766,6 +799,8 @@ class Collection
             'encryption' => $this->getDebugEncryptionInfo(),
             'idMode' => $this->idMode,
             'softDeletesEnabled' => $this->softDeletesEnabled,
+            'ttlEnabled' => $this->ttlEnabled,
+            'ttlField' => $this->ttlEnabled ? $this->ttlField : null,
             'schema' => $this->schema,
             'searchableFields' => array_keys($this->searchableFields),
             'hooks' => array_map('count', $this->hooks),
@@ -775,5 +810,973 @@ class Collection
     public function createIndex(string $field, ?string $indexName = null): void
     {
         $this->database->createJsonIndex($this->name, $field, $indexName);
+    }
+
+    /* ================= SECURITY AUDIT (Prioritas 4) ================= */
+
+    /**
+     * Perform a security audit on this collection.
+     *
+     * Analyzes encryption configuration, schema validation, searchable fields,
+     * and provides actionable security recommendations.
+     *
+     * @return array{encryption: array, configuration: array, recommendations: array, overall_score: int, score_label: string}
+     *
+     * @example
+     *   $audit = $collection->securityAudit();
+     *   echo "Security score: {$audit['overall_score']}/100 ({$audit['score_label']})";
+     *   foreach ($audit['recommendations'] as $rec) {
+     *       echo "- {$rec}";
+     *   }
+     */
+    public function securityAudit(): array
+    {
+        return \BangronDB\Security\SecurityAuditor::auditCollection($this);
+    }
+
+    /* ================= BULK OPERATIONS (Prioritas 3) ================= */
+
+    /**
+     * Insert multiple documents at once.
+     *
+     * Unlike insert() with an array (which also supports batch), insertMany()
+     * provides an explicit MongoDB-compatible API and returns detailed results
+     * including inserted IDs and any errors encountered.
+     *
+     * @param  array<int, array> $documents  Array of documents to insert
+     * @return array{inserted_count: int, inserted_ids: array<string>}
+     *
+     * @throws \InvalidArgumentException If documents is empty or contains non-array items
+     */
+    public function insertMany(array $documents): array
+    {
+        if (empty($documents)) {
+            throw new \InvalidArgumentException(
+                'insertMany() requires a non-empty array of documents. ' .
+                'Each item must be an associative array representing a document.'
+            );
+        }
+
+        $insertedIds = [];
+        $this->database->connection->beginTransaction();
+
+        try {
+            foreach ($documents as $index => $doc) {
+                if (!is_array($doc)) {
+                    throw new \InvalidArgumentException(
+                        "insertMany(): Item at index {$index} is not an array. " .
+                        'All items must be associative arrays representing documents.'
+                    );
+                }
+
+                $result = $this->_insert($doc);
+
+                if (!$result) {
+                    $this->database->connection->rollBack();
+                    return [
+                        'inserted_count' => count($insertedIds),
+                        'inserted_ids' => $insertedIds,
+                    ];
+                }
+
+                $insertedIds[] = (string) $result;
+            }
+
+            $this->database->connection->commit();
+            $this->notifyChange();
+
+            return [
+                'inserted_count' => count($insertedIds),
+                'inserted_ids' => $insertedIds,
+            ];
+        } catch (\Throwable $e) {
+            if ($this->database->connection->inTransaction()) {
+                $this->database->connection->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Update multiple documents matching criteria.
+     *
+     * This is an explicit MongoDB-compatible alias for update() with a
+     * return type that includes the matched count for better DX.
+     *
+     * @param  mixed  $criteria  Query criteria
+     * @param  array  $data      Update data (supports $set, $unset, $inc operators)
+     * @param  array  $options   Options: ['merge' => bool (default true)]
+     * @return array{matched_count: int, modified_count: int}
+     */
+    public function updateMany(mixed $criteria, array $data, array $options = []): array
+    {
+        $merge = $options['merge'] ?? true;
+        $this->ensureCollectionExists();
+
+        // Single-pass approach: fetch matched docs once, then update inline
+        // This avoids the double query that would happen if we called
+        // count() + update() separately.
+        $matchedDocs = $this->findDocumentsMatchingCriteria($criteria);
+        $matched = count($matchedDocs);
+
+        if ($matched === 0) {
+            return ['matched_count' => 0, 'modified_count' => 0];
+        }
+
+        // Apply before-update hooks
+        $this->applyUpdateHooks($criteria, $data);
+
+        $modified = 0;
+        foreach ($matchedDocs as $doc) {
+            $_doc = $this->decodeStored($doc['document']) ?? [];
+            $document = $this->mergeDocumentData($_doc, $data, $merge);
+
+            if (!$merge) {
+                $this->validate($document);
+            }
+            $this->validateUnique($document, $_doc['_id'] ?? null);
+
+            $encoded = $this->encodeStored($document);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                continue;
+            }
+
+            $this->executeDocumentUpdate((int) $doc['id'], $document, $encoded);
+            $this->triggerAfterUpdateHooks($_doc, $document);
+            ++$modified;
+        }
+
+        if ($modified > 0) {
+            $this->notifyChange();
+        }
+
+        return [
+            'matched_count' => $matched,
+            'modified_count' => $modified,
+        ];
+    }
+
+    /**
+     * Delete multiple documents matching criteria.
+     *
+     * This is an explicit MongoDB-compatible alias for remove() with a
+     * return type that includes the deleted count for better DX.
+     *
+     * @param  mixed $criteria Query criteria
+     * @return array{deleted_count: int}
+     */
+    public function deleteMany(mixed $criteria): array
+    {
+        $deleted = $this->remove($criteria);
+
+        return [
+            'deleted_count' => $deleted,
+        ];
+    }
+
+    /* ================= AGGREGATION PIPELINE (Prioritas 3) ================= */
+
+    /**
+     * Execute an aggregation pipeline on the collection.
+     *
+     * Supports the following pipeline operators:
+     * - $match:  Filter documents (same syntax as find criteria)
+     * - $group:  Group documents and compute aggregates ($sum, $avg, $min, $max, $count, $first, $last, $push, $addToSet)
+     * - $sort:   Sort documents (same syntax as Cursor::sort)
+     * - $limit:  Limit the number of results
+     * - $skip:   Skip N documents
+     * - $project: Reshape documents (include/exclude fields, compute expressions)
+     * - $count:  Count documents passing through the pipeline
+     * - $unset:  Remove specific fields from documents
+     *
+     * @param  array<int, array<string, mixed>> $pipeline Array of pipeline stages
+     * @return array<int, array<string, mixed>>
+     *
+     * @throws \InvalidArgumentException If pipeline is empty or contains invalid stages
+     *
+     * @example
+     *   $results = $collection->aggregate([
+     *       ['$match' => ['status' => 'active']],
+     *       ['$group' => ['_id' => '$category', 'total' => ['$sum' => '$price'], 'count' => ['$count' => null]]],
+     *       ['$sort' => ['total' => -1]],
+     *       ['$limit' => 10],
+     *   ]);
+     */
+    public function aggregate(array $pipeline): array
+    {
+        if (empty($pipeline)) {
+            throw new \InvalidArgumentException(
+                'aggregate() requires a non-empty pipeline array. ' .
+                'Provide at least one pipeline stage, e.g.: [["$match" => ["status" => "active"]]]'
+            );
+        }
+
+        // Stage 1: Start with all documents (filtered by soft delete if enabled)
+        $documents = $this->getAllDocuments();
+
+        // Stage 2: Process each pipeline stage sequentially
+        foreach ($pipeline as $index => $stage) {
+            if (!is_array($stage) || count($stage) !== 1) {
+                $stageStr = is_array($stage) ? json_encode($stage) : (string) $stage;
+                throw new \InvalidArgumentException(
+                    "Pipeline stage at index {$index} must be an associative array with exactly one key. " .
+                    "Got: {$stageStr}. Each stage should be like ['\$match' => [...]]"
+                );
+            }
+
+            $operator = array_key_first($stage);
+            $arguments = reset($stage);
+
+            $documents = $this->executePipelineStage($documents, $operator, $arguments, $index);
+        }
+
+        return $documents;
+    }
+
+    /**
+     * Execute a single pipeline stage.
+     *
+     * @param  array<int, array>    $documents Current document set
+     * @param  string               $operator  Pipeline operator name
+     * @param  mixed                $arguments Stage arguments
+     * @param  int                  $index     Stage index for error messages
+     * @return array<int, array> Modified document set
+     */
+    private function executePipelineStage(array $documents, string $operator, mixed $arguments, int $index): array
+    {
+        return match ($operator) {
+            '$match'  => $this->stageMatch($documents, $arguments, $index),
+            '$group'  => $this->stageGroup($documents, $arguments, $index),
+            '$sort'   => $this->stageSort($documents, $arguments, $index),
+            '$limit'  => $this->stageLimit($documents, $arguments, $index),
+            '$skip'   => $this->stageSkip($documents, $arguments, $index),
+            '$project' => $this->stageProject($documents, $arguments, $index),
+            '$count'  => $this->stageCount($documents, $arguments, $index),
+            '$unset'  => $this->stageUnset($documents, $arguments, $index),
+            default   => throw new \InvalidArgumentException(
+                "Unknown pipeline operator '{$operator}' at stage {$index}. " .
+                'Supported operators: $match, $group, $sort, $limit, $skip, $project, $count, $unset'
+            ),
+        };
+    }
+
+    /**
+     * $match stage: Filter documents using query criteria.
+     */
+    private function stageMatch(array $documents, mixed $criteria, int $index): array
+    {
+        if (!is_array($criteria)) {
+            throw new \InvalidArgumentException(
+                "\$match stage at index {$index} requires an array of criteria. " .
+                'Use the same syntax as find(), e.g.: ["status" => "active"]'
+            );
+        }
+
+        return array_values(array_filter(
+            $documents,
+            fn(array $doc) => UtilArrayQuery::match($criteria, $doc)
+        ));
+    }
+
+    /**
+     * $group stage: Group documents and compute aggregate values.
+     *
+     * Accumulator operators: $sum, $avg, $min, $max, $count, $first, $last, $push, $addToSet
+     * Field references: use '$fieldName' to reference a document field
+     *
+     * @example
+     *   ['$group' => [
+     *       '_id' => '$category',
+     *       'total' => ['$sum' => '$price'],
+     *       'count' => ['$count' => null],
+     *   ]]
+     */
+    private function stageGroup(array $documents, mixed $args, int $index): array
+    {
+        if (!is_array($args) || !array_key_exists('_id', $args)) {
+            throw new \InvalidArgumentException(
+                "\$group stage at index {$index} requires an '_id' field for grouping. " .
+                "Use null to group all documents together: ['_id' => null, 'total' => ['\$sum' => '\$price']]"
+            );
+        }
+
+        $idExpression = $args['_id'];
+        unset($args['_id']);
+        $accumulators = $args;
+
+        if (empty($accumulators)) {
+            throw new \InvalidArgumentException(
+                "\$group stage at index {$index} requires at least one accumulator field besides '_id'. " .
+                "Example: ['total' => ['\$sum' => '\$amount']]"
+            );
+        }
+
+        // Group documents by _id expression
+        $groups = [];
+        $groupOrder = [];
+
+        foreach ($documents as $doc) {
+            $groupId = $this->resolveGroupKey($idExpression, $doc);
+            $groupIdKey = is_array($groupId) ? json_encode($groupId, JSON_UNESCAPED_UNICODE) : (string) $groupId;
+
+            if (!isset($groups[$groupIdKey])) {
+                $groups[$groupIdKey] = ['_id' => $groupId];
+                $groupOrder[] = $groupIdKey;
+                foreach ($accumulators as $field => $accExpr) {
+                    $groups[$groupIdKey][$field] = $this->getAccumulatorInitialValue($accExpr);
+                }
+            }
+
+            foreach ($accumulators as $field => $accExpr) {
+                $groups[$groupIdKey][$field] = $this->accumulateValue(
+                    $groups[$groupIdKey][$field],
+                    $accExpr,
+                    $doc,
+                    $field
+                );
+            }
+        }
+
+        // Return in original grouping order, finalizing $avg accumulators
+        return array_map(function ($key) use ($groups, $accumulators) {
+            $group = $groups[$key];
+            foreach ($accumulators as $field => $accExpr) {
+                $operator = array_key_first($accExpr);
+                if ($operator === '$avg' && is_array($group[$field])) {
+                    if ($group[$field]['count'] > 0) {
+                        $group[$field] = round($group[$field]['sum'] / $group[$field]['count'], 10);
+                    } else {
+                        $group[$field] = null;
+                    }
+                }
+            }
+            return $group;
+        }, $groupOrder);
+    }
+
+    /**
+     * Resolve the group key for a document based on _id expression.
+     */
+    private function resolveGroupKey(mixed $expression, array $doc): mixed
+    {
+        if ($expression === null) {
+            return null;
+        }
+
+        if (is_string($expression) && str_starts_with($expression, '$')) {
+            return UtilArrayQuery::get($doc, substr($expression, 1));
+        }
+
+        return $expression;
+    }
+
+    /**
+     * Get the initial value for an accumulator.
+     */
+    private function getAccumulatorInitialValue(array $accExpr): mixed
+    {
+        $operator = array_key_first($accExpr);
+
+        return match ($operator) {
+            '$sum' => 0,
+            '$avg' => ['sum' => 0, 'count' => 0],
+            '$min', '$max' => null,
+            '$count' => 0,
+            '$first', '$last' => null,
+            '$push' => [],
+            '$addToSet' => [],
+            default => throw new \InvalidArgumentException(
+                "Unknown accumulator operator '{$operator}'. " .
+                'Supported: $sum, $avg, $min, $max, $count, $first, $last, $push, $addToSet'
+            ),
+        };
+    }
+
+    /**
+     * Accumulate a value into the current accumulator state.
+     */
+    private function accumulateValue(mixed $current, array $accExpr, array $doc, string $field): mixed
+    {
+        $operator = array_key_first($accExpr);
+        $expression = reset($accExpr);
+
+        // Resolve the value from the document if it's a field reference
+        $value = $this->resolveAccumulatorValue($expression, $doc);
+
+        return match ($operator) {
+            '$sum' => is_numeric($current) && is_numeric($value)
+                ? $current + $value : $current,
+            '$avg' => is_numeric($value) && is_array($current)
+                ? ['sum' => ($current['sum'] ?? 0) + $value, 'count' => ($current['count'] ?? 0) + 1]
+                : $current,
+            '$min' => ($current === null || $value < $current) ? $value : $current,
+            '$max' => ($current === null || $value > $current) ? $value : $current,
+            '$count' => $current + 1,
+            '$first' => $current === null ? $value : $current,
+            '$last' => $value,
+            '$push' => [...($current ?? []), $value],
+            '$addToSet' => $this->addToSet($current, $value),
+            default => $current,
+        };
+    }
+
+    /**
+     * Add a value to a set (unique values only).
+     */
+    private function addToSet(mixed $current, mixed $value): array
+    {
+        $set = $current ?? [];
+        $valueKey = is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : (string) $value;
+        $set[$valueKey] = $value;
+
+        return array_values($set);
+    }
+
+    /**
+     * Resolve the value for an accumulator expression.
+     */
+    private function resolveAccumulatorValue(mixed $expression, array $doc): mixed
+    {
+        if ($expression === null) {
+            return null;
+        }
+
+        if (is_string($expression) && str_starts_with($expression, '$')) {
+            return UtilArrayQuery::get($doc, substr($expression, 1));
+        }
+
+        return $expression;
+    }
+
+    /**
+     * $sort stage: Sort documents by specified fields.
+     */
+    private function stageSort(array $documents, mixed $sortFields, int $index): array
+    {
+        if (!is_array($sortFields) || empty($sortFields)) {
+            throw new \InvalidArgumentException(
+                "\$sort stage at index {$index} requires a non-empty sort specification. " .
+                "Example: ['created_at' => -1, 'name' => 1] (1 = ASC, -1 = DESC)"
+            );
+        }
+
+        usort($documents, function (array $a, array $b) use ($sortFields): int {
+            foreach ($sortFields as $field => $direction) {
+                $valA = UtilArrayQuery::get($a, (string) $field);
+                $valB = UtilArrayQuery::get($b, (string) $field);
+
+                if ($valA === $valB) {
+                    continue;
+                }
+
+                // Handle null values (nulls sort last)
+                if ($valA === null) {
+                    return 1;
+                }
+                if ($valB === null) {
+                    return -1;
+                }
+
+                // Compare based on type
+                $cmp = $this->compareValues($valA, $valB);
+
+                return ($direction === -1) ? -$cmp : $cmp;
+            }
+
+            return 0;
+        });
+
+        return $documents;
+    }
+
+    /**
+     * Compare two values for sorting.
+     */
+    private function compareValues(mixed $a, mixed $b): int
+    {
+        if (is_numeric($a) && is_numeric($b)) {
+            return $a <=> $b;
+        }
+
+        if (is_string($a) && is_string($b)) {
+            return strcmp($a, $b);
+        }
+
+        // Mixed types: compare string representations
+        return strcmp((string) $a, (string) $b);
+    }
+
+    /**
+     * $limit stage: Limit the number of documents.
+     */
+    private function stageLimit(array $documents, mixed $limit, int $index): array
+    {
+        if (!is_int($limit) || $limit < 0) {
+            throw new \InvalidArgumentException(
+                "\$limit stage at index {$index} requires a non-negative integer. Got: " .
+                (is_int($limit) ? $limit : gettype($limit))
+            );
+        }
+
+        return array_slice($documents, 0, $limit);
+    }
+
+    /**
+     * $skip stage: Skip N documents.
+     */
+    private function stageSkip(array $documents, mixed $skip, int $index): array
+    {
+        if (!is_int($skip) || $skip < 0) {
+            throw new \InvalidArgumentException(
+                "\$skip stage at index {$index} requires a non-negative integer. Got: " .
+                (is_int($skip) ? $skip : gettype($skip))
+            );
+        }
+
+        return array_slice($documents, $skip);
+    }
+
+    /**
+     * $project stage: Reshape documents by including/excluding fields.
+     *
+     * Use 1 or true to include, 0 or false to exclude.
+     * Field references: use '$fieldName' to include a field from the source document.
+     *
+     * @example
+     *   ['$project' => ['name' => 1, 'email' => 1, 'password' => 0]]
+     *   ['$project' => ['userName' => '$name', 'userEmail' => '$email']]
+     */
+    private function stageProject(array $documents, mixed $projection, int $index): array
+    {
+        if (!is_array($projection) || empty($projection)) {
+            throw new \InvalidArgumentException(
+                "\$project stage at index {$index} requires a non-empty projection. " .
+                "Example: ['name' => 1, 'email' => 1] or ['password' => 0]"
+            );
+        }
+
+        $isInclusive = $this->isInclusiveProjectionSpec($projection);
+
+        return array_map(function (array $doc) use ($projection, $isInclusive): array {
+            return $isInclusive
+                ? $this->applyInclusiveProjectStage($doc, $projection)
+                : $this->applyExclusiveProjectStage($doc, $projection);
+        }, $documents);
+    }
+
+    /**
+     * Check if a projection spec is inclusive (has at least one truthy value).
+     */
+    private function isInclusiveProjectionSpec(array $projection): bool
+    {
+        foreach ($projection as $value) {
+            if ($value === 1 || $value === true) {
+                return true;
+            }
+            // Field references like '$fieldName' indicate inclusive projection with rename
+            if (is_string($value) && str_starts_with($value, '$')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Apply inclusive projection (only include specified fields).
+     */
+    private function applyInclusiveProjectStage(array $doc, array $projection): array
+    {
+        $result = [];
+
+        foreach ($projection as $field => $spec) {
+            if ($spec === 0 || $spec === false) {
+                continue;
+            }
+
+            if (is_string($spec) && str_starts_with($spec, '$')) {
+                // Field reference: map source field to new field name
+                $sourceField = substr($spec, 1);
+                $value = UtilArrayQuery::get($doc, $sourceField);
+                $result[$field] = $value;
+            } else {
+                // Direct field inclusion
+                if (array_key_exists($field, $doc)) {
+                    $result[$field] = $doc[$field];
+                }
+            }
+        }
+
+        // Always include _id unless explicitly excluded
+        if (isset($doc['_id']) && !isset($result['_id']) && ($projection['_id'] ?? 1) !== 0) {
+            $result['_id'] = $doc['_id'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Apply exclusive projection (remove specified fields).
+     */
+    private function applyExclusiveProjectStage(array $doc, array $projection): array
+    {
+        foreach ($projection as $field => $spec) {
+            if ($spec === 0 || $spec === false) {
+                unset($doc[$field]);
+            }
+        }
+
+        return $doc;
+    }
+
+    /**
+     * $count stage: Count documents and return a single document with the count.
+     */
+    private function stageCount(array $documents, mixed $fieldName, int $index): array
+    {
+        if (!is_string($fieldName)) {
+            throw new \InvalidArgumentException(
+                "\$count stage at index {$index} requires a string field name for the count. " .
+                "Example: ['\$count' => 'totalDocuments']"
+            );
+        }
+
+        return [[$fieldName => count($documents)]];
+    }
+
+    /**
+     * $unset stage: Remove specific fields from all documents.
+     */
+    private function stageUnset(array $documents, mixed $fields, int $index): array
+    {
+        $fieldsToRemove = is_array($fields) ? $fields : [$fields];
+
+        if (empty($fieldsToRemove)) {
+            throw new \InvalidArgumentException(
+                "\$unset stage at index {$index} requires at least one field name. " .
+                "Example: ['\$unset' => ['password', 'secret']]"
+            );
+        }
+
+        return array_map(function (array $doc) use ($fieldsToRemove): array {
+            foreach ($fieldsToRemove as $field) {
+                unset($doc[$field]);
+            }
+
+            return $doc;
+        }, $documents);
+    }
+
+    /**
+     * Get all documents from the collection (used by aggregation pipeline).
+     */
+    private function getAllDocuments(): array
+    {
+        $this->ensureCollectionExists();
+        $table = $this->database->quoteIdentifier($this->name);
+
+        $sql = "SELECT document FROM {$table}";
+        $params = [];
+
+        // Filter soft-deleted documents when soft delete is enabled
+        if ($this->softDeletesEnabled) {
+            $field = $this->getDeletedAtField();
+            $escapedField = str_replace("'", "''", $field);
+            $sql .= " WHERE json_extract(document, '$." . $escapedField . "') IS NULL";
+        }
+
+        try {
+            $stmt = $this->database->queryExecutor->executeQuery($sql, $params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $documents = [];
+            foreach ($rows as $row) {
+                $doc = $this->decodeStored($row['document']);
+                if ($doc !== null) {
+                    $documents[] = $doc;
+                }
+            }
+
+            return $documents;
+        } catch (QueryExecutionException $e) {
+            return [];
+        }
+    }
+
+    /* ================= EXPLAIN QUERY (Prioritas 3) ================= */
+
+    /**
+     * Explain how a query is executed, returning execution plan details.
+     *
+     * Returns information about index usage, full scan status,
+     * documents scanned, and execution time.
+     *
+     * @param  mixed $criteria Query criteria (same as find())
+     * @return array{query_plan: array, performance: array}
+     *
+     * @example
+     *   $explanation = $collection->explain(['status' => 'active']);
+     *   echo $explanation['query_plan']['uses_index'] ? 'Uses index' : 'Full scan';
+     *   echo "Scanned: {$explanation['performance']['documents_scanned']} documents";
+     */
+    public function explain(mixed $criteria = null): array
+    {
+        $this->ensureCollectionExists();
+        $startTime = microtime(true);
+
+        $table = $this->database->quoteIdentifier($this->name);
+
+        // Determine query strategy
+        $usesSqlWhere = false;
+        $usesCriteriaFunction = false;
+        $whereClause = '';
+
+        if (is_array($criteria) && !empty($criteria)) {
+            if ($this->_canTranslateToJsonWhere($criteria)) {
+                $usesSqlWhere = true;
+                $params = [];
+                $whereClause = $this->_buildJsonWhere($criteria, $params);
+            } else {
+                $usesCriteriaFunction = true;
+            }
+        } elseif (is_string($criteria) && !empty($criteria)) {
+            $usesCriteriaFunction = true;
+        }
+
+        // Check index availability for the query fields
+        $indexes = $this->getCollectionIndexes();
+        $fieldsInCriteria = $this->extractFieldsFromCriteria($criteria);
+        $usedIndexes = $this->findMatchingIndexes($fieldsInCriteria, $indexes);
+
+        // Run EXPLAIN QUERY PLAN
+        $explainResult = $this->runExplainQueryPlan($table, $whereClause, $criteria);
+
+        // Count total and matching documents in a single conceptual pass
+        // (SQLite has no single-query way to get both, but we avoid redundant work)
+        $totalDocuments = $this->count();
+
+        $matchedCount = ($criteria === null || (is_array($criteria) && empty($criteria)))
+            ? $totalDocuments
+            : $this->find($criteria)->count();
+
+        $executionTime = (microtime(true) - $startTime) * 1000;
+
+        // Estimate scanned documents from EXPLAIN output
+        $estimatedScanned = $totalDocuments;
+        foreach ($explainResult as $row) {
+            $detail = $row['detail'] ?? '';
+            if (str_contains($detail, 'USING INDEX') || str_contains($detail, 'SEARCH USING')) {
+                $estimatedScanned = $matchedCount > 0 ? $matchedCount : 1;
+                break;
+            }
+        }
+
+        return [
+            'query_plan' => [
+                'strategy' => $usesSqlWhere ? 'sql_json_where' : ($usesCriteriaFunction ? 'criteria_function' : 'full_scan'),
+                'uses_index' => !empty($usedIndexes),
+                'indexes_available' => $indexes,
+                'indexes_used' => $usedIndexes,
+                'is_full_scan' => empty($usedIndexes) && !empty($criteria),
+                'explain_output' => $explainResult,
+            ],
+            'performance' => [
+                'execution_time_ms' => round($executionTime, 3),
+                'total_documents' => $totalDocuments,
+                'documents_scanned' => $estimatedScanned,
+                'documents_matched' => $matchedCount,
+                'scan_ratio' => $totalDocuments > 0
+                    ? round($estimatedScanned / $totalDocuments * 100, 1)
+                    : 0,
+                'criteria_summary' => $this->summarizeCriteria($criteria),
+            ],
+            'suggestions' => $this->generateQuerySuggestions($fieldsInCriteria, $usedIndexes, $totalDocuments, $matchedCount),
+        ];
+    }
+
+    /**
+     * Get indexes for this collection.
+     */
+    private function getCollectionIndexes(): array
+    {
+        try {
+            $stmt = $this->database->queryExecutor->executeQuery(
+                "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name = ? AND name NOT LIKE 'sqlite_%'",
+                [$this->name]
+            );
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (QueryExecutionException $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Extract field names from query criteria.
+     */
+    private function extractFieldsFromCriteria(mixed $criteria): array
+    {
+        if (!is_array($criteria)) {
+            return [];
+        }
+
+        $fields = [];
+        foreach ($criteria as $key => $value) {
+            if (str_starts_with((string) $key, '$')) {
+                // Logical operators like $and, $or - recurse
+                if (is_array($value)) {
+                    foreach ($value as $subCriteria) {
+                        $fields = array_merge($fields, $this->extractFieldsFromCriteria($subCriteria));
+                    }
+                }
+            } else {
+                $fields[] = $key;
+            }
+        }
+
+        return array_unique($fields);
+    }
+
+    /**
+     * Find indexes that match the queried fields.
+     */
+    private function findMatchingIndexes(array $fields, array $indexes): array
+    {
+        $matching = [];
+
+        foreach ($indexes as $index) {
+            $sql = $index['sql'] ?? '';
+            foreach ($fields as $field) {
+                // Check if the index covers this field
+                if (str_contains($sql, $field) || str_contains(strtolower($sql), strtolower($field))) {
+                    $matching[] = $index['name'];
+                    break;
+                }
+            }
+        }
+
+        return array_unique($matching);
+    }
+
+    /**
+     * Run SQLite EXPLAIN QUERY PLAN.
+     */
+    private function runExplainQueryPlan(string $table, string $whereClause, mixed $criteria): array
+    {
+        try {
+            $sql = "EXPLAIN QUERY PLAN SELECT document FROM {$table}";
+            $params = [];
+
+            if (!empty($whereClause)) {
+                $sql .= " WHERE {$whereClause}";
+            } elseif (is_string($criteria) && !empty($criteria)) {
+                $sql .= " WHERE document_criteria(?, document)";
+                $params[] = is_string($criteria)
+                    ? $criteria
+                    : $this->database->registerCriteriaFunction($criteria);
+            }
+
+            $stmt = $this->database->queryExecutor->executeQuery($sql, $params);
+
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (QueryExecutionException $e) {
+            return [['error' => $e->getMessage()]];
+        }
+    }
+
+    /**
+     * Generate human-readable criteria summary.
+     */
+    private function summarizeCriteria(mixed $criteria): string
+    {
+        if ($criteria === null || (is_array($criteria) && empty($criteria))) {
+            return 'all documents (no filter)';
+        }
+
+        if (is_string($criteria)) {
+            return "string ID lookup: {$criteria}";
+        }
+
+        if (is_array($criteria)) {
+            $fieldCount = count(array_filter(array_keys($criteria), fn($k) => !str_starts_with($k, '$')));
+            $ops = array_filter(array_keys($criteria), fn($k) => str_starts_with($k, '$'));
+
+            return sprintf(
+                '%d field(s) queried: [%s]%s',
+                $fieldCount,
+                implode(', ', array_slice(array_filter(array_keys($criteria), fn($k) => !str_starts_with($k, '$')), 0, 5)),
+                !empty($ops) ? ' (operators: ' . implode(', ', $ops) . ')' : ''
+            );
+        }
+
+        return 'unknown criteria type';
+    }
+
+    /**
+     * Generate optimization suggestions based on query analysis.
+     */
+    private function generateQuerySuggestions(array $fields, array $usedIndexes, int $totalDocs, int $matchedDocs): array
+    {
+        $suggestions = [];
+
+        if (!empty($fields) && empty($usedIndexes) && $totalDocs > 1000) {
+            foreach ($fields as $field) {
+                $suggestions[] = "Consider creating an index on '{$field}' for better query performance: \$collection->createIndex('{$field}')";
+            }
+        }
+
+        if ($totalDocs > 0 && $matchedDocs > 0) {
+            $matchRatio = $matchedDocs / $totalDocs;
+            if ($matchRatio > 0.5) {
+                $suggestions[] = sprintf(
+                    'Query matches %.1f%% of all documents (%d/%d). Consider adding more specific filters.',
+                    $matchRatio * 100,
+                    $matchedDocs,
+                    $totalDocs
+                );
+            }
+        }
+
+        if ($totalDocs > 10000 && empty($usedIndexes)) {
+            $suggestions[] = 'Collection has over 10,000 documents without indexes. Query performance may degrade as data grows.';
+        }
+
+        return $suggestions;
+    }
+
+    /* ================= CURSOR STREAMING (Prioritas 3) ================= */
+
+    /**
+     * Stream documents matching criteria using a PHP generator.
+     *
+     * Unlike toArray() which loads all documents into memory at once,
+     * stream() yields documents one at a time, significantly reducing
+     * memory usage for large result sets.
+     *
+     * @param  mixed  $criteria   Query criteria (same as find())
+     * @param  array  $options    Options: ['sort' => array, 'limit' => int, 'skip' => int, 'projection' => array]
+     * @return \Generator<int, array>
+     *
+     * @example
+     *   foreach ($collection->stream(['status' => 'active'], ['sort' => ['created_at' => -1]]) as $doc) {
+     *       processDocument($doc);
+     *   }
+     */
+    public function stream(mixed $criteria = null, array $options = []): \Generator
+    {
+        $cursor = $this->find($criteria, $options['projection'] ?? null);
+
+        if (isset($options['sort'])) {
+            $cursor->sort($options['sort']);
+        }
+        if (isset($options['skip'])) {
+            $cursor->skip((int) $options['skip']);
+        }
+        if (isset($options['limit'])) {
+            $cursor->limit((int) $options['limit']);
+        }
+
+        foreach ($cursor->getIterator() as $document) {
+            yield $document;
+        }
     }
 }
