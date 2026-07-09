@@ -39,7 +39,7 @@ $db = $client->createDB('auth_demo');
 $users = $db->createCollection('users_no_searchable');
 
 // Enkripsi TANPA searchable fields
-$users->setEncryptionKey($encKey), $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026';
+$users->setEncryptionKey($encKey, $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026');
 
 $users->insert([
     'name'     => 'Alice',
@@ -76,10 +76,10 @@ sub('BAGIAN 2: Solusi - Searchable Fields + Hashing');
 $authUsers = $db->createCollection('auth_users');
 
 // ✅ Set searchable fields SEBELUM insert
-// 'email' => hash: true  → disimpan sebagai SHA-256 (aman, tidak bisa di-reverse)
+// 'email' => hash: true  → disimpan sebagai keyed HMAC blind index (v1.2.0, aman, tidak bisa di-reverse)
 // 'username' => hash: false → disimpan sebagai lowercase plain text
 $authUsers->setSearchableFields([
-    'email'    => ['hash' => true],   // SHA-256 hash: privasi terjaga
+    'email'    => ['hash' => true],   // Keyed HMAC blind index (v1.2.0): privasi terjaga
     'username' => ['hash' => false],  // Plain text: bisa di-search langsung
 ]);
 
@@ -130,7 +130,7 @@ foreach ($columns as $col) {
 }
 
 // ── Lihat data di kolom searchable ───────────────────────
-echo "\n🔍 Isi kolom searchable (si_email = SHA-256 hash):\n";
+echo "\n🔍 Isi kolom searchable (si_email = keyed HMAC blind index v1.2.0):\n";
 $stmt = $db->connection->query("SELECT si_email, si_username FROM auth_users LIMIT 3");
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 foreach ($rows as $i => $row) {
@@ -140,7 +140,7 @@ foreach ($rows as $i => $row) {
 }
 
 echo "\n💡 Perhatikan:\n";
-echo "   - si_email = SHA-256 hash (tidak bisa di-reverse ke email asli)\n";
+echo "   - si_email = keyed HMAC-SHA256 blind index (v1.2.0, tidak bisa di-reverse)\n";
 echo "   - si_username = lowercase plain text (bisa dibaca langsung)\n";
 echo "   - Data asli di kolom 'document' TETAP terenkripsi!\n";
 
@@ -308,12 +308,14 @@ if (isset($raw['encrypted_data'])) {
     echo "  ❌ Data tidak terenkripsi!\n";
 }
 
-// 2. Searchable field hash tidak bisa di-reverse
-echo "\n2️⃣  SHA-256 hash tidak bisa di-reverse:\n";
-echo "  Hash dari 'alice@example.com': " . hash('sha256', strtolower('alice@example.com')) . "\n";
-echo "  Hash di DB (si_email):         {$rows[0]['si_email']}\n";
-echo "  Cocok: " . (hash('sha256', strtolower('alice@example.com')) === $rows[0]['si_email'] ? '✅ YES' : '❌ NO') . "\n";
-echo "  ⚠️  Seseorang yang akses DB hanya lihat hash, TIDAK bisa tau email aslinya!\n";
+// 2. Searchable field hash tidak bisa di-reverse (v1.2.0: keyed HMAC blind index)
+echo "\n2️⃣  Keyed HMAC blind index (v1.2.0) tidak bisa di-reverse:\n";
+echo "  Plain SHA-256 dari 'alice@example.com': " . hash('sha256', strtolower('alice@example.com')) . "\n";
+echo "  Hash di DB (si_email, keyed HMAC):      {$rows[0]['si_email']}\n";
+echo "  Cocok dengan plain SHA-256? " . (hash('sha256', strtolower('alice@example.com')) === $rows[0]['si_email'] ? '✅ YES' : '❌ NO (good!)') . "\n";
+echo "  ⚠️  v1.2.0: si_email sekarang keyed HMAC, BUKAN plain SHA-256 lagi!\n";
+echo "  ⚠️  Seseorang yang akses DB hanya lihat keyed hash, TIDAK bisa tau email aslinya!\n";
+echo "  ✅ Bahkan jika 2 DB punya user email yang sama, hash-nya berbeda (anti-correlation).\n";
 
 // 3. Password aman dengan bcrypt
 echo "\n3️⃣  Password storage:\n";
@@ -346,7 +348,7 @@ class AuthService
         $users->setSearchableFields([
             'email' => ['hash' => true],    // SHA-256 untuk privasi
         ]);
-        $users->setEncryptionKey($encryptionKey), $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026';
+        $users->setEncryptionKey($encryptionKey, $_ENV['DB_ENCRYPTION_KEY_VERSION'] ?? 'v2-2026');
     }
 
     /**

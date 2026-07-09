@@ -60,11 +60,13 @@ trait SchemaValidationTrait
                 $this->validateType($field, $value, $rules['type']);
             }
 
-            if (isset($rules['enum']) && !in_array($value, $rules['enum'], true)) {
+            // enum support: 'enum' or 'options' (SSOT enhanced)
+            $enum = $rules['enum'] ?? $rules['options'] ?? null;
+            if (is_array($enum) && !in_array($value, $enum, true)) {
                 throw new ValidationException(
-                    "Field '{$field}' must be one of: " . implode(', ', $rules['enum']),
+                    "Field '{$field}' must be one of: " . implode(', ', $enum),
                     'ENUM_VALIDATION_FAILED',
-                    ['field' => $field, 'value' => $value, 'allowed' => $rules['enum']]
+                    ['field' => $field, 'value' => $value, 'allowed' => $enum]
                 );
             }
 
@@ -151,13 +153,24 @@ trait SchemaValidationTrait
      */
     protected function validateType(string $field, $value, string $type): void
     {
+        // Normalize enhanced UI types to native validation
+        $type = strtolower($type);
         $isValid = match ($type) {
-            'string' => is_string($value),
+            // string family – UI enhanced types
+            'string', 'text', 'email', 'password', 'url', 'slug',
+            'date', 'datetime', 'time',
+            'relation', 'enum' => is_string($value),
+            // int family
             'int', 'integer' => is_int($value),
-            'float', 'double' => is_float($value) || is_int($value),
-            'bool', 'boolean' => is_bool($value),
-            'array' => is_array($value),
-            'object' => is_object($value) || (is_array($value) && (array_keys($value) !== range(0, count($value) - 1))),
+            // float family
+            'float', 'double', 'number', 'decimal' => is_float($value) || is_int($value),
+            // bool family
+            'bool', 'boolean', 'checkbox', 'switch' => is_bool($value),
+            // array family – tags is array of strings
+            'array', 'tags' => is_array($value),
+            // object family
+            'object', 'json' => is_object($value) || (is_array($value) && (array_keys($value) !== range(0, count($value) - 1))),
+            // unknown / custom – allow pass-through (for forward compatibility with UI metadata types)
             default => true,
         };
 

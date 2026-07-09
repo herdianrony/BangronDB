@@ -114,7 +114,7 @@ sub('6. Legacy decrypt – v1.0 IV 16-byte still readable – backward compatibl
 p("EncryptionTrait v1.2.0 decryptData() accepts:");
 p("- v2 current: IV 12-byte, enc_v = 2, key_v set");
 p("- v1 legacy: IV 16-byte, enc_v missing, no key_v");
-p("Tested in: tests/SecurityValidationTest_v120.php – testDecryptLegacy16ByteIV()");
+p("Tested in: tests/SecurityValidationV120Test.php – testDecryptLegacy16ByteIV()");
 
 sub('Summary – BangronDB v1.2.0 Security Features');
 p([

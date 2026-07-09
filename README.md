@@ -537,7 +537,7 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 | `drop()` | Hapus collection |
 | `renameCollection($newName)` | Rename collection |
 | `setIdModeAuto()` / `setIdModeManual()` / `setIdModePrefix($prefix)` | Atur mode ID |
-| `setEncryptionKey($key)` | Atur key enkripsi |
+| `setEncryptionKey($key, $version = null)` | Atur key enkripsi + versi (v1.2.0) |
 | `setSearchableFields($fields, $hash = false)` | Atur searchable fields |
 | `removeSearchableField($field, $dropColumn = false)` | Hapus searchable field |
 | `setSchema($schema)` | Atur schema |
