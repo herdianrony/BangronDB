@@ -54,6 +54,8 @@ $collection->on('beforeUpdate', function ($criteria, $data) {
 ```
 
 > **Catatan:** `beforeUpdate` **tidak** mendukung `return false` untuk membatalkan operasi. Untuk membatalkan, lempar exception dari dalam hook.
+>
+> **Pola penggunaan hook:** Lihat [hook-patterns.md](hook-patterns.md) untuk 8 pola praktis (auto-timestamp, audit log, ACL, slug, cascade delete, dll.).
 
 ### Menghapus Hooks
 

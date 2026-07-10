@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BangronDB — Embedded Document Database for PHP</title>
+<meta name="description" content="MongoDB-style API. SQLite backend. Zero server. Zero config. An embedded document database for PHP built on SQLite.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--bg-card:#111118;--bg-code:#0d0d14;--bg-surface:#16161f;
+  --text:#e4e4e7;--text-muted:#71717a;--text-dim:#3f3f46;
+  --accent:#10b981;--accent-dim:rgba(16,185,129,.12);--accent-glow:rgba(16,185,129,.25);
+  --border:#1e1e2a;--border-hover:#2a2a3a;
+  --purple:#c084fc;--pink:#f472b6;--blue:#93c5fd;--green:#86efac;--gray:#52525b;--orange:#fdba74;--cyan:#67e8f9;
+  --font-body:'Inter',system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --radius:12px;--radius-sm:8px;
+  --max-w:1120px;
+}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+
+/* Noise overlay */
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:128px 128px}
+
+/* Dot pattern */
+.dot-bg{background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:32px 32px}
+
+/* Gradient orb */
+.orb{position:absolute;border-radius:50%;filter:blur(100px);pointer-events:none;opacity:.3}
+
+/* Reveal animation */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ===== NAVBAR ===== */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(10,10,15,.75);border-bottom:1px solid var(--border);transition:box-shadow .3s}
+nav.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.4)}
+.nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:700;font-size:1.15rem;letter-spacing:-.02em}
+.nav-logo svg{color:var(--accent)}
+.nav-links{display:flex;align-items:center;gap:8px;list-style:none}
+.nav-links a{color:var(--text-muted);text-decoration:none;font-size:.875rem;font-weight:500;padding:6px 14px;border-radius:var(--radius-sm);transition:color .2s,background .2s}
+.nav-links a:hover,.nav-links a:focus-visible{color:var(--text);background:rgba(255,255,255,.05)}
+.nav-links .cta{background:var(--accent);color:#0a0a0f;font-weight:600}
+.nav-links .cta:hover{background:#34d399}
+.mobile-toggle{display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:8px}
+
+@media(max-width:768px){
+  .nav-links{position:fixed;top:64px;left:0;right:0;flex-direction:column;gap:0;background:rgba(10,10,15,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:8px;transform:translateY(-120%);transition:transform .3s ease}
+  .nav-links.open{transform:translateY(0)}
+  .nav-links a{display:block;padding:12px 16px;border-radius:var(--radius-sm)}
+  .mobile-toggle{display:block}
+}
+
+/* ===== HERO ===== */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:120px 24px 80px;overflow:hidden}
+.hero .orb{width:600px;height:600px;background:var(--accent);top:-200px;right:-200px}
+.hero .orb-2{position:absolute;width:400px;height:400px;background:#6366f1;bottom:-100px;left:-100px;border-radius:50%;filter:blur(120px);pointer-events:none;opacity:.15}
+.hero-content{max-width:var(--max-w);margin:0 auto;width:100%;position:relative;z-index:2}
+.hero h1{font-size:clamp(2.5rem,6vw,4rem);font-weight:800;letter-spacing:-.04em;line-height:1.1;margin-bottom:20px}
+.hero h1 .accent{color:var(--accent)}
+.hero p.sub{font-size:clamp(1.05rem,2vw,1.3rem);color:var(--text-muted);max-width:560px;line-height:1.6;margin-bottom:32px}
+.hero-btns{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:40px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:var(--radius);font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;cursor:pointer;border:none;font-family:var(--font-body)}
+.btn-primary{background:var(--accent);color:#0a0a0f}
+.btn-primary:hover{background:#34d399;box-shadow:0 0 30px var(--accent-glow)}
+.btn-secondary{background:var(--bg-surface);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;font-size:.8rem;font-weight:500;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(16,185,129,.15)}
+.badge svg{width:14px;height:14px}
+
+/* Floating code bg */
+.hero-code-bg{position:absolute;top:50%;right:0;transform:translateY(-50%);width:50%;max-width:520px;opacity:.06;font-family:var(--font-mono);font-size:.8rem;line-height:1.8;white-space:pre;pointer-events:none;user-select:none;color:var(--text)}
+@media(max-width:900px){.hero-code-bg{display:none}}
+
+/* ===== SECTIONS ===== */
+section{padding:100px 24px}
+.container{max-width:var(--max-w);margin:0 auto}
+.section-label{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:12px}
+.section-title{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:16px}
+.section-desc{color:var(--text-muted);font-size:1.05rem;max-width:600px;line-height:1.7}
+.section-header{text-align:center;margin-bottom:56px}
+.section-header .section-desc{margin:0 auto}
+
+/* ===== FEATURES ===== */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:900px){.features-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.features-grid{grid-template-columns:1fr}}
+.feature-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;transition:all .3s ease;position:relative;overflow:hidden}
+.feature-card::before{content:'';position:absolute;inset:0;border-radius:var(--radius);opacity:0;transition:opacity .3s;box-shadow:inset 0 0 0 1px var(--accent),0 0 30px -10px var(--accent-glow)}
+.feature-card:hover{transform:translateY(-4px);background:var(--bg-surface)}
+.feature-card:hover::before{opacity:1}
+.feature-icon{width:44px;height:44px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--accent);flex-shrink:0}
+.feature-icon svg{width:22px;height:22px}
+.feature-card h3{font-size:1.05rem;font-weight:700;margin-bottom:8px;letter-spacing:-.01em}
+.feature-card p{font-size:.9rem;color:var(--text-muted);line-height:1.6}
+
+/* ===== CODE ===== */
+.code-section{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.code-header{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.code-dot{width:12px;height:12px;border-radius:50%;background:var(--border)}
+.code-dot:nth-child(1){background:#f87171}.code-dot:nth-child(2){background:#fbbf24}.code-dot:nth-child(3){background:#34d399}
+.code-title{font-size:.8rem;color:var(--text-muted);margin-left:12px;font-family:var(--font-mono)}
+.code-body{display:flex;overflow-x:auto}
+.line-numbers{padding:20px 0;text-align:right;user-select:none;border-right:1px solid var(--border);min-width:48px}
+.line-numbers span{display:block;padding:0 12px 0 16px;font-family:var(--font-mono);font-size:.82rem;line-height:1.7;color:var(--text-dim)}
+.code-content{padding:20px 24px;font-family:var(--font-mono);font-size:.82rem;line-height:1.7;white-space:pre;flex:1}
+.kw{color:var(--purple)}.str{color:var(--green)}.fn{color:var(--cyan)}.var{color:var(--blue)}.cm{color:var(--gray);font-style:italic}.op{color:var(--pink)}.num{color:var(--orange)}
+
+/* ===== ARCHITECTURE ===== */
+.tree{position:relative;padding:28px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto}
+.tree-root{display:inline-flex;align-items:center;gap:10px;padding:8px 18px;background:var(--accent-dim);border:1px solid rgba(16,185,129,.2);border-radius:var(--radius-sm);font-weight:700;font-size:.95rem;color:var(--accent);font-family:var(--font-mono);margin-bottom:24px}
+.tree-root svg{width:18px;height:18px}
+.tree-branch{position:relative;padding-left:24px}
+.tree-branch::before{content:'';position:absolute;left:8px;top:0;bottom:8px;width:1px;background:var(--border)}
+.tree-item{position:relative;padding:8px 0;display:flex;align-items:center;gap:10px}
+.tree-item::before{content:'';position:absolute;left:-16px;top:50%;width:16px;height:1px;background:var(--border)}
+.tree-item:last-child::after{content:'';position:absolute;left:-16px;top:calc(50% + 1px);bottom:0;width:1px;background:var(--bg-card)}
+.tree-pill{display:inline-flex;align-items:center;padding:6px 16px;border-radius:100px;font-size:.82rem;font-weight:600;font-family:var(--font-mono);background:var(--bg-surface);border:1px solid var(--border);color:var(--text);white-space:nowrap;transition:all .2s}
+.tree-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.tree-desc{font-size:.82rem;color:var(--text-muted);white-space:nowrap}
+@media(max-width:600px){.tree-desc{display:none}}
+.tree-note{margin-top:20px;padding:16px 20px;background:var(--accent-dim);border:1px solid rgba(16,185,129,.15);border-radius:var(--radius-sm);font-size:.9rem;color:var(--accent);line-height:1.6}
+.tree-note strong{font-weight:600}
+
+/* ===== INSTALL ===== */
+.install-box{display:flex;align-items:center;gap:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:4px 4px 4px 24px;max-width:580px;margin:0 auto;cursor:pointer;transition:border-color .2s}
+.install-box:hover{border-color:var(--accent)}
+.install-box code{font-family:var(--font-mono);font-size:.95rem;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.copy-btn{padding:10px 20px;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:.85rem;cursor:pointer;font-family:var(--font-body);transition:background .2s;white-space:nowrap}
+.copy-btn:hover{background:#34d399}
+
+/* ===== FOOTER ===== */
+footer{border-top:1px solid var(--border);padding:48px 24px}
+.footer-inner{max-width:var(--max-w);margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:24px}
+.footer-logo{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+.footer-logo svg{color:var(--accent)}
+.footer-tagline{color:var(--text-muted);font-size:.9rem;width:100%;margin-top:-8px}
+.footer-links{display:flex;flex-wrap:wrap;gap:8px}
+.footer-links a{color:var(--text-muted);text-decoration:none;font-size:.85rem;padding:6px 14px;border-radius:var(--radius-sm);transition:color .2s,background .2s}
+.footer-links a:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.footer-copy{width:100%;text-align:center;color:var(--text-dim);font-size:.82rem;margin-top:8px}
+
+/* Divider glow */
+.glow-divider{height:1px;background:linear-gradient(90deg,transparent,var(--accent-glow),transparent);border:none;margin:0;max-width:400px;margin-left:auto;margin-right:auto}
+
+/* Focus */
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+      BangronDB
+    </a>
+    <button class="mobile-toggle" id="menuBtn" aria-label="Toggle menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#quickstart">Quick Start</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="features.md">Docs</a></li>
+      <li><a href="https://github.com/herdianrony/BangronDB" class="cta" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero dot-bg" id="hero">
+  <div class="orb"></div>
+  <div class="orb-2"></div>
+  <div class="hero-code-bg">$users->find(['role' => 'admin']);
+$users->aggregate([['$match' => ...]]);
+$users->update(['_id' => $id], ['$set' => [...]]);</div>
+  <div class="hero-content">
+    <h1 class="reveal">Embedded Document<br>Database for <span class="accent">PHP</span></h1>
+    <p class="sub reveal">MongoDB-style API. SQLite backend. Zero server. Zero config.</p>
+    <div class="hero-btns reveal">
+      <a href="#quickstart" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Get Started
+      </a>
+      <a href="https://github.com/herdianrony/BangronDB" class="btn btn-secondary" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        View on GitHub
+      </a>
+    </div>
+    <div class="badges reveal">
+      <span class="badge"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>PHP 8.1+</span>
+      <span class="badge">MIT License</span>
+      <span class="badge">PHPStan Level 9</span>
+      <span class="badge">Zero Dependencies</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label reveal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        Features
+      </div>
+      <h2 class="section-title reveal">Everything You Need,<br>Nothing You Don't</h2>
+      <p class="section-desc reveal">A full-featured document database that stays lightweight by design.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+        <h3>MongoDB-Style API</h3>
+        <p>Familiar find(), insert(), update(), aggregate() syntax. No learning curve.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <h3>Dual Query Strategy</h3>
+        <p>SQL-first via json_extract for speed, PHP fallback for complex queries. Automatic.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>AES-256-GCM Encryption</h3>
+        <p>Per-collection encryption with key rotation, searchable encrypted fields via HMAC blind index.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <h3>Schema Validation</h3>
+        <p>Type checking, enum, regex, min/max, unique constraints. Metadata properties for UI generation.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+        <h3>Hook System</h3>
+        <p>beforeInsert, beforeUpdate, beforeRemove hooks. Build ACL, audit logs, auto-timestamps at app layer.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <h3>Zero Dependencies</h3>
+        <p>Only PHP 8.1+ with pdo_sqlite and openssl. No MongoDB, no Redis, no external services.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="glow-divider">
+
+<!-- CODE EXAMPLE -->
+<section id="quickstart">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label reveal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Quick Start
+      </div>
+      <h2 class="section-title reveal">Up and Running<br>in 30 Seconds</h2>
+    </div>
+    <div class="code-section reveal">
+      <div class="code-header">
+        <span class="code-dot"></span><span class="code-dot"></span><span class="code-dot"></span>
+        <span class="code-title">quickstart.php</span>
+      </div>
+      <div class="code-body">
+        <div class="line-numbers"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span></div>
+        <div class="code-content"><span class="kw">use</span> <span class="fn">BangronDB\Client</span>;
+
+<span class="var">$client</span> <span class="op">=</span> <span class="kw">new</span> <span class="fn">Client</span>(<span class="var">__DIR__</span> <span class="op">.</span> <span class="str">'/data'</span>);
+<span class="var">$client</span><span class="op">-></span><span class="fn">createDB</span>(<span class="str">'app'</span>);
+<span class="var">$users</span> <span class="op">=</span> <span class="var">$client</span><span class="op">-></span><span class="fn">createCollection</span>(<span class="str">'app'</span>, <span class="str">'users'</span>);
+
+<span class="var">$users</span><span class="op">-></span><span class="fn">setSchema</span>([
+    <span class="str">'name'</span>  <span class="op">=></span> [<span class="str">'type'</span> <span class="op">=></span> <span class="str">'string'</span>, <span class="str">'required'</span> <span class="op">=></span> <span class="kw">true</span>, <span class="str">'min'</span> <span class="op">=></span> <span class="num">2</span>],
+    <span class="str">'email'</span> <span class="op">=></span> [<span class="str">'type'</span> <span class="op">=></span> <span class="str">'string'</span>, <span class="str">'unique'</span> <span class="op">=></span> <span class="kw">true</span>, <span class="str">'regex'</span> <span class="op">=></span> <span class="str">'/^[^@]+@[^@]+\.[^@]+$/'</span>],
+]);
+
+<span class="var">$id</span> <span class="op">=</span> <span class="var">$users</span><span class="op">-></span><span class="fn">insert</span>([<span class="str">'name'</span> <span class="op">=></span> <span class="str">'Alice'</span>, <span class="str">'email'</span> <span class="op">=></span> <span class="str">'alice@example.com'</span>]);
+<span class="var">$user</span> <span class="op">=</span> <span class="var">$users</span><span class="op">-></span><span class="fn">findOne</span>([<span class="str">'_id'</span> <span class="op">=></span> <span class="var">$id</span>]);
+
+<span class="var">$users</span><span class="op">-></span><span class="fn">update</span>([<span class="str">'_id'</span> <span class="op">=></span> <span class="var">$id</span>], [<span class="str">'$set'</span> <span class="op">=></span> [<span class="str">'role'</span> <span class="op">=></span> <span class="str">'admin'</span>]]);</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="glow-divider">
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label reveal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        Architecture
+      </div>
+      <h2 class="section-title reveal">Trait-Based Architecture</h2>
+      <p class="section-desc reveal">Modular by design. Each capability is a composable trait.</p>
+    </div>
+    <div class="tree reveal">
+      <div class="tree-root">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Collection.php
+        <span style="color:var(--text-muted);font-weight:400;font-size:.8rem">(Coordinator)</span>
+      </div>
+      <div class="tree-branch">
+        <div class="tree-item"><span class="tree-pill">QueryBuilderTrait</span><span class="tree-desc">find(), findOne(), count(), aggregate()</span></div>
+        <div class="tree-item"><span class="tree-pill">EncryptionTrait</span><span class="tree-desc">AES-256-GCM, key rotation</span></div>
+        <div class="tree-item"><span class="tree-pill">SchemaValidationTrait</span><span class="tree-desc">type, enum, regex, min/max, unique</span></div>
+        <div class="tree-item"><span class="tree-pill">HooksTrait</span><span class="tree-desc">before/after CRUD lifecycle</span></div>
+        <div class="tree-item"><span class="tree-pill">SearchableFieldsTrait</span><span class="tree-desc">HMAC blind index for encrypted data</span></div>
+        <div class="tree-item"><span class="tree-pill">IdGeneratorTrait</span><span class="tree-desc">UUID, manual, prefix</span></div>
+        <div class="tree-item"><span class="tree-pill">SoftDeleteTrait</span><span class="tree-desc">soft delete, restore</span></div>
+        <div class="tree-item"><span class="tree-pill">TtlTrait</span><span class="tree-desc">auto-expiration</span></div>
+        <div class="tree-item"><span class="tree-pill">ChangeTrackingTrait</span><span class="tree-desc">versioning, notifications</span></div>
+        <div class="tree-item"><span class="tree-pill">ConfigurationPersistenceTrait</span><span class="tree-desc">persistent config</span></div>
+      </div>
+      <div class="tree-note"><strong>💡 Traits prevent God Object.</strong> Each feature is an independent, testable unit.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="glow-divider">
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="container" style="text-align:center">
+    <div class="section-label reveal" style="justify-content:center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Install
+    </div>
+    <h2 class="section-title reveal">Install</h2>
+    <div class="install-box reveal" id="installBox" onclick="copyInstall()">
+      <code>composer require herdianrony/bangrondb</code>
+      <button class="copy-btn" id="copyBtn">Copy</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+        BangronDB
+      </div>
+      <div class="footer-tagline">Lightweight. Secure. MongoDB-style.</div>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/herdianrony/BangronDB" target="_blank" rel="noopener">GitHub</a>
+      <a href="features.md">Documentation</a>
+      <a href="https://packagist.org/packages/herdianrony/bangrondb" target="_blank" rel="noopener">Packagist</a>
+      <a href="https://github.com/herdianrony/BangronDB/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
+    </div>
+    <div class="footer-copy">Built with ❤️ by herdianrony</div>
+  </div>
+</footer>
+
+<script>
+// Navbar scroll effect
+const nav=document.getElementById('navbar');
+window.addEventListener('scroll',()=>{nav.classList.toggle('scrolled',window.scrollY>20)},{passive:true});
+
+// Mobile menu
+document.getElementById('menuBtn').addEventListener('click',()=>{document.getElementById('navLinks').classList.toggle('open')});
+
+// Scroll reveal (IntersectionObserver)
+const obs=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}})},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// Copy install command
+function copyInstall(){
+  const cmd='composer require herdianrony/bangrondb';
+  navigator.clipboard.writeText(cmd).then(()=>{
+    const btn=document.getElementById('copyBtn');
+    btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent='Copy',2000);
+  }).catch(()=>{
+    // Fallback
+    const ta=document.createElement('textarea');ta.value=cmd;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    const btn=document.getElementById('copyBtn');btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);
+  });
+}
+</script>
+</body>
+</html>
