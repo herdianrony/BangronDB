@@ -11,7 +11,8 @@
 5. [Performance & Indexing](#5-performance--indexing)
 6. [Security di SCM](#6-security-di-scm)
 7. [Relasi & Cross-Module Populate](#7-relasi--cross-module-populate)
-8. [Anti-Pattern SCM](#8-anti-pattern-scm)
+8. [Transaction Safety](#8-transaction-safety)
+9. [Anti-Pattern SCM](#9-anti-pattern-scm)
 
 ---
 
@@ -257,58 +258,86 @@ function getStockCard(string $productId, string $warehouseId, string $fromDate, 
 
 ### 4.1 Auto-Create Stock Movement saat Goods Receipt
 
+Insert multiple stock_movements + update PO status **wajib atomic** — kalau sebagian gagal, GR ada tapi stok tidak update (atau sebaliknya). Bungkus dalam `beginTransaction()`/`commit()`/`rollBack()` (lihat [§8. Transaction Safety](#8-transaction-safety)):
+
 ```php
 collection('goods_receipts')->on('afterInsert', function (array $gr) {
-    $movements = [];
-    foreach ($gr['lines'] as $line) {
-        $movements[] = [
-            'movement_id'    => 'MV-' . uniqid(),
-            'movement_date'  => $gr['gr_date'],
-            'product_id'     => $line['product_id'],
-            'warehouse_id'   => $gr['warehouse_id'],
-            'movement_type'  => 'purchase_in',
-            'qty'            => $line['qty_received'],
-            'unit_cost'      => $line['unit_cost'] ?? 0,
-            'reference_type' => 'gr',
-            'reference_id'   => $gr['_id'],
-            'batch_number'   => $line['batch_number'] ?? null,
-            'expiry_date'    => $line['expiry_date'] ?? null,
-            'created_by'     => $gr['received_by'],
-        ];
-    }
-    collection('stock_movements')->insertMany($movements);
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        $movements = [];
+        foreach ($gr['lines'] as $line) {
+            $movements[] = [
+                'movement_id'    => 'MV-' . uniqid(),
+                'movement_date'  => $gr['gr_date'],
+                'product_id'     => $line['product_id'],
+                'warehouse_id'   => $gr['warehouse_id'],
+                'movement_type'  => 'purchase_in',
+                'qty'            => $line['qty_received'],
+                'unit_cost'      => $line['unit_cost'] ?? 0,
+                'reference_type' => 'gr',
+                'reference_id'   => $gr['_id'],
+                'batch_number'   => $line['batch_number'] ?? null,
+                'expiry_date'    => $line['expiry_date'] ?? null,
+                'created_by'     => $gr['received_by'],
+            ];
+        }
+        // insertMany otomatis atomic, tapi kita bungkus agar update PO status
+        // juga rollback kalau movements gagal (atau sebaliknya).
+        collection('stock_movements')->insertMany($movements);
 
-    // Update PO status
-    collection('purchase_orders')->update(
-        ['_id' => $gr['po_id']],
-        ['$set' => ['status' => 'received']]
-    );
+        // Update PO status — atomic dengan stock movements di atas
+        collection('purchase_orders')->update(
+            ['_id' => $gr['po_id']],
+            ['$set' => ['status' => 'received']]
+        );
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+
+    // JE ke erp_finance TIDAK dalam transaction yang sama (cross-database)
+    // — pakai hook terpisah dengan idempotent flag `je_posted: true` (lihat §8.4 rule 4).
 });
 ```
 
 ### 4.2 Auto-Stock-Out saat Shipment Delivered
 
+Insert reverse movements + update shipment status **wajib atomic** — stok keluar tapi shipment status tidak update (atau sebaliknya) akan menyebabkan stok inkonsisten. Bungkus dalam `beginTransaction()`/`commit()`/`rollBack()` (lihat [§8. Transaction Safety](#8-transaction-safety)):
+
 ```php
 collection('shipments')->on('afterUpdate', function (array $old, array $new) {
     if (($old['status'] ?? '') !== 'delivered' && $new['status'] === 'delivered') {
-        $movements = [];
-        foreach ($new['lines'] as $line) {
-            $movements[] = [
-                'movement_id'    => 'MV-' . uniqid(),
-                'movement_date'  => $new['delivered_at'],
-                'product_id'     => $line['product_id'],
-                'warehouse_id'   => $new['from_warehouse'],
-                'movement_type'  => 'sales_out',
-                'qty'            => -$line['qty'],
-                'reference_type' => 'ship',
-                'reference_id'   => $new['_id'],
-                'created_by'     => 'system',
-            ];
+        $conn = collection('stock_movements')->database->connection;
+        $conn->beginTransaction();
+        try {
+            $movements = [];
+            foreach ($new['lines'] as $line) {
+                $movements[] = [
+                    'movement_id'    => 'MV-' . uniqid(),
+                    'movement_date'  => $new['delivered_at'],
+                    'product_id'     => $line['product_id'],
+                    'warehouse_id'   => $new['from_warehouse'],
+                    'movement_type'  => 'sales_out',
+                    'qty'            => -$line['qty'],
+                    'reference_type' => 'ship',
+                    'reference_id'   => $new['_id'],
+                    'created_by'     => 'system',
+                ];
+            }
+            collection('stock_movements')->insertMany($movements);
+            $conn->commit();
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            throw $e;
         }
-        collection('stock_movements')->insertMany($movements);
     }
 });
 ```
+
+> **Catatan:** Hook `afterUpdate` berjalan dalam transaction yang sama dengan update shipment bila caller membungkusnya dengan `beginTransaction()`. Untuk self-containment, hook di atas membungkus sendiri `beginTransaction()` agar tetap atomic walau caller lupa wrap. Jangan kedua-duanya — pilih satu pola saja, atau cek `$conn->inTransaction()` sebelum `beginTransaction()` (lihat §8.2).
 
 ### 4.3 Stock Transfer Validation (Cek Stok Cukup)
 
@@ -353,36 +382,46 @@ function autoGenerateReorderPOs(): array
         }
 
         foreach ($bySupplier as $supplierId => $items) {
-            $poNumber = 'PO-' . date('Y') . '-' . str_pad(
-                (string) (collection('purchase_orders')->count([]) + 1), 6, '0', STR_PAD_LEFT
-            );
-            $lines = [];
-            $subtotal = 0;
-            foreach ($items as $item) {
-                $product = collection('products')->findOne(['_id' => $item['product_id']]);
-                $unitPrice = $product['last_purchase_price'] ?? 0;
-                $lines[] = [
-                    'product_id'  => $item['product_id'],
-                    'qty'         => $item['suggested_qty'],
-                    'unit_price'  => $unitPrice,
-                    'subtotal'    => $unitPrice * $item['suggested_qty'],
-                ];
-                $subtotal += $unitPrice * $item['suggested_qty'];
+            // 1 PO = 1 transaction. Kalau satu PO gagal, PO lain tetap di-generate.
+            $conn = collection('purchase_orders')->database->connection;
+            $conn->beginTransaction();
+            try {
+                $poNumber = 'PO-' . date('Y') . '-' . str_pad(
+                    (string) (collection('purchase_orders')->count([]) + 1), 6, '0', STR_PAD_LEFT
+                );
+                $lines = [];
+                $subtotal = 0;
+                foreach ($items as $item) {
+                    $product = collection('products')->findOne(['_id' => $item['product_id']]);
+                    $unitPrice = $product['last_purchase_price'] ?? 0;
+                    $lines[] = [
+                        'product_id'  => $item['product_id'],
+                        'qty'         => $item['suggested_qty'],
+                        'unit_price'  => $unitPrice,
+                        'subtotal'    => $unitPrice * $item['suggested_qty'],
+                    ];
+                    $subtotal += $unitPrice * $item['suggested_qty'];
+                }
+                $poId = collection('purchase_orders')->insert([
+                    'po_number'  => $poNumber,
+                    'po_date'    => date('Y-m-d'),
+                    'supplier_id'=> $supplierId,
+                    'warehouse_id' => $wh,
+                    'buyer_id'   => 'system',
+                    'status'     => 'draft',
+                    'lines'      => $lines,
+                    'subtotal'   => $subtotal,
+                    'tax_total'  => 0,
+                    'shipping_cost' => 0,
+                    'grand_total'=> $subtotal,
+                ]);
+                $conn->commit();
+                $generated[] = $poNumber;
+            } catch (\Throwable $e) {
+                if ($conn->inTransaction()) $conn->rollBack();
+                // Log & lanjut ke supplier berikutnya — jangan gagalkan seluruh batch.
+                error_log('PO auto-generate failed for supplier ' . $supplierId . ': ' . $e->getMessage());
             }
-            $poId = collection('purchase_orders')->insert([
-                'po_number'  => $poNumber,
-                'po_date'    => date('Y-m-d'),
-                'supplier_id'=> $supplierId,
-                'warehouse_id' => $wh,
-                'buyer_id'   => 'system',
-                'status'     => 'draft',
-                'lines'      => $lines,
-                'subtotal'   => $subtotal,
-                'tax_total'  => 0,
-                'shipping_cost' => 0,
-                'grand_total'=> $subtotal,
-            ]);
-            $generated[] = $poNumber;
         }
     }
     return $generated;
@@ -615,7 +654,121 @@ function getShipmentWithSO(string $shipId): array
 
 ---
 
-## 8. Anti-Pattern SCM
+## 8. Transaction Safety
+
+SCM adalah modul dengan operasi multi-step paling kritis — stok harus konsisten di semua warehouse. Tanpa transaction, kegagalan sebagian operasi bisa menyebabkan stok hilang/lebih, PO tidak update, atau JE tidak terkait.
+
+### 8.1 Skenario yang WAJIB Pakai Transaction
+
+| Skenario | Langkah Atomic | Konsekuensi Tanpa Transaction |
+|----------|----------------|-------------------------------|
+| Goods Receipt | Insert GR + multiple stock_movements + update PO status + insert JE (cross-DB) | GR ada tapi stok tidak update, atau JE tidak ada |
+| Shipment Delivered | Insert reverse stock_movements + update shipment status + insert revenue JE | Stok keluar tapi shipment status salah |
+| Stock Transfer | Out movement WH-A + In movement WH-B | Stok hilang (out tanpa in) atau stok lebih (in tanpa out) |
+| Stock Adjustment | Insert adjustment movement + insert audit log | Adjustment tanpa audit trail |
+| PO Auto-Generate (multiple POs) | Per PO: insert PO + update reorder flag | Sebagian PO insert, sebagian tidak |
+| Return Goods | Insert return_in movement + update shipment status + reverse revenue JE | Stok masuk tapi shipment masih delivered |
+| Bulk Stock Movement Import | insertMany movements + audit log | Sebagian insert, sebagian gagal |
+
+### 8.2 Pola Transaction di Hook Goods Receipt
+
+```php
+collection('goods_receipts')->on('afterInsert', function (array $gr) {
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // Insert multiple stock movements — atomic
+        $movements = [];
+        foreach ($gr['lines'] as $line) {
+            $movements[] = [
+                'movement_id'    => 'MV-' . uniqid(),
+                'movement_date'  => $gr['gr_date'],
+                'product_id'     => $line['product_id'],
+                'warehouse_id'   => $gr['warehouse_id'],
+                'movement_type'  => 'purchase_in',
+                'qty'            => $line['qty_received'],
+                'unit_cost'      => $line['unit_cost'] ?? 0,
+                'reference_type' => 'gr',
+                'reference_id'   => $gr['_id'],
+                'created_by'     => $gr['received_by'],
+            ];
+        }
+        collection('stock_movements')->insertMany($movements);
+
+        // Update PO status — atomic dengan stock movements
+        collection('purchase_orders')->update(
+            ['_id' => $gr['po_id']],
+            ['$set' => ['status' => 'received']]
+        );
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+
+    // JE ke erp_finance TIDAK dalam transaction yang sama (cross-database)
+    // — pakai idempotent pattern di hook terpisah
+});
+```
+
+### 8.3 Stock Transfer Manual (Pattern Penting)
+
+Transfer antar warehouse WAJIB atomic — kalau out tanpa in, stok hilang:
+
+```php
+function transferStock(string $productId, string $fromWh, string $toWh, int $qty, string $refId): void {
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // Out from source
+        collection('stock_movements')->insert([
+            'movement_id'    => 'MV-' . uniqid(),
+            'movement_date'  => date('Y-m-d'),
+            'product_id'     => $productId,
+            'warehouse_id'   => $fromWh,
+            'movement_type'  => 'transfer_out',
+            'qty'            => -$qty,
+            'reference_type' => 'transfer',
+            'reference_id'   => $refId,
+            'created_by'     => $_SESSION['user_id'] ?? 'system',
+        ]);
+
+        // In to destination — atomic dengan out di atas
+        collection('stock_movements')->insert([
+            'movement_id'    => 'MV-' . uniqid(),
+            'movement_date'  => date('Y-m-d'),
+            'product_id'     => $productId,
+            'warehouse_id'   => $toWh,
+            'movement_type'  => 'transfer_in',
+            'qty'            => $qty,
+            'reference_type' => 'transfer',
+            'reference_id'   => $refId,
+            'created_by'     => $_SESSION['user_id'] ?? 'system',
+        ]);
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+}
+```
+
+### 8.4 Aturan Penting
+
+1. Cek `inTransaction()` sebelum `rollBack()`.
+2. Re-throw exception setelah rollback.
+3. Side effects (kirim notifikasi ke supplier, update dashboard real-time) DI LUAR transaction.
+4. Cross-database (scm ↔ erp_finance untuk JE) TIDAK atomic — pakai idempotent hook dengan flag `je_posted: true` di GR, dan reconciliation job untuk cek konsistensi.
+5. `stock_movements` harus immutable — untuk koreksi, insert movement lawan dalam transaction baru, jangan update/delete movement existing.
+6. `insertMany()` otomatis transactional — pakai untuk bulk insert master data atau batch movements.
+
+Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+
+---
+
+## 9. Anti-Pattern SCM
 
 1. **Update stock_movement langsung** — ini melanggar prinsip immutable event log. Pakai adjustment movement lawan.
 

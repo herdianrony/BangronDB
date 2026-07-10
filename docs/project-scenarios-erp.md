@@ -12,8 +12,9 @@
 6. [Performance & Indexing](#6-performance--indexing)
 7. [Security untuk Data Sensitif ERP](#7-security-untuk-data-sensitif-erp)
 8. [Relasi & Cross-Collection Populate](#8-relasi--cross-collection-populate)
-9. [Anti-Pattern & Tips Praktis](#9-anti-pattern--tips-praktis)
-10. [Kesimpulan & Referensi](#10-kesimpulan--referensi)
+9. [Transaction Safety](#9-transaction-safety)
+10. [Anti-Pattern & Tips Praktis](#10-anti-pattern--tips-praktis)
+11. [Kesimpulan & Referensi](#11-kesimpulan--referensi)
 
 ---
 
@@ -446,23 +447,33 @@ Hooks adalah event lifecycle yang dipanggil sebelum/sesudah operasi insert/updat
 collection('sales_orders')->on('afterUpdate', function (array $oldDoc, array $newDoc) {
     // Hanya trigger saat status berubah dari non-confirmed → confirmed
     if (($oldDoc['status'] ?? '') !== 'confirmed' && $newDoc['status'] === 'confirmed') {
-        // Buat stock_movement untuk setiap line item
-        $movements = [];
-        foreach ($newDoc['lines'] as $line) {
-            $movements[] = [
-                'product_id'     => $line['product_id'],
-                'movement_date'  => $newDoc['so_date'],
-                'movement_type'  => 'sales_out',
-                'qty'            => -$line['qty'],   // negatif = keluar
-                'reference'      => $newDoc['so_number'],
-                'warehouse_id'   => $line['warehouse_id'] ?? 'WH-MAIN',
-            ];
-        }
-        // insertMany auto-transactional
-        collection('stock_movements')->insertMany($movements);
+        // Bungkus multiple stock_movement dalam transaction — kalau satu line gagal,
+        // semua rollback. Lihat §9 untuk pola lengkap.
+        $conn = collection('stock_movements')->database->connection;
+        $conn->beginTransaction();
+        try {
+            // Buat stock_movement untuk setiap line item
+            $movements = [];
+            foreach ($newDoc['lines'] as $line) {
+                $movements[] = [
+                    'product_id'     => $line['product_id'],
+                    'movement_date'  => $newDoc['so_date'],
+                    'movement_type'  => 'sales_out',
+                    'qty'            => -$line['qty'],   // negatif = keluar
+                    'reference'      => $newDoc['so_number'],
+                    'warehouse_id'   => $line['warehouse_id'] ?? 'WH-MAIN',
+                ];
+            }
+            // insertMany dalam transaction — atomic dengan operasi SO update di atas
+            collection('stock_movements')->insertMany($movements);
 
-        // Update status SO → 'fulfilled' jika semua line sudah ada movement
-        // (atau biarkan manual fulfilment yang update)
+            // Update status SO → 'fulfilled' jika semua line sudah ada movement
+            // (atau biarkan manual fulfilment yang update)
+            $conn->commit();
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            throw $e;  // re-throw agar caller tahu SO confirm gagal
+        }
     }
 });
 ```
@@ -474,31 +485,42 @@ collection('invoices')->on('afterInsert', function (array $doc) {
     // Skip jika sudah ada journal_id (mis. dari import)
     if (!empty($doc['journal_id'])) return;
 
-    // Buat journal entry untuk invoice (DR Accounts Receivable, CR Sales Revenue)
-    $jeNumber = 'JE-' . date('Y') . '-' . str_pad(
-        (string) collection('journal_entries')->count([]) + 1, 6, '0', STR_PAD_LEFT
-    );
+    // Insert journal_entries + update invoice.journal_id WAJIB atomic.
+    // Lihat §9 untuk pola lengkap.
+    $conn = collection('invoices')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // Buat journal entry untuk invoice (DR Accounts Receivable, CR Sales Revenue)
+        $jeNumber = 'JE-' . date('Y') . '-' . str_pad(
+            (string) collection('journal_entries')->count([]) + 1, 6, '0', STR_PAD_LEFT
+        );
 
-    $journalId = collection('journal_entries')->insert([
-        'je_number'    => $jeNumber,
-        'je_date'      => $doc['inv_date'],
-        'description'  => 'Auto-JE for ' . $doc['inv_number'],
-        'source_type'  => 'sales',
-        'source_id'    => $doc['_id'],
-        'is_posted'    => true,
-        'total_debit'  => $doc['amount'],
-        'total_credit' => $doc['amount'],
-        'lines' => [
-            ['account_code' => '1100-00', 'debit'  => $doc['amount'], 'credit' => 0], // AR
-            ['account_code' => '4000-00', 'debit'  => 0, 'credit' => $doc['amount']], // Revenue
-        ],
-    ]);
+        $journalId = collection('journal_entries')->insert([
+            'je_number'    => $jeNumber,
+            'je_date'      => $doc['inv_date'],
+            'description'  => 'Auto-JE for ' . $doc['inv_number'],
+            'source_type'  => 'sales',
+            'source_id'    => $doc['_id'],
+            'is_posted'    => true,
+            'total_debit'  => $doc['amount'],
+            'total_credit' => $doc['amount'],
+            'lines' => [
+                ['account_code' => '1100-00', 'debit'  => $doc['amount'], 'credit' => 0], // AR
+                ['account_code' => '4000-00', 'debit'  => 0, 'credit' => $doc['amount']], // Revenue
+            ],
+        ]);
 
-    // Update invoice dengan journal_id (tanpa trigger hook recursion)
-    collection('invoices')->update(
-        ['_id' => $doc['_id']],
-        ['$set' => ['journal_id' => $journalId]]
-    );
+        // Update invoice dengan journal_id — atomic dengan insert JE di atas
+        // (tanpa trigger hook recursion)
+        collection('invoices')->update(
+            ['_id' => $doc['_id']],
+            ['$set' => ['journal_id' => $journalId]]
+        );
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;  // re-throw — invoice insert + JE tidak boleh setengah jadi
+    }
 });
 ```
 
@@ -538,7 +560,7 @@ foreach (['products', 'customers', 'suppliers', 'sales_orders', 'invoices', 'pay
 
 1. **Hindari recursion** — jika hook A insert ke collection B, dan B punya hook yang insert ke A, akan terjadi loop. Gunakan flag di dokumen (`['skip_hook' => true]`) untuk memutus recursion.
 2. **Hooks tetap berjalan meski transaksi SQL gagal?** Tidak — `insertMany()` auto-rollback jika ada error, dan hook `afterInsert` tidak akan terpanggil untuk batch yang gagal.
-3. **Untuk operasi kritis** seperti posting journal entry, kombinasikan hook dengan `executeTransaction()` di QueryExecutor agar atomic.
+3. **Untuk operasi kritis** seperti posting journal entry, bungkus hook dalam `beginTransaction()`/`commit()`/`rollBack()` agar atomic. Lihat [§9. Transaction Safety](#9-transaction-safety) untuk pola lengkap. (`executeTransaction()` di QueryExecutor adalah alternatif SQL-level; PDO `beginTransaction()` di level collection lebih idiomatis.)
 
 ---
 
@@ -842,22 +864,123 @@ collection('customers')->on('beforeRemove', function (array $criteria) {
 
 ---
 
-## 9. Anti-Pattern & Tips Praktis
+## 9. Transaction Safety
 
-### 9.1 Anti-Pattern yang Sering Muncul
+ERP penuh dengan operasi multi-step yang WAJIB atomic. Tanpa transaction, kegagalan sebagian operasi akan menyebabkan inkonsistensi data bisnis (stok salah, journal tidak balance, audit log hilang).
+
+### 9.1 Skenario yang WAJIB Pakai Transaction
+
+| Skenario | Langkah Atomic | Konsekuensi Tanpa Transaction |
+|----------|----------------|-------------------------------|
+| Konfirmasi SO | Insert multiple stock_movements + update SO status | Stok sebagian terpotong, SO status tidak update |
+| Create Invoice + Auto JE | Insert invoice + insert journal_entries + update invoice.journal_id | Invoice tanpa JE → laporan keuangan salah |
+| Stock Transfer | Out movement WH-A + In movement WH-B | Stok hilang/lebih (double-entry gagal) |
+| Payroll Post | Insert payroll_run + multiple payslips + JE | Sebagian karyawan tidak dibayar, tapi JE sudah post |
+| Void Invoice | Reverse JE + update invoice status + audit log | JE masih ada padahal invoice void |
+| Bulk Master Import | insertMany products + audit log | Sebagian insert, sebagian gagal |
+| Migration Script | Update multiple dokumen dengan field baru | Sebagian dokumen ter-migrate, sebagian tidak |
+
+### 9.2 Pola Transaction di Hook
+
+Hook `afterInsert`/`afterUpdate` berjalan dalam transaction yang sama dengan operasi trigger-nya. Manfaatkan untuk konsistensi atomic:
+
+```php
+// Hook ini otomatis dalam transaction yang sama dengan insert invoice
+collection('invoices')->on('afterInsert', function (array $invoice) {
+    $jeId = collection('journal_entries')->insert([...]);
+    // Update invoice dengan journal_id — atomic dengan insert di atas
+    collection('invoices')->update(
+        ['_id' => $invoice['_id']],
+        ['$set' => ['journal_id' => $jeId]]
+    );
+});
+
+// Caller:
+$conn = collection('invoices')->database->connection;
+$conn->beginTransaction();
+try {
+    collection('invoices')->insert($invoice);  // trigger hook → insert JE + update invoice
+    $conn->commit();  // semua atomic
+} catch (\Throwable $e) {
+    if ($conn->inTransaction()) $conn->rollBack();
+    throw $e;
+}
+```
+
+> **Catatan:** Pada §5.1 dan §5.2, hook membungkus sendiri `beginTransaction()` agar self-contained (tetap atomic walau caller lupa wrap). Jika caller juga `beginTransaction()`, pastikan tidak double-begin — pakai cek `$conn->inTransaction()` sebelum begin, atau pilih salah satu pola saja.
+
+### 9.3 Pola Manual untuk Multi-Step Non-Hook
+
+Untuk operasi yang tidak melalui hook, bungkus manual:
+
+```php
+function transferStock(string $productId, string $fromWh, string $toWh, int $qty): void {
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // 1. Out from source warehouse
+        collection('stock_movements')->insert([
+            'movement_type' => 'transfer_out',
+            'product_id'    => $productId,
+            'warehouse_id'  => $fromWh,
+            'qty'           => -$qty,
+            // ...
+        ]);
+        // 2. In to destination warehouse
+        collection('stock_movements')->insert([
+            'movement_type' => 'transfer_in',
+            'product_id'    => $productId,
+            'warehouse_id'  => $toWh,
+            'qty'           => $qty,
+            // ...
+        ]);
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+}
+```
+
+Pola ini cocok juga untuk **migration script** (update massal dokumen dengan field baru): baca per-batch, wrap tiap batch dalam transaction, commit per batch agar tidak lock database terlalu lama.
+
+### 9.4 Aturan Penting
+
+1. Cek `inTransaction()` sebelum `rollBack()` — nested transaction handling.
+2. Re-throw exception setelah rollback — jangan swallow.
+3. Side effects (kirim email, API call) DI LUAR transaction.
+4. Transaction cross-collection dalam database yang sama = OK.
+5. Transaction cross-DATABASE tidak didukung — `erp_sales.bangron` dan `erp_finance.bangron` punya connection terpisah. Pakai [Saga Pattern](modular-architecture.md#82-strategi-mitigasi-inconsistency) atau idempotent hook dengan status flag.
+6. Hook cross-database TIDAK atomic — hook di `erp_sales.invoices` yang insert ke `erp_finance.journal_entries` tidak dalam transaction yang sama.
+
+Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+
+---
+
+## 10. Anti-Pattern & Tips Praktis
+
+### 10.1 Anti-Pattern yang Sering Muncul
 
 1. **Simpan transaksi sebagai 1 dokumen raksasa** — mis. SO dengan 1000 line items. BangronDB optimal untuk dokumen <100KB. Pisahkan line items ke collection `sales_order_lines` jika >500 line.
 
 2. **Skip schema validation "untuk cepat"** — sadar atau tidak, ini menumpuk debt. Schema validation adalah kontrak API Anda. Setelah production, sangat susah menambahkan constraint karena data lama mungkin melanggar.
 
-3. **Tidak pakai transaction untuk transfer stok** — transfer antar gudang harus atomic (pengurangan di WH-A + penambahan di WH-B). Gunakan `executeTransaction()`:
+3. **Tidak pakai transaction untuk transfer stok** — transfer antar gudang harus atomic (pengurangan di WH-A + penambahan di WH-B). Pakai PDO `beginTransaction()` di level collection (lihat [§9.3](#93-pola-manual-untuk-multi-step-non-hook)):
 
    ```php
-   db()->queryExecutor->executeTransaction([
-       ['sql' => 'INSERT INTO stock_movements ...', 'params' => [...]],  // WH-A out
-       ['sql' => 'INSERT INTO stock_movements ...', 'params' => [...]],  // WH-B in
-   ]);
+   $conn = collection('stock_movements')->database->connection;
+   $conn->beginTransaction();
+   try {
+       collection('stock_movements')->insert([...]);  // WH-A out
+       collection('stock_movements')->insert([...]);  // WH-B in
+       $conn->commit();
+   } catch (\Throwable $e) {
+       if ($conn->inTransaction()) $conn->rollBack();
+       throw $e;
+   }
    ```
+
+   Alternatif SQL-level: `db()->queryExecutor->executeTransaction([...])` (lebih low-level, kurang idiomatis).
 
 4. **Hard-delete tanpa audit** — di ERP, delete adalah operasi berbahaya. Selalu pakai soft delete (`useSoftDeletes(true)`) untuk transaksi, dan simpan alasan delete di field `delete_reason`.
 
@@ -867,16 +990,16 @@ collection('customers')->on('beforeRemove', function (array $criteria) {
 
 7. **Tidak index field yang sering di-filter** — `customer_id`, `so_date`, `status` wajib searchable. Cek dengan `explain()` sebelum production.
 
-### 9.2 Tips Praktis
+### 10.2 Tips Praktis
 
 - **Backup**: file `.bangron` adalah satu file — backup cukup copy file. Untuk backup hot (saat aplikasi running), pakai SQLite `.backup` command via PDO.
 - **Multi-tenant**: kalau harus multi-tenant, buat 1 database `.bangron` per tenant (di subfolder `data/tenant-{id}/`), bukan 1 collection dengan field `tenant_id`. Lebih aman dan isolasi lebih baik.
 - **Versioning data**: gunakan `ChangeTrackingTrait` (`getLastModified()`) untuk cache invalidation — mis. dashboard P&L cache hasil 5 menit, invalidate saat ada journal_entries baru.
-- **Migration schema**: jika schema berubah (tambah field), dokumen lama tidak otomatis di-migrate. Buat migration script satu kali yang baca semua dokumen, tambah field default, update. Jalankan di maintenance window.
+- **Migration schema**: jika schema berubah (tambah field), dokumen lama tidak otomatis di-migrate. Buat migration script satu kali yang baca semua dokumen, tambah field default, update. Jalankan di maintenance window. Bungkus tiap batch dalam `beginTransaction()` agar tidak ada dokumen yang ter-migrate setengah (lihat [§9.3](#93-pola-manual-untuk-multi-step-non-hook)).
 
 ---
 
-## 10. Kesimpulan & Referensi
+## 11. Kesimpulan & Referensi
 
 ### Kapan BangronDB Cocok untuk ERP
 

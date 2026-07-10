@@ -11,7 +11,8 @@
 5. [Performance & Indexing](#5-performance--indexing)
 6. [Security di HRIS](#6-security-di-hris)
 7. [Relasi & Cross-Module Populate](#7-relasi--cross-module-populate)
-8. [Anti-Pattern HRIS](#8-anti-pattern-hris)
+8. [Transaction Safety](#8-transaction-safety)
+9. [Anti-Pattern HRIS](#9-anti-pattern-hris)
 
 ---
 
@@ -323,33 +324,53 @@ collection('attendance')->on('beforeUpdate', function (array $criteria, array $d
 });
 ```
 
+> **Catatan:** Hook `beforeUpdate` hanya mengembalikan modified `$data` — perubahan terjadi dalam satu `update()` call yang sama dengan caller, jadi **atomic otomatis**. Tidak perlu `beginTransaction()` eksplisit di hook ini. Audit log tambahan (misalnya catat siapa yang check-out) dapat di-insert via hook `afterUpdate` terpisah; jika ingin atomic dengan update, caller harus membungkus dengan `beginTransaction()` (lihat [§8. Transaction Safety](#8-transaction-safety)).
+
 ### 4.2 Auto-Update Leave Balance saat Leave Approved
+
+Update leave_request status + insert multiple attendance records (per hari cuti) **WAJIB atomic** — kalau status approved tapi attendance gagal insert, karyawan tercatat absen. Bungkus dalam `beginTransaction()`/`commit()`/`rollBack()` (lihat [§8. Transaction Safety](#8-transaction-safety)):
 
 ```php
 collection('leave_requests')->on('afterUpdate', function (array $old, array $new) {
     if (($old['status'] ?? '') !== 'approved' && $new['status'] === 'approved') {
-        // Buat attendance record dengan status 'leave' untuk setiap hari cuti
-        $start = strtotime($new['start_date']);
-        $end   = strtotime($new['end_date']);
-        for ($d = $start; $d <= $end; $d = strtotime('+1 day', $d)) {
-            $dateStr = date('Y-m-d', $d);
-            // Skip weekend
-            $dow = date('N', $d);
-            if ($dow >= 6) continue;
+        $conn = collection('attendance')->database->connection;
+        $conn->beginTransaction();
+        try {
+            // Insert attendance record dengan status 'leave' untuk setiap hari cuti
+            $start = strtotime($new['start_date']);
+            $end   = strtotime($new['end_date']);
+            $attRecords = [];
+            for ($d = $start; $d <= $end; $d = strtotime('+1 day', $d)) {
+                $dateStr = date('Y-m-d', $d);
+                // Skip weekend
+                $dow = date('N', $d);
+                if ($dow >= 6) continue;
 
-            collection('attendance')->insert([
-                'attendance_id' => 'ATT-' . $new['employee_id'] . '-' . $dateStr,
-                'employee_id'   => $new['employee_id'],
-                'date'          => $dateStr,
-                'status'        => 'leave',
-                'notes'         => 'Auto from leave request ' . $new['leave_id'],
-            ]);
+                $attRecords[] = [
+                    'attendance_id' => 'ATT-' . $new['employee_id'] . '-' . $dateStr,
+                    'employee_id'   => $new['employee_id'],
+                    'date'          => $dateStr,
+                    'status'        => 'leave',
+                    'notes'         => 'Auto from leave request ' . $new['leave_id'],
+                ];
+            }
+            if (!empty($attRecords)) {
+                collection('attendance')->insertMany($attRecords);
+            }
+            $conn->commit();
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            throw $e;
         }
     }
 });
 ```
 
+> **Catatan:** Pola yang lebih robust adalah standalone function `approveLeave($leaveId, $approverId)` yang membungkus **update leave_request + insert attendance** dalam satu `beginTransaction()` di caller side — lihat [§8.3](#83-pola-leave-approval-insert-multiple-attendance). Hook `afterUpdate` di atas tetap atomic untuk insertMany-nya sendiri; bila caller-side `beginTransaction()` dipakai, hook berjalan dalam transaction yang sama (jangan double-begin).
+
 ### 4.3 Auto-Generate Payslip saat Payroll Run
+
+Payroll run meng-insert ribuan payslips — **WAJIB atomic**, atau pakai **batch transaction** (500 payslips per transaction) untuk hindari lock lama. Lihat [§8. Transaction Safety](#8-transaction-safety):
 
 ```php
 collection('payroll_runs')->on('afterInsert', function (array $payroll) {
@@ -367,64 +388,140 @@ collection('payroll_runs')->on('afterInsert', function (array $payroll) {
         'hire_date'   => ['$lte' => $payroll['run_date']],
     ])->toArray();
 
+    // Batch payslips: 500 per transaction — hindari lock database lama.
+    $batches   = array_chunk($employees, 500);
+    $conn      = collection('payslips')->database->connection;
     $totalGross = $totalDeduction = $totalNet = 0;
-    foreach ($employees as $emp) {
-        // Calculate basic salary, allowances, overtime from attendance, deductions
-        $attendance = getAttendanceSummary($emp['_id'], $payroll['period_year'], $payroll['period_month']);
-        // ... (calculation logic)
 
-        $grossSalary = $emp['basic_salary'] + $allowances + $overtimePay;
-        $taxPph21    = calculatePPh21TER($grossSalary, $emp['ptkp_status'] ?? 'TK0');
-        $netSalary   = $grossSalary - $taxPph21 - $emp['bpjs_deductions'];
+    foreach ($batches as $batch) {
+        $conn->beginTransaction();
+        try {
+            foreach ($batch as $emp) {
+                // Calculate basic salary, allowances, overtime from attendance, deductions
+                $attendance = getAttendanceSummary($emp['_id'], $payroll['period_year'], $payroll['period_month']);
+                // ... (calculation logic)
 
-        collection('payslips')->insert([
-            'payslip_id'  => 'PS-' . $payroll['payroll_id'] . '-' . $emp['employee_id'],
-            'payroll_id'  => $payroll['_id'],
-            'employee_id' => $emp['_id'],
-            'period_year' => $payroll['period_year'],
-            'period_month'=> $payroll['period_month'],
-            'basic_salary'=> $emp['basic_salary'],
-            'allowances'  => $allowanceList,
-            'overtime_pay'=> $overtimePay,
-            'gross_salary'=> $grossSalary,
-            'deductions'  => $deductionList,
-            'tax_pph21'   => $taxPph21,
-            'bpjs_kesehatan' => $emp['bpjs_kesehatan_deduction'] ?? 0,
-            'bpjs_ketenagakerjaan' => $emp['bpjs_ketenagakerjaan_deduction'] ?? 0,
-            'net_salary'  => $netSalary,
-            'bank_account'=> $emp['bank_account'],
-            'payment_status' => 'pending',
-        ]);
+                $grossSalary = $emp['basic_salary'] + $allowances + $overtimePay;
+                $taxPph21    = calculatePPh21TER($grossSalary, $emp['ptkp_status'] ?? 'TK0');
+                $netSalary   = $grossSalary - $taxPph21 - $emp['bpjs_deductions'];
 
-        $totalGross += $grossSalary;
-        $totalDeduction += ($grossSalary - $netSalary);
-        $totalNet += $netSalary;
+                collection('payslips')->insert([
+                    'payslip_id'  => 'PS-' . $payroll['payroll_id'] . '-' . $emp['employee_id'],
+                    'payroll_id'  => $payroll['_id'],
+                    'employee_id' => $emp['_id'],
+                    'period_year' => $payroll['period_year'],
+                    'period_month'=> $payroll['period_month'],
+                    'basic_salary'=> $emp['basic_salary'],
+                    'allowances'  => $allowanceList,
+                    'overtime_pay'=> $overtimePay,
+                    'gross_salary'=> $grossSalary,
+                    'deductions'  => $deductionList,
+                    'tax_pph21'   => $taxPph21,
+                    'bpjs_kesehatan' => $emp['bpjs_kesehatan_deduction'] ?? 0,
+                    'bpjs_ketenagakerjaan' => $emp['bpjs_ketenagakerjaan_deduction'] ?? 0,
+                    'net_salary'  => $netSalary,
+                    'bank_account'=> $emp['bank_account'],
+                    'payment_status' => 'pending',
+                ]);
+
+                $totalGross     += $grossSalary;
+                $totalDeduction += ($grossSalary - $netSalary);
+                $totalNet       += $netSalary;
+            }
+            $conn->commit();
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            // Mark payroll as failed — sebagian payslip sudah commit di batch sebelumnya,
+            // tapi batch yang gagal di-rollback. Pakai reconciliation job untuk cleanup.
+            collection('payroll_runs')->update(
+                ['_id' => $payroll['_id']],
+                ['$set' => ['status' => 'failed', 'error' => $e->getMessage()]]
+            );
+            throw $e;
+        }
     }
 
-    // Update payroll_run dengan total
-    collection('payroll_runs')->update(
-        ['_id' => $payroll['_id']],
-        ['$set' => [
-            'status'          => 'completed',
-            'employee_count'  => count($employees),
-            'total_gross'     => $totalGross,
-            'total_deduction' => $totalDeduction,
-            'total_net'       => $totalNet,
-        ]]
-    );
+    // Update payroll_run dengan total — transaction terpisah dari batch payslips.
+    $conn->beginTransaction();
+    try {
+        collection('payroll_runs')->update(
+            ['_id' => $payroll['_id']],
+            ['$set' => [
+                'status'          => 'completed',
+                'employee_count'  => count($employees),
+                'total_gross'     => $totalGross,
+                'total_deduction' => $totalDeduction,
+                'total_net'       => $totalNet,
+            ]]
+        );
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
 });
 ```
 
+> **Catatan:** JE ke `erp_finance` (hook `afterUpdate` pada `payroll_runs` saat status → `approved`) TIDAK dalam transaction yang sama — cross-database. Pakai idempotent flag `je_posted: true` di payroll_run + reconciliation job (lihat [§8.4 rule 4](#84-aturan-penting)).
+
 ### 4.4 Auto-Deactivate Employee saat Resign Date Tercapai
+
+Update employee `is_active` + insert audit log **WAJIB atomic**. Revoke user access di `auth` (cross-DB) tidak bisa dalam transaction yang sama — pakai idempotent flag `access_revoked: true` + reconciliation job (lihat [§8. Transaction Safety](#8-transaction-safety)):
 
 ```php
 collection('employees')->on('afterUpdate', function (array $old, array $new) {
     if (!empty($new['resign_date']) && $new['resign_date'] <= date('Y-m-d')) {
         if (($new['is_active'] ?? true) === true) {
-            collection('employees')->update(
-                ['_id' => $new['_id']],
-                ['$set' => ['is_active' => false, 'employment_status' => 'resigned']]
-            );
+            $conn = collection('employees')->database->connection;
+            $conn->beginTransaction();
+            try {
+                // 1. Update employee is_active + employment_status — atomic dengan audit log
+                collection('employees')->update(
+                    ['_id' => $new['_id']],
+                    ['$set' => [
+                        'is_active'         => false,
+                        'employment_status' => 'resigned',
+                        'access_revoked'    => false, // flag: user access belum di-revoke (cross-DB)
+                    ]]
+                );
+
+                // 2. Insert audit log — atomic dengan update di atas
+                collection('hris_audit_log')->insert([
+                    'entity_type'   => 'employee',
+                    'entity_id'     => $new['_id'],
+                    'action'        => 'auto_deactivate_on_resign',
+                    'old_value'     => ['is_active' => true, 'employment_status' => $old['employment_status'] ?? null],
+                    'new_value'     => ['is_active' => false, 'employment_status' => 'resigned'],
+                    'reason'        => 'Resign date reached: ' . $new['resign_date'],
+                    'acted_by'      => 'system',
+                    'acted_at'      => date('c'),
+                ]);
+
+                $conn->commit();
+            } catch (\Throwable $e) {
+                if ($conn->inTransaction()) $conn->rollBack();
+                throw $e;
+            }
+
+            // 3. Revoke user access di erp_core/auth — CROSS-DATABASE, tidak atomic.
+            //    Pakai idempotent flag `access_revoked: false` di employee; reconciliation job
+            //    akan retry revoke untuk employee yang flag-nya masih false (lihat §8.4 rule 4).
+            try {
+                $erpCore = Flight::get('bangron.client')->selectDB('erp_core');
+                $erpCore->collection('users')->update(
+                    ['user_id' => $new['employee_id']],
+                    ['$set' => ['is_active' => false, 'deactivated_at' => date('c'), 'source' => 'hris_resign_sync']]
+                );
+                // Update flag untuk mark reconciliation selesai
+                collection('employees')->update(
+                    ['_id' => $new['_id']],
+                    ['$set' => ['access_revoked' => true]]
+                );
+            } catch (\Throwable $e) {
+                // Log error; reconciliation job akan retry. JANGAN re-throw — resign sudah
+                // ter-commit, failure cross-DB tidak boleh rollback data HRIS.
+                error_log('Failed to revoke user access for resigned employee ' . $new['employee_id'] . ': ' . $e->getMessage());
+            }
         }
     }
 });
@@ -712,7 +809,169 @@ function getPayslipWithAttendance(string $payslipId): array
 
 ---
 
-## 8. Anti-Pattern HRIS
+## 8. Transaction Safety
+
+HRIS adalah modul dengan konsekuensi tertinggi jika data inkonsisten — gaji salah bisa berarti karyawan tidak dibayar atau dibayar dobel, attendance salah bisa berarti potongan gaji tidak adil, PII bocor bisa denda regulasi.
+
+### 8.1 Skenario yang WAJIB Pakai Transaction
+
+| Skenario | Langkah Atomic | Konsekuensi Tanpa Transaction |
+|----------|----------------|-------------------------------|
+| Leave Approval | Update leave_request.status + insert multiple attendance records (per hari cuti) | Status approved tapi attendance tidak update → karyawan tercatat absen |
+| Payroll Run | Insert payroll_run + multiple payslips (ribuan) + JE (cross-DB) | Sebagian karyawan dapat payslip, sebagian tidak |
+| Payroll Approval | Update payroll_run.status + insert JE di erp_finance | Status approved tapi JE tidak ada → laporan keuangan salah |
+| Employee Resign | Update employee.is_active + revoke user access (cross-DB ke auth) + insert exit interview | Employee inactive tapi masih bisa login |
+| Attendance Check-Out | Update attendance + audit log (hook beforeUpdate return modified data) | Audit log hilang padahal data sudah update |
+| Payslip Payment | Update payslip.payment_status + insert payment JE + update cash_session | Paid di payslip tapi JE tidak ada |
+| PII Update | Update employee_pii (encrypted) + audit log | PII berubah tanpa audit trail (regulasi violation) |
+| Bulk Attendance Import | insertMany attendance + audit log | Sebagian insert, sebagian gagal |
+
+### 8.2 Pola Transaction untuk Payroll Run
+
+Payroll run insert ribuan payslips. Pakai batch transaction (500 payslips per transaction) untuk hindari lock lama:
+
+```php
+function runPayroll(string $payrollId, array $employeeIds): void {
+    $payrollRun = collection('payroll_runs')->findOne(['_id' => $payrollId]);
+
+    // Update status → processing
+    collection('payroll_runs')->update(
+        ['_id' => $payrollId],
+        ['$set' => ['status' => 'processing']]
+    );
+
+    // Batch payslips: 500 per transaction
+    $batches = array_chunk($employeeIds, 500);
+    $conn = collection('payslips')->database->connection;
+    $totalGross = $totalNet = $totalDeduction = 0;
+
+    foreach ($batches as $batchIndex => $batch) {
+        $conn->beginTransaction();
+        try {
+            foreach ($batch as $empId) {
+                $emp = collection('employees')->findOne(['_id' => $empId]);
+                if (!$emp) continue;
+
+                // Calculate payslip
+                $grossSalary = $emp['basic_salary'] + calculateAllowances($emp);
+                $taxPph21 = calculatePPh21TER($grossSalary, $emp['ptkp_status'] ?? 'TK0');
+                $netSalary = $grossSalary - $taxPph21 - calculateBpjsDeductions($emp);
+
+                collection('payslips')->insert([
+                    'payslip_id'  => 'PS-' . $payrollId . '-' . $emp['employee_id'],
+                    'payroll_id'  => $payrollId,
+                    'employee_id' => $emp['_id'],
+                    'period_year' => $payrollRun['period_year'],
+                    'period_month'=> $payrollRun['period_month'],
+                    'basic_salary'=> $emp['basic_salary'],
+                    'gross_salary'=> $grossSalary,
+                    'tax_pph21'   => $taxPph21,
+                    'net_salary'  => $netSalary,
+                    'payment_status' => 'pending',
+                ]);
+
+                $totalGross += $grossSalary;
+                $totalDeduction += ($grossSalary - $netSalary);
+                $totalNet += $netSalary;
+            }
+            $conn->commit();
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            // Mark payroll as failed
+            collection('payroll_runs')->update(
+                ['_id' => $payrollId],
+                ['$set' => ['status' => 'failed', 'error' => $e->getMessage()]]
+            );
+            throw $e;
+        }
+    }
+
+    // Update payroll_run dengan total — transaction terpisah
+    $conn->beginTransaction();
+    try {
+        collection('payroll_runs')->update(
+            ['_id' => $payrollId],
+            ['$set' => [
+                'status'          => 'completed',
+                'employee_count'  => count($employeeIds),
+                'total_gross'     => $totalGross,
+                'total_deduction' => $totalDeduction,
+                'total_net'       => $totalNet,
+            ]]
+        );
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+}
+```
+
+### 8.3 Pola Leave Approval (Insert Multiple Attendance)
+
+```php
+function approveLeave(string $leaveId, string $approverId): void {
+    $leave = collection('leave_requests')->findOne(['_id' => $leaveId]);
+    if (!$leave || $leave['status'] !== 'pending') {
+        throw new \RuntimeException('Leave request not found or already processed');
+    }
+
+    $conn = collection('attendance')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // Update leave status
+        collection('leave_requests')->update(
+            ['_id' => $leaveId],
+            ['$set' => [
+                'status'      => 'approved',
+                'approved_by' => $approverId,
+                'approved_at' => date('c'),
+            ]]
+        );
+
+        // Insert attendance records untuk setiap hari cuti
+        $start = strtotime($leave['start_date']);
+        $end   = strtotime($leave['end_date']);
+        $attRecords = [];
+        for ($d = $start; $d <= $end; $d = strtotime('+1 day', $d)) {
+            $dow = date('N', $d);
+            if ($dow >= 6) continue; // skip weekend
+
+            $attRecords[] = [
+                'attendance_id' => 'ATT-' . $leave['employee_id'] . '-' . date('Y-m-d', $d),
+                'employee_id'   => $leave['employee_id'],
+                'date'          => date('Y-m-d', $d),
+                'status'        => 'leave',
+                'notes'         => 'Auto from leave request ' . $leave['leave_id'],
+            ];
+        }
+        if (!empty($attRecords)) {
+            collection('attendance')->insertMany($attRecords);
+        }
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+}
+```
+
+### 8.4 Aturan Penting
+
+1. Cek `inTransaction()` sebelum `rollBack()`.
+2. Re-throw exception setelah rollback.
+3. Side effects (kirim payslip PDF via email, sync ke bank untuk payment) DI LUAR transaction.
+4. Cross-database (hris ↔ erp_finance untuk payroll JE, hris ↔ auth untuk user access) TIDAK atomic — pakai 2 transaction + idempotent flag.
+5. PII update WAJIB audit log dalam transaction yang sama — regulasi (UU PDP, GDPR) mewajibkan audit trail.
+6. Payslips WAJIB encryption — transaction tetap berfungsi normal dengan encrypted collection.
+7. Untuk payroll run ribuan karyawan, pakai batch transaction (500 per batch) untuk hindari lock lama.
+
+Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+
+---
+
+## 9. Anti-Pattern HRIS
 
 1. **Simpan NIK/bank account di collection `employees` tanpa encryption** — kebocoran = bencana. Wajib pisahkan ke `employee_pii` dengan encryption + blind index.
 

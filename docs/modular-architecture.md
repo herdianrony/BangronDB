@@ -9,6 +9,13 @@
 3. [Bootstrap Multi-Database di Flight PHP](#3-bootstrap-multi-database-di-flight-php)
 4. [Cross-Database Populate](#4-cross-database-populate)
 5. [Event-Driven Integration via Hooks](#5-event-driven-integration-via-hooks)
+   - [5.1 ERP Sales → ERP Finance (Auto Journal)](#51-erp-sales--erp-finance-auto-journal)
+   - [5.2 CRM → ERP Core (Lead Conversion)](#52-crm--erp-core-lead-conversion)
+   - [5.3 SCM → ERP Finance (Goods Receipt Journal)](#53-scm--erp-finance-goods-receipt-journal)
+   - [5.4 HRIS → ERP Finance (Payroll Journal)](#54-hris--erp-finance-payroll-journal)
+   - [5.5 POS → ERP (Sync per Outlet)](#55-pos--erp-sync-per-outlet)
+   - [5.6 Hook Recursion Guard](#56-hook-recursion-guard)
+   - [5.7 Transaction di Cross-Module Integration](#57-transaction-di-cross-module-integration)
 6. [Multi-Tenant dengan Strategi yang Sama](#6-multi-tenant-dengan-strategi-yang-sama)
 7. [Backup, Restore, dan Migration](#7-backup-restore-dan-migration)
 8. [Trade-off & Kapan Tidak Pakai Pola Ini](#8-trade-off--kapan-tidak-pakai-pola-ini)
@@ -484,6 +491,73 @@ coll('erp_sales', 'sales_orders')->on('afterInsert', function (array $so) {
 });
 ```
 
+> **Catatan Transaction:** Hook cross-module (insert di modul B dari hook modul A) **TIDAK dalam transaction yang sama** — setiap modul punya PDO connection terpisah. Insert di modul A sukses tapi insert di modul B gagal = data tidak konsisten antar modul. Untuk pola idempotent + reconciliation + saga yang mengatasi keterbatasan ini, lihat §5.7 dan §8.2.
+
+### 5.7 Transaction di Cross-Module Integration
+
+Hook cross-module (insert di modul B dari hook modul A) **TIDAK dalam transaction yang sama** karena setiap modul punya PDO connection terpisah. Contoh:
+
+```php
+// Hook di modul erp_sales — connection-nya erp_sales
+coll('erp_sales', 'invoices')->on('afterInsert', function (array $invoice) {
+    // Insert ke erp_finance — connection-nya erp_finance, BUKAN erp_sales
+    // TIDAK dalam transaction yang sama dengan insert invoice!
+    coll('erp_finance', 'journal_entries')->insert([...]);
+
+    // Update invoice.journal_id — connection erp_sales, atomic dengan insert invoice
+    coll('erp_sales', 'invoices')->update(
+        ['_id' => $invoice['_id']],
+        ['$set' => ['journal_id' => $jeId]]
+    );
+});
+```
+
+**Aturan transaction cross-module:**
+
+1. **Same-module operations = atomic otomatis** dalam hook.
+2. **Cross-module operations = TIDAK atomic** — pakai idempotent pattern + reconciliation.
+3. **Compensating action (saga)** untuk cross-module critical workflow.
+4. **Reconciliation job** periodik untuk cek konsistensi (lihat §8.2).
+
+Pola idempotent dengan flag:
+
+```php
+coll('erp_sales', 'invoices')->on('afterInsert', function (array $invoice) {
+    if (!empty($invoice['journal_id'])) return; // sudah ada JE, skip (idempotent)
+
+    // Cross-DB insert — TIDAK atomic dengan invoice insert
+    $jeId = coll('erp_finance', 'journal_entries')->insert([...]);
+
+    // Update invoice dengan journal_id — atomic dengan invoice (same DB)
+    coll('erp_sales', 'invoices')->update(
+        ['_id' => $invoice['_id']],
+        ['$set' => ['journal_id' => $jeId]]
+    );
+});
+```
+
+Reconciliation job per jam untuk catch-up kalau cross-DB insert gagal:
+
+```php
+function reconcileInvoicesToJournal(): array {
+    $invoices = coll('erp_sales', 'invoices')->find([
+        'status' => 'completed', 'journal_id' => null
+    ])->toArray();
+
+    $reconciled = 0;
+    foreach ($invoices as $inv) {
+        // Insert JE yang missing
+        $jeId = coll('erp_finance', 'journal_entries')->insert([...]);
+        coll('erp_sales', 'invoices')->update(
+            ['_id' => $inv['_id']],
+            ['$set' => ['journal_id' => $jeId]]
+        );
+        $reconciled++;
+    }
+    return ['reconciled' => $reconciled];
+}
+```
+
 ---
 
 ## 6. Multi-Tenant dengan Strategi yang Sama
@@ -679,18 +753,42 @@ Karena tidak ada transaction cross-database, gunakan pattern berikut:
 
 **1. Idempotent Hooks dengan Status Flag:**
 
+Pola idempotent + transaction yang benar — setiap database dibungkus `beginTransaction()` masing-masing (cross-DB tidak bisa satu transaction):
+
 ```php
 coll('erp_sales', 'invoices')->on('afterInsert', function (array $inv) {
-    if (!empty($inv['journal_id'])) return; // sudah ada JE, skip
+    if (!empty($inv['journal_id'])) return; // sudah ada JE, skip (idempotent)
 
-    $jeId = coll('erp_finance', 'journal_entries')->insert([...]);
+    // Cross-DB insert JE — atomic di sisi erp_finance
+    $connFin = coll('erp_finance', 'journal_entries')->database->connection;
+    $connFin->beginTransaction();
+    try {
+        $jeId = coll('erp_finance', 'journal_entries')->insert([...]);
+        $connFin->commit();
+    } catch (\Throwable $e) {
+        if ($connFin->inTransaction()) $connFin->rollBack();
+        throw $e;
+    }
 
-    coll('erp_sales', 'invoices')->update(
-        ['_id' => $inv['_id']],
-        ['$set' => ['journal_id' => $jeId]]
-    );
+    // Update invoice.journal_id — atomic di sisi erp_sales (same DB dengan invoice insert)
+    $connSales = coll('erp_sales', 'invoices')->database->connection;
+    $connSales->beginTransaction();
+    try {
+        coll('erp_sales', 'invoices')->update(
+            ['_id' => $inv['_id']],
+            ['$set' => ['journal_id' => $jeId]]
+        );
+        $connSales->commit();
+    } catch (\Throwable $e) {
+        if ($connSales->inTransaction()) $connSales->rollBack();
+        // JE sudah ter-insert di erp_finance tapi invoice.journal_id belum ter-update.
+        // Reconciliation job per jam akan catch-up (lihat bawah) — idempotent flag mencegah double-insert JE.
+        throw $e;
+    }
 });
 ```
+
+**Catatan transaction:** Karena `erp_sales` dan `erp_finance` adalah 2 database terpisah, tidak ada satu transaction yang membungkus keduanya. Pola yang benar: (1) bungkus tiap DB operation dalam `beginTransaction()` masing-masing agar atomic di sisi DB-nya, (2) gunakan idempotent flag (`journal_id`) agar reconciliation job bisa retry tanpa double-insert JE. Untuk penjelasan lengkap pola cross-module transaction, lihat §5.7.
 
 **2. Reconciliation Job:**
 
@@ -702,15 +800,47 @@ function reconcileInvoicesToJournal(): array
         'status' => 'completed', 'journal_id' => null
     ])->toArray();
 
-    $missing = 0;
+    $reconciled = 0;
     foreach ($invoices as $inv) {
-        // Insert JE yang missing
-        // ...
-        $missing++;
+        // Idempotent: cek dulu apakah JE sudah ada (mungkin sudah dibuat oleh hook,
+        // hanya update invoice.journal_id yang gagal)
+        $existingJe = coll('erp_finance', 'journal_entries')->findOne([
+            'source_type' => 'sales_invoice', 'source_id' => $inv['_id']
+        ]);
+
+        if ($existingJe) {
+            $jeId = $existingJe['_id'];
+        } else {
+            // Insert JE yang missing — atomic di sisi erp_finance
+            $connFin = coll('erp_finance', 'journal_entries')->database->connection;
+            $connFin->beginTransaction();
+            try {
+                $jeId = coll('erp_finance', 'journal_entries')->insert([
+                    'je_number'   => 'JE-' . $inv['inv_number'],
+                    'je_date'     => $inv['inv_date'],
+                    'source_type' => 'sales_invoice',
+                    'source_id'   => $inv['_id'],
+                    // ... field JE lainnya ...
+                ]);
+                $connFin->commit();
+            } catch (\Throwable $e) {
+                if ($connFin->inTransaction()) $connFin->rollBack();
+                continue; // skip invoice ini, retry di run berikutnya
+            }
+        }
+
+        // Update invoice.journal_id — atomic di sisi erp_sales
+        coll('erp_sales', 'invoices')->update(
+            ['_id' => $inv['_id']],
+            ['$set' => ['journal_id' => $jeId]]
+        );
+        $reconciled++;
     }
-    return ['reconciled' => $missing];
+    return ['reconciled' => $reconciled];
 }
 ```
+
+**Catatan:** Reconciliation job ini juga idempotent — kalau dijalankan 2x, tidak akan double-insert JE (cek `findOne` dulu) dan tidak akan double-update invoice (idempotent `$set`).
 
 **3. Saga Pattern untuk Critical Workflow:**
 

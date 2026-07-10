@@ -11,7 +11,8 @@
 5. [Performance & Indexing](#5-performance--indexing)
 6. [Security di CRM](#6-security-di-crm)
 7. [Relasi & Cross-Module Populate](#7-relasi--cross-module-populate)
-8. [Anti-Pattern CRM](#8-anti-pattern-crm)
+9. [Transaction Safety](#9-transaction-safety)
+10. [Anti-Pattern CRM](#10-anti-pattern-crm)
 
 ---
 
@@ -245,38 +246,67 @@ Saat lead status berubah ke `converted`, otomatis buat customer dan opportunity:
 ```php
 collection('leads')->on('afterUpdate', function (array $old, array $new) {
     if (($old['status'] ?? '') !== 'converted' && $new['status'] === 'converted') {
-        // Buat customer baru di collection customers (di database erp_core)
-        $customerId = 'CUST-' . str_pad((string) (collection('customers')->count([]) + 1), 5, '0', STR_PAD_LEFT);
+        // Cek apakah sudah pernah convert (idempotent) — hindari double-convert
+        if (!empty($new['converted_to'])) return;
+
+        // Customer ada di database erp_core, lead ada di database crm → cross-database.
+        // Tidak bisa satu transaction. Pakai 2 transaction terpisah + compensating action (saga).
+        // Lihat §9.2 untuk pola lengkap.
         $erpCore = Flight::get('bangron.client')->selectDB('erp_core');
-        $erpCore->collection('customers')->insert([
-            'code'  => $customerId,
-            'name'  => $new['company'] ?? trim($new['first_name'] . ' ' . $new['last_name']),
-            'email' => $new['email'],
-            'phone' => $new['phone'],
-            'source'=> 'crm_conversion',
-            'is_active' => true,
-        ]);
 
-        // Buat opportunity awal
-        $oppId = 'OPP-' . str_pad((string) (collection('opportunities')->count([]) + 1), 6, '0', STR_PAD_LEFT);
-        collection('opportunities')->insert([
-            'opp_id'        => $oppId,
-            'opp_name'      => 'New business from ' . ($new['company'] ?? $new['first_name']),
-            'customer_id'   => $customerId,
-            'amount'        => 0,
-            'currency'      => 'IDR',
-            'stage'         => 'prospecting',
-            'probability'   => 10,
-            'assigned_to'   => $new['assigned_to'],
-            'lead_source'   => $new['source'],
-            'created_at'    => date('c'),
-        ]);
+        // Transaction 1: Insert customer di erp_core
+        $conn1 = $erpCore->connection;
+        $conn1->beginTransaction();
+        try {
+            $customerId = $erpCore->collection('customers')->insert([
+                'code'      => 'CUST-' . str_pad(
+                    (string) ($erpCore->collection('customers')->count([]) + 1), 5, '0', STR_PAD_LEFT
+                ),
+                'name'      => $new['company'] ?? trim($new['first_name'] . ' ' . $new['last_name']),
+                'email'     => $new['email'],
+                'phone'     => $new['phone'],
+                'source'    => 'crm_conversion',
+                'is_active' => true,
+            ]);
+            $conn1->commit();
+        } catch (\Throwable $e) {
+            if ($conn1->inTransaction()) $conn1->rollBack();
+            throw $e;
+        }
 
-        // Update lead dengan reference konversi
-        collection('leads')->update(
-            ['_id' => $new['_id']],
-            ['$set' => ['converted_to' => $customerId]]
-        );
+        // Transaction 2: Insert opportunity + update lead di crm
+        $conn2 = collection('opportunities')->database->connection;
+        $conn2->beginTransaction();
+        try {
+            $oppId = 'OPP-' . str_pad(
+                (string) (collection('opportunities')->count([]) + 1), 6, '0', STR_PAD_LEFT
+            );
+            collection('opportunities')->insert([
+                'opp_id'      => $oppId,
+                'opp_name'    => 'New business from ' . ($new['company'] ?? $new['first_name']),
+                'customer_id' => $customerId,
+                'amount'      => 0,
+                'currency'    => 'IDR',
+                'stage'       => 'prospecting',
+                'probability' => 10,
+                'assigned_to' => $new['assigned_to'],
+                'lead_source' => $new['source'],
+                'created_at'  => date('c'),
+            ]);
+
+            // Update lead dengan reference konversi — atomic dengan insert opportunity di atas
+            collection('leads')->update(
+                ['_id' => $new['_id']],
+                ['$set' => ['converted_to' => $customerId]]
+            );
+            $conn2->commit();
+        } catch (\Throwable $e) {
+            if ($conn2->inTransaction()) $conn2->rollBack();
+            // COMPENSATING ACTION: hapus customer yang baru dibuat di erp_core (saga pattern).
+            // Karena transaction 2 gagal, customer jadi yatim — rollback manual.
+            $erpCore->collection('customers')->remove(['_id' => $customerId]);
+            throw $e;
+        }
     }
 });
 ```
@@ -309,6 +339,8 @@ collection('activities')->on('afterInsert', function (array $activity) {
 });
 ```
 
+> **Catatan:** Hook `afterInsert` ini berjalan dalam transaction yang sama dengan insert activity — update `lead_score` + `last_contact` otomatis atomic. Kalau update gagal, activity juga rollback. Tidak perlu `beginTransaction()` eksplisit. Lihat [§9. Transaction Safety](#9-transaction-safety).
+
 ### 4.3 Auto-Update Stage Probability
 
 Sinkronisasi `probability` dengan `stage` agar konsisten:
@@ -337,6 +369,8 @@ collection('opportunities')->on('beforeUpdate', function (array $criteria, array
     }
 });
 ```
+
+> **Catatan:** Karena hook ini `beforeUpdate`, field `probability` + `closed_at` di-set dalam payload update yang sama dengan `stage` — semua berkomitmen dalam satu operasi update (atomic secara alami). Tidak perlu `beginTransaction()` eksplisit. Lihat [§9. Transaction Safety](#9-transaction-safety).
 
 ---
 
@@ -584,7 +618,88 @@ foreach ($activities->stream() as $activity) {
 
 ---
 
-## 8. Anti-Pattern CRM
+## 8. Transaction Safety
+
+CRM punya beberapa operasi multi-step yang WAJIB atomic, terutama lead conversion (cross-database) dan stage transitions.
+
+### 8.1 Skenario yang WAJIB Pakai Transaction
+
+| Skenario | Langkah Atomic | Konsekuensi Tanpa Transaction |
+|----------|----------------|-------------------------------|
+| Lead Conversion | Insert customer + insert opportunity + update lead.converted_to | Lead "converted" tapi customer/opportunity tidak ada |
+| Activity Insert + Lead Score Update | Insert activity + update lead.lead_score + update lead.last_contact | Score tidak update padahal activity tercatat |
+| Stage Change + Audit Log | Update opportunity.stage + insert stage_change_log + update closed_at | Stage berubah tapi audit log hilang |
+| Opportunity Won → Create SO (cross-DB) | Update opp di crm + insert SO di erp_sales | Opp "won" tapi SO tidak ada (cross-DB, pakai 2 transaction) |
+| Bulk Lead Import | insertMany leads + audit log | Sebagian insert, sebagian gagal |
+| Merge Duplicate Leads | Update activities.related_to + delete duplicate lead + audit log | Activities lost, duplicate masih ada |
+
+### 8.2 Lead Conversion (Cross-Database Transaction)
+
+Karena customer ada di `erp_core` dan lead ada di `crm`, tidak bisa satu transaction. Pakai 2 transaction terpisah dengan idempotent flag:
+
+```php
+collection('leads')->on('afterUpdate', function (array $old, array $new) {
+    if (($old['status'] ?? '') !== 'converted' && $new['status'] === 'converted') {
+        // Cek apakah sudah pernah convert (idempotent)
+        if (!empty($new['converted_to'])) return;
+
+        // Transaction 1: Insert customer di erp_core
+        $erpCore = Flight::get('bangron.client')->selectDB('erp_core');
+        $conn1 = $erpCore->connection;
+        $conn1->beginTransaction();
+        try {
+            $customerId = $erpCore->collection('customers')->insert([
+                'code'  => 'CUST-' . str_pad((string) ($erpCore->collection('customers')->count([]) + 1), 5, '0', STR_PAD_LEFT),
+                'name'  => $new['company'] ?? trim($new['first_name'] . ' ' . $new['last_name']),
+                // ...
+            ]);
+            $conn1->commit();
+        } catch (\Throwable $e) {
+            if ($conn1->inTransaction()) $conn1->rollBack();
+            throw $e;
+        }
+
+        // Transaction 2: Insert opportunity + update lead di crm
+        $conn2 = collection('opportunities')->database->connection;
+        $conn2->beginTransaction();
+        try {
+            $oppId = collection('opportunities')->insert([
+                'opp_id'      => 'OPP-' . uniqid(),
+                'customer_id' => $customerId,
+                // ...
+            ]);
+            collection('leads')->update(
+                ['_id' => $new['_id']],
+                ['$set' => ['converted_to' => $customerId]]
+            );
+            $conn2->commit();
+        } catch (\Throwable $e) {
+            if ($conn2->inTransaction()) $conn2->rollBack();
+            // COMPENSATING ACTION: hapus customer yang sudah dibuat
+            // (saga pattern)
+            $erpCore->collection('customers')->remove(['_id' => $customerId]);
+            throw $e;
+        }
+    }
+});
+```
+
+> Implementasi lengkap (dengan field customer/opportunity yang lengkap) ada di [§4.1](#41-auto-convert-lead--customer--opportunity).
+
+### 8.3 Aturan Penting
+
+1. Cek `inTransaction()` sebelum `rollBack()`.
+2. Re-throw exception setelah rollback.
+3. Side effects (kirim email notifikasi, sync ke marketing automation) DI LUAR transaction.
+4. Cross-database (crm ↔ erp_core) TIDAK atomic — pakai 2 transaction + compensating action (saga).
+5. Hook dalam database yang sama = atomic otomatis.
+6. Untuk bulk import, pakai `insertMany()` yang otomatis transactional.
+
+Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+
+---
+
+## 9. Anti-Pattern CRM
 
 1. **Simpan seluruh riwayat komunikasi di field array lead** — leads akan jadi dokumen raksasa. Pisahkan ke `activities` collection.
 

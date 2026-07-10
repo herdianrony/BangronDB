@@ -11,7 +11,8 @@
 5. [Performance & Indexing](#5-performance--indexing)
 6. [Security di POS](#6-security-di-pos)
 7. [Relasi & Cross-Module Populate](#7-relasi--cross-module-populate)
-8. [Anti-Pattern POS](#8-anti-pattern-pos)
+8. [Transaction Safety](#8-transaction-safety)
+9. [Anti-Pattern POS](#9-anti-pattern-pos)
 
 ---
 
@@ -298,6 +299,8 @@ function getPaymentMethodMix(string $outletId, string $fromDate, string $toDate)
 
 ### 4.1 Auto-Decrease Stock saat Transaction Completed
 
+Insert multiple `stock_movements` untuk semua line items — wajib atomic. Kalau satu line gagal, semua rollback, dan transaksi POS di-mark sebagai `error` agar kasir tahu (lihat §8.2 untuk pola lengkap):
+
 ```php
 collection('transactions')->on('afterInsert', function (array $trx) {
     if ($trx['status'] !== 'completed') return;
@@ -317,9 +320,27 @@ collection('transactions')->on('afterInsert', function (array $trx) {
             'created_by'     => $trx['cashier_id'],
         ];
     }
-    collection('stock_movements')->insertMany($movements);
+
+    // insertMany otomatis transactional — wrap eksplisit agar kalau gagal,
+    // transaksi POS di-mark error (kasir harus tahu stok tidak terpotong)
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        collection('stock_movements')->insertMany($movements);
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        // Transaksi POS sudah ter-insert; mark sebagai error agar kasir bisa re-process / void.
+        collection('transactions')->update(
+            ['_id' => $trx['_id']],
+            ['$set' => ['status' => 'error', 'error_message' => $e->getMessage()]]
+        );
+        throw $e;
+    }
 });
 ```
+
+> **Catatan:** `afterInsert` hook berjalan dalam transaction yang sama dengan operasi trigger-nya bila caller membungkus insert dengan `beginTransaction()`. Pattern di atas self-contained (tetap atomic walau caller lupa wrap). Jika caller juga `beginTransaction()`, jangan double-begin — pilih salah satu pola (lihat §8.2).
 
 ### 4.2 Auto-Generate Transaction Number
 
@@ -336,6 +357,8 @@ collection('transactions')->on('beforeInsert', function (array $doc) {
     return $doc;
 });
 ```
+
+> **Catatan:** `beforeInsert` return modified doc = hook berjalan dalam transaction yang sama dengan insert caller. Penetapan `transaction_no` otomatis atomic dengan insert transaksi — tidak perlu `beginTransaction()` eksplisit di hook ini (lihat §8.2).
 
 ### 4.3 Auto-Calculate Tax, Service, Rounding
 
@@ -366,9 +389,11 @@ collection('transactions')->on('beforeInsert', function (array $doc) {
 });
 ```
 
+> **Catatan:** Sama seperti §4.2 — `beforeInsert` return modified doc berjalan dalam transaction yang sama dengan insert caller. Field `subtotal`, `tax_total`, `service_total`, `rounding`, `grand_total` di-set atomik dengan insert transaksi. Tidak perlu `beginTransaction()` eksplisit di hook ini (lihat §8.2).
+
 ### 4.4 Void Transaction (Reverse Stock Movement)
 
-Void tidak delete transaction, tapi insert reverse stock movement:
+Void tidak delete transaction, tapi insert reverse stock movement + update transaction status. WAJIB atomic — kalau stok kembali tapi status tidak update (atau sebaliknya), kasir bingung (lihat §8.3 untuk pola lengkap):
 
 ```php
 function voidTransaction(string $trxId, string $reason): void
@@ -379,27 +404,48 @@ function voidTransaction(string $trxId, string $reason): void
         throw new \RuntimeException('Only completed transactions can be voided');
     }
 
-    // Insert reverse stock movements
-    foreach ($trx['lines'] as $line) {
-        collection('stock_movements')->insert([
-            'movement_id'    => 'MV-VOID-' . $trxId . '-' . $line['sku'],
-            'movement_date'  => date('Y-m-d H:i:s'),
-            'product_id'     => $line['sku'],
-            'warehouse_id'   => $trx['outlet_id'],
-            'movement_type'  => 'return_in', // stok masuk kembali
-            'qty'            => $line['qty'],
-            'reference_type' => 'pos_void',
-            'reference_id'   => $trxId,
-            'created_by'     => $_SESSION['user_id'],
-            'notes'          => 'Void: ' . $reason,
-        ]);
+    // Insert reverse stock movements + update transaction status — WAJIB atomic
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // 1. Insert reverse stock movements (insertMany — bulk, atomic dengan status update)
+        $movements = [];
+        foreach ($trx['lines'] as $line) {
+            $movements[] = [
+                'movement_id'    => 'MV-VOID-' . $trxId . '-' . $line['sku'],
+                'movement_date'  => date('Y-m-d H:i:s'),
+                'product_id'     => $line['sku'],
+                'warehouse_id'   => $trx['outlet_id'],
+                'movement_type'  => 'return_in', // stok masuk kembali
+                'qty'            => $line['qty'],
+                'reference_type' => 'pos_void',
+                'reference_id'   => $trxId,
+                'created_by'     => $_SESSION['user_id'],
+                'notes'          => 'Void: ' . $reason,
+            ];
+        }
+        collection('stock_movements')->insertMany($movements);
+
+        // 2. Update status transaksi
+        collection('transactions')->update(
+            ['_id' => $trx['_id']],
+            ['$set' => ['status' => 'voided', 'void_reason' => $reason, 'voided_at' => date('c')]]
+        );
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
     }
 
-    // Update status transaksi
-    collection('transactions')->update(
-        ['_id' => $trx['_id']],
-        ['$set' => ['status' => 'voided', 'void_reason' => $reason, 'voided_at' => date('c')]]
-    );
+    // Audit log di luar transaction — jangan block void kalau audit log gagal (lihat §8.5 rule 3)
+    collection('transaction_audit_logs')->insert([
+        'transaction_id' => $trxId,
+        'action'         => 'void',
+        'performed_by'   => $_SESSION['user_id'],
+        'performed_at'   => date('c'),
+        'reason'         => $reason,
+    ]);
 }
 ```
 
@@ -474,7 +520,7 @@ function exportMonthlyTransactions(string $outletId, int $year, int $month): voi
 
 ### 5.4 Batch Insert untuk Sync dari Offline POS
 
-Saat outlet offline sync ke central, batch insert transactions:
+Saat outlet offline sync ke central, per-transaksi harus atomic (cross-DB: pos_outlet ↔ pos_central). Pakai per-trx loop dengan transaction per database + idempotent flag (`sync_status`). Pola cross-DB lengkap (POS outlet → erp_sales + erp_finance) ada di §8.4:
 
 ```php
 function syncOutletToCentral(string $outletId): array
@@ -488,22 +534,53 @@ function syncOutletToCentral(string $outletId): array
         ->limit(500) // batch 500
         ->toArray();
 
-    if (empty($pending)) return ['synced' => 0];
+    if (empty($pending)) return ['synced' => 0, 'failed' => 0];
 
-    // Insert ke central
-    $central->collection('transactions')->insertMany($pending);
+    $synced = 0; $failed = 0;
 
-    // Update status sync di local
-    $ids = array_column($pending, '_id');
-    foreach ($ids as $id) {
-        $local->collection('transactions')->update(
-            ['_id' => $id],
-            ['$set' => ['sync_status' => 'synced', 'synced_at' => date('c')]]
-        );
+    // Per-trx sync — tiap trx atomic di sisi central.
+    // Idempotent: insert di central pakai _id yang sama, kalau sudah ada skip (SQLite UNIQUE conflict).
+    foreach ($pending as $trx) {
+        // Transaction 1: insert trx ke central — atomic
+        $connCentral = $central->connection;
+        try {
+            $connCentral->beginTransaction();
+            $central->collection('transactions')->insert($trx);
+            $connCentral->commit();
+        } catch (\Throwable $e) {
+            if ($connCentral->inTransaction()) $connCentral->rollBack();
+            $failed++;
+            // Tandai sync_status = 'failed' agar di-retry di run berikutnya
+            $local->collection('transactions')->update(
+                ['_id' => $trx['_id']],
+                ['$set' => ['sync_status' => 'failed', 'sync_error' => $e->getMessage()]]
+            );
+            continue;
+        }
+
+        // Transaction 2: update sync_status di local — atomic di sisi local
+        $connLocal = $local->connection;
+        try {
+            $connLocal->beginTransaction();
+            $local->collection('transactions')->update(
+                ['_id' => $trx['_id']],
+                ['$set' => ['sync_status' => 'synced', 'synced_at' => date('c')]]
+            );
+            $connLocal->commit();
+        } catch (\Throwable $e) {
+            if ($connLocal->inTransaction()) $connLocal->rollBack();
+            // Central sudah punya trx — sync_status tetap 'pending',
+            // di retry berikutnya insert central akan konflik _id (idempotent) lalu lanjut ke update local.
+            $failed++;
+            continue;
+        }
+        $synced++;
     }
-    return ['synced' => count($pending)];
+    return ['synced' => $synced, 'failed' => $failed];
 }
 ```
+
+> **Catatan:** pos_outlet ↔ pos_central adalah cross-DB — tidak bisa satu transaction. Pakai 2 transaction per trx (saga) + `sync_status` flag sebagai idempotent marker. Lihat §8.4 untuk pola cross-DB POS → erp_sales + erp_finance yang lebih kompleks (saga + compensating action).
 
 ---
 
@@ -564,23 +641,43 @@ function processRefund(string $trxId, float $amount, string $reason, string $man
         throw new \RuntimeException('Refund amount exceeds transaction total');
     }
 
-    // Create refund record
-    $refundId = collection('refunds')->insert([
-        'refund_id'    => 'REF-' . uniqid(),
-        'transaction_id' => $trxId,
-        'amount'       => $amount,
-        'reason'       => $reason,
-        'authorized_by'=> $manager['cashier_id'],
-        'refunded_at'  => date('c'),
-        'outlet_id'    => $trx['outlet_id'],
-    ]);
-
-    // Update transaction status
+    // Create refund record + update transaction status — WAJIB atomic (lihat §8.3)
     $newStatus = $amount >= $trx['grand_total'] ? 'refunded' : 'partial_refund';
-    collection('transactions')->update(
-        ['_id' => $trx['_id']],
-        ['$set' => ['status' => $newStatus]]
-    );
+    $refundId  = 'REF-' . uniqid();
+
+    $conn = collection('refunds')->database->connection;
+    $conn->beginTransaction();
+    try {
+        collection('refunds')->insert([
+            'refund_id'    => $refundId,
+            'transaction_id' => $trxId,
+            'amount'       => $amount,
+            'reason'       => $reason,
+            'authorized_by'=> $manager['cashier_id'],
+            'refunded_at'  => date('c'),
+            'outlet_id'    => $trx['outlet_id'],
+        ]);
+
+        collection('transactions')->update(
+            ['_id' => $trx['_id']],
+            ['$set' => ['status' => $newStatus]]
+        );
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+
+    // Audit log di luar transaction — jangan block refund kalau audit log gagal (lihat §8.5 rule 3)
+    collection('transaction_audit_logs')->insert([
+        'transaction_id' => $trxId,
+        'action'         => 'refund',
+        'performed_by'   => $manager['cashier_id'],
+        'performed_at'   => date('c'),
+        'amount'         => $amount,
+        'reason'         => $reason,
+    ]);
 
     return ['refund_id' => $refundId, 'status' => $newStatus];
 }
@@ -722,7 +819,232 @@ collection('transactions')->on('afterInsert', function (array $trx) {
 
 ---
 
-## 8. Anti-Pattern POS
+## 8. Transaction Safety
+
+POS adalah modul dengan rate write tertinggi dan konsekuensi langsung ke pelanggan — kalau transaksi gagal di tengah, kasir harus tahu dan stok harus konsisten.
+
+### 8.1 Skenario yang WAJIB Pakai Transaction
+
+| Skenario | Langkah Atomic | Konsekuensi Tanpa Transaction |
+|----------|----------------|-------------------------------|
+| Sale Completed | Insert transaction + insert stock_movements + update cash_session | Transaksi tercatat tapi stok tidak berkurang |
+| Void Transaction | Insert reverse stock_movements + update transaction.status + audit log | Stok tidak kembali, tapi transaksi voided |
+| Refund Processing | Insert refund record + reverse stock + update transaction.status + insert JE | Refund dicatat tapi stok/JE tidak konsisten |
+| Cash Session Close | Update cash_session.status + insert reconciliation record + audit log | Session closed tanpa audit trail |
+| Sync Outlet→Central (per trx) | Insert SO di erp_sales + insert JE di erp_finance + update sync_status | SO ada tapi JE tidak ada (cross-DB, pakai 2 transaction + idempotent flag) |
+| Bulk Receipt Print | Insert transaction + insert print_log | Transaksi ada tapi print gagal tidak tercatat |
+| Multi-Payment Transaction | Insert transaction + insert multiple payment records | Pembayaran parsial — sebagian payment hilang |
+
+### 8.2 Pola Transaction di Hook Sale Completed
+
+```php
+collection('transactions')->on('afterInsert', function (array $trx) {
+    if ($trx['status'] !== 'completed') return;
+
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // Insert stock movements untuk semua line items — atomic
+        $movements = [];
+        foreach ($trx['lines'] as $line) {
+            $movements[] = [
+                'movement_id'    => 'MV-' . $trx['transaction_id'] . '-' . $line['sku'],
+                'movement_date'  => $trx['transaction_date'],
+                'product_id'     => $line['sku'],
+                'warehouse_id'   => $trx['outlet_id'],
+                'movement_type'  => 'sales_out',
+                'qty'            => -$line['qty'],
+                'reference_type' => 'pos_trx',
+                'reference_id'   => $trx['transaction_id'],
+                'created_by'     => $trx['cashier_id'],
+            ];
+        }
+        collection('stock_movements')->insertMany($movements);
+
+        // Update cash_session transaction_count — atomic dengan stock movements
+        collection('cash_sessions')->update(
+            ['session_id' => $trx['shift_id']],
+            ['$inc' => ['transaction_count' => 1]]
+        );
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        // Mark transaction as error — kasir harus tahu transaksi gagal
+        collection('transactions')->update(
+            ['_id' => $trx['_id']],
+            ['$set' => ['status' => 'error', 'error_message' => $e->getMessage()]]
+        );
+        throw $e;
+    }
+});
+```
+
+### 8.3 Void & Refund dengan Transaction
+
+Void dan refund adalah operasi sensitif — stok harus kembali, JE harus reverse, status harus update. Semua atomic:
+
+```php
+function voidTransaction(string $trxId, string $reason): void {
+    $trx = collection('transactions')->findOne(['transaction_id' => $trxId]);
+    if (!$trx) throw new \RuntimeException('Transaction not found');
+    if ($trx['status'] !== 'completed') {
+        throw new \RuntimeException('Only completed transactions can be voided');
+    }
+
+    $conn = collection('stock_movements')->database->connection;
+    $conn->beginTransaction();
+    try {
+        // 1. Insert reverse stock movements
+        $movements = [];
+        foreach ($trx['lines'] as $line) {
+            $movements[] = [
+                'movement_id'    => 'MV-VOID-' . $trxId . '-' . $line['sku'],
+                'movement_date'  => date('Y-m-d H:i:s'),
+                'product_id'     => $line['sku'],
+                'warehouse_id'   => $trx['outlet_id'],
+                'movement_type'  => 'return_in',
+                'qty'            => $line['qty'], // positif = stok kembali
+                'reference_type' => 'pos_void',
+                'reference_id'   => $trxId,
+                'created_by'     => $_SESSION['user_id'],
+                'notes'          => 'Void: ' . $reason,
+            ];
+        }
+        collection('stock_movements')->insertMany($movements);
+
+        // 2. Update transaction status
+        collection('transactions')->update(
+            ['_id' => $trx['_id']],
+            ['$set' => [
+                'status'       => 'voided',
+                'void_reason'  => $reason,
+                'voided_at'    => date('c'),
+                'voided_by'    => $_SESSION['user_id'],
+            ]]
+        );
+
+        // 3. Update cash_session transaction_count (decrement)
+        collection('cash_sessions')->update(
+            ['session_id' => $trx['shift_id']],
+            ['$inc' => ['transaction_count' => -1]]
+        );
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
+        throw $e;
+    }
+
+    // Audit log di luar transaction — jangan block void kalau audit log gagal
+    collection('transaction_audit_logs')->insert([
+        'transaction_id' => $trxId,
+        'action'         => 'void',
+        'performed_by'   => $_SESSION['user_id'],
+        'performed_at'   => date('c'),
+        'reason'         => $reason,
+    ]);
+}
+```
+
+### 8.4 Sync Outlet → Central (Cross-Database)
+
+Sync POS outlet ke ERP pusat melibatkan 2 database — tidak bisa satu transaction. Pakai idempotent pattern dengan `sync_status` flag:
+
+```php
+function syncOutletToCentral(string $outletId): array {
+    $pos = Flight::get('bangron.client')->selectDB('pos_outlet_' . $outletId);
+    $erpSales = Flight::get('bangron.client')->selectDB('erp_sales');
+    $erpFinance = Flight::get('bangron.client')->selectDB('erp_finance');
+
+    $pending = $pos->collection('transactions')->find([
+        'sync_status' => 'pending', 'status' => 'completed'
+    ])->limit(500)->toArray();
+
+    $synced = ['so' => 0, 'je' => 0, 'failed' => 0];
+
+    foreach ($pending as $trx) {
+        // Transaction 1: Insert SO di erp_sales
+        $conn1 = $erpSales->connection;
+        try {
+            $conn1->beginTransaction();
+            $soId = $erpSales->collection('sales_orders')->insert([
+                'so_number'   => 'SO-POS-' . $trx['transaction_no'],
+                'so_date'     => $trx['transaction_date'],
+                'customer_id' => $trx['customer_id'] ?? 'WALK-IN-' . $trx['outlet_id'],
+                'sales_rep_id'=> $trx['cashier_id'],
+                'status'      => 'fulfilled',
+                'lines'       => $trx['lines'],
+                'subtotal'    => $trx['subtotal'],
+                'tax_total'   => $trx['tax_total'],
+                'grand_total' => $trx['grand_total'],
+                'source'      => 'pos_sync',
+                'source_ref'  => $trx['transaction_no'],
+            ]);
+            $conn1->commit();
+        } catch (\Throwable $e) {
+            if ($conn1->inTransaction()) $conn1->rollBack();
+            $synced['failed']++;
+            // Log error, skip to next transaction
+            continue;
+        }
+
+        // Transaction 2: Insert JE di erp_finance (per payment method)
+        $conn2 = $erpFinance->connection;
+        try {
+            $conn2->beginTransaction();
+            foreach ($trx['payments'] as $payment) {
+                $erpFinance->collection('journal_entries')->insert([
+                    'je_number'   => 'JE-POS-' . $trx['transaction_no'] . '-' . $payment['method'],
+                    'je_date'     => $trx['transaction_date'],
+                    'description' => 'POS ' . $trx['transaction_no'],
+                    'source_type' => 'pos_sales',
+                    'source_id'   => $trx['_id'],
+                    'is_posted'   => true,
+                    'total_debit' => $payment['amount'],
+                    'total_credit'=> $payment['amount'],
+                    'lines' => [
+                        ['account_code' => '1100-10', 'debit' => $payment['amount'], 'credit' => 0],
+                        ['account_code' => '4000-00', 'debit' => 0, 'credit' => $trx['subtotal']],
+                    ],
+                ]);
+                $synced['je']++;
+            }
+            $conn2->commit();
+        } catch (\Throwable $e) {
+            if ($conn2->inTransaction()) $conn2->rollBack();
+            // COMPENSATING: hapus SO yang sudah dibuat (saga pattern)
+            $erpSales->collection('sales_orders')->remove(['_id' => $soId]);
+            $synced['failed']++;
+            continue;
+        }
+
+        // Both transactions sukses — update sync_status di local POS
+        $pos->collection('transactions')->update(
+            ['_id' => $trx['_id']],
+            ['$set' => ['sync_status' => 'synced', 'synced_at' => date('c')]]
+        );
+        $synced['so']++;
+    }
+    return $synced;
+}
+```
+
+### 8.5 Aturan Penting
+
+1. Cek `inTransaction()` sebelum `rollBack()`.
+2. Re-throw exception setelah rollback — atau compensating action untuk cross-DB.
+3. Side effects (print receipt, send to customer display, notify manager) DI LUAR transaction.
+4. Receipt printing TIDAK boleh di dalam transaction — kalau printer hang, transaction lock lama.
+5. Cross-database (POS outlet ↔ erp_sales ↔ erp_finance) TIDAK atomic — pakai idempotent flag + saga.
+6. `insertMany()` otomatis transactional — pakai untuk stock movements bulk.
+7. Jika stock_movement insert gagal di hook afterInsert, transaction POS tetap ada di database tapi stok salah. Mark transaction status sebagai 'error' agar kasir tahu.
+
+Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+
+---
+
+## 9. Anti-Pattern POS
 
 1. **Update transaction langsung untuk void** — transaksi harus immutable. Pakai reverse entry (stock_movement `return_in`) + status update.
 
