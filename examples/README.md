@@ -10,18 +10,26 @@ Folder `examples/` berisi contoh penggunaan BangronDB untuk fitur inti sampai sk
 | 02 | `02-query-operators.php` | Query Operators | comparison, logical, array operators, regex, Closure, fuzzy search, dot notation |
 | 03 | `03-encryption-searchable.php` | Enkripsi & Searchable Fields | AES-256-GCM, hashed/plain searchable fields, runtime key |
 | 04 | `04-schema-validation.php` | Schema Validation | required, type, enum, regex, min/max, validasi sebelum insert/update |
-| 05 | `05-soft-deletes.php` | Soft Deletes | soft delete, restore, force delete, `withTrashed()`, `onlyTrashed()` |
-| 06 | `06-hooks.php` | Hooks | before/after insert, update, remove, veto, chaining |
-| 07 | `07-relationships-populate.php` | Relationships / Populate | populate tunggal, nested, array reference, cross-database |
-| 08 | `08-transactions.php` | Transactions | beginTransaction, commit, rollback, atomic workflow |
-| 09 | `09-indexing-health-monitoring.php` | Indexing & Monitoring | index, metrics, health report, integrity check, change notification |
-| 10 | `10-dynamic-configuration.php` | Dynamic Configuration | `saveConfiguration()`, auto-load config, custom config |
-| 11 | `11-multiple-databases.php` | Multiple Databases | multi database, isolasi data, cross-database populate |
-| 12 | `12-id-modes-collection-management.php` | ID Modes & Collection Management | UUID, manual ID, prefix ID, rename, drop |
-| 13 | `13-security-features.php` | Security | Closure-only operators, field validation, path safety, PRAGMA escaping |
-| 14 | `14-ecommerce-app.php` | Real-World Example | schema, hooks, encryption, searchable fields, soft deletes, transactions, populate |
-| 15 | `15-auth-encrypted.php` | Authentication Example | data auth terenkripsi, query aman, praktik penyimpanan secret |
-| 16 | `16-key-rotation.php` | Encryption Key Rotation – v1.2.0 | AES-256-GCM v2 (IV 12-byte), key_version, rotateEncryptionKey(), reencryptAll(), sensitive config blocking |
+| 05 | `05-bulk-operations.php` | Bulk Operations | insertMany, updateMany, deleteMany, atomic batch |
+| 06 | `06-aggregation-pipeline.php` | Aggregation Pipeline | $match, $group, $sort, $limit, $skip, $project, $count, $unset |
+| 07 | `07-cursor-streaming.php` | Cursor Streaming | PHP Generator, memory-efficient iteration, stream with criteria |
+| 08 | `08-ttl-expiration.php` | TTL (Time-To-Live) | enableTtl, cleanExpired, ttlStats, auto-expiration |
+| 09 | `09-explain-query.php` | Explain Query | query plan analysis, index usage, scan ratio, optimization suggestions |
+| 10 | `10-soft-deletes.php` | Soft Deletes | soft delete, restore, force delete, `withTrashed()`, `onlyTrashed()` |
+| 11 | `11-hooks.php` | Hooks | before/after insert, update, remove, veto, chaining |
+| 12 | `12-relationships-populate.php` | Relationships / Populate | populate tunggal, nested, array reference, cross-database |
+| 13 | `13-transactions.php` | Transactions | beginTransaction, commit, rollback, atomic workflow |
+| 14 | `14-indexing-health-monitoring.php` | Indexing & Monitoring | index, metrics, health report, integrity check, change notification |
+| 15 | `15-dynamic-configuration.php` | Dynamic Configuration | `saveConfiguration()`, auto-load config, custom config |
+| 16 | `16-multiple-databases.php` | Multiple Databases | multi database, isolasi data, cross-database populate |
+| 17 | `17-id-modes-collection-management.php` | ID Modes & Collection Management | UUID, manual ID, prefix ID, rename, drop |
+| 18 | `18-security-features.php` | Security | Closure-only operators, field validation, path safety, PRAGMA escaping |
+| 19 | `19-ecommerce-app.php` | Real-World Example | schema, hooks, encryption, searchable fields, soft deletes, transactions, populate |
+| 20 | `20-auth-encrypted.php` | Authentication Example | data auth terenkripsi, query aman, praktik penyimpanan secret |
+| 21 | `21-key-rotation.php` | Encryption Key Rotation – v1.2.0 | AES-256-GCM v2 (IV 12-byte), key_version, rotateEncryptionKey(), reencryptAll(), sensitive config blocking |
+| 22 | `22-rbac-users-roles-permissions.php` | RBAC Model | users, roles & permissions via hooks + populate |
+| 23 | `23-acl-relation-type.php` | ACL & Relation Type | access control list & schema relation type |
+| 24 | `24-dynamic-acl-per-collection.php` | Dynamic ACL per Collection | `setCustomConfig('acl')` + hooks enforcement, runtime ACL updates |
 
 ## Cara Menjalankan
 

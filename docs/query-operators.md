@@ -141,12 +141,11 @@ $orders->find(['items' => ['$size' => 3]]);
 // Pola langsung (otomatis di-escape, aman)
 $users->find(['email' => ['$regex' => 'admin@']]);
 
-// Pola dengan delimiter (untuk flag)
+// Pola dengan delimiter (untuk flag) — gunakan ini untuk case-insensitive
 $users->find(['name' => ['$regex' => '/^john/iu']]);
-
-// Opsi regex
-$users->find(['name' => ['$regex' => '/john/i', '$options' => 'iu']]);
 ```
+
+> **Catatan:** `$options` disediakan untuk kompatibilitas sintaks MongoDB, tetapi **saat ini nilainya tidak diterapkan** ke regex. Untuk flag seperti case-insensitive (`i`) atau Unicode (`u`), sertakan langsung di dalam pola delimiter: `/^john/iu`.
 
 > **Keamanan:** BangronDB secara otomatis memvalidasi regex terhadap ReDoS (Regular Expression Denial of Service). Pola berbahaya akan ditolak. Panjang maksimum regex: 500 karakter.
 
@@ -246,7 +245,7 @@ $users->find([
             ]
         ],
         ['status' => ['$ne' => 'banned']],
-        ['name' => ['$not' => /^system/']],
+        ['name' => ['$not' => '/^system/']],
     ]
 ]);
 ```

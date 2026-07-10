@@ -81,76 +81,64 @@ Karena tujuan BangronDB adalah library, bukan IDE.
 
 ## Prioritas 3 — Kemampuan Document Database
 
-Setelah stabil, fitur baru harus memperkuat kemampuan sebagai document database.
+Fitur-fitur berikut **sudah diimplementasi** di versi saat ini:
 
-### Projection
+### Projection ✅
 
 ```php
-find(
-    [],
-    [
-        'projection' => [
-            'password' => 0
-        ]
-    ]
-);
+// Include field
+$users = $collection->find([], ['name' => 1, 'email' => 1])->toArray();
+
+// Exclude field
+$users = $collection->find([], ['password' => 0])->toArray();
 ```
 
-**Alasan:** Mengurangi data yang dikembalikan dan meningkatkan performa.
-
-### Bulk Operations
+### Bulk Operations ✅
 
 ```php
-insertMany();
-updateMany();
-deleteMany();
+$collection->insertMany([...]);
+$collection->updateMany([...], [...]);
+$collection->deleteMany([...]);
 ```
 
-**Alasan:** Operasi massal adalah kebutuhan umum pada document database.
-
-### Aggregation
+### Aggregation ✅
 
 ```php
-aggregate([
+$collection->aggregate([
     ['$match' => ...],
     ['$group' => ...],
     ['$sort' => ...]
 ]);
 ```
 
-**Alasan:** Memungkinkan analisis data tanpa memindahkan seluruh dokumen ke PHP.
+Operators: `$match`, `$group` (`$sum`, `$avg`, `$min`, `$max`, `$count`), `$sort`, `$limit`, `$skip`, `$project`, `$count`, `$unset`.
 
-### Explain Query
+### Explain Query ✅
 
 ```php
-$collection->explain(...)
+$explanation = $collection->explain(['age' => ['$gte' => 25]]);
+// Return: query_plan, performance metrics, suggestions
 ```
 
-Menampilkan:
+### Cursor Streaming ✅
 
-- Index yang digunakan
-- Full scan atau tidak
-- Jumlah dokumen yang dipindai
-- Waktu eksekusi
+```php
+foreach ($collection->stream(['status' => 'active']) as $doc) {
+    // Proses satu per satu via PHP Generator
+}
+```
 
-**Alasan:** Mempermudah optimasi performa.
+### TTL Document ✅
 
-### Cursor Streaming
+```php
+$collection->enableTtl('expires_at', 3600);  // 1 jam default
+$collection->cleanExpired();                   // hapus dokumen kedaluwarsa
+$collection->ttlStats();                       // statistik TTL
+```
 
-Menggunakan generator (`yield`) agar data besar tidak dimuat sekaligus ke memori.
+---
 
-**Alasan:** Mengurangi konsumsi memori untuk dataset besar.
-
-### TTL Document
-
-Dokumen dapat memiliki waktu kedaluwarsa otomatis.
-
-Contoh penggunaan:
-
-- Session
-- OTP
-- Cache
-- Temporary Token
+## Prioritas 3b — Pengembangan Selanjutnya
 
 ---
 

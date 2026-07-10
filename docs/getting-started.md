@@ -95,9 +95,11 @@ $users = $db->users;        // createCollection jika belum ada, selectCollection
 
 ```php
 // Single insert — return ID (string)
+// Catatan: return false jika beforeInsert hook melempar false (veto)
 $id = $collection->insert(['name' => 'Alice', 'age' => 25]);
 
 // Batch insert — return jumlah dokumen (int)
+// Catatan: return false jika salah satu dokumen di-veto oleh hook (transaksi di-rollback)
 $count = $collection->insert([
     ['name' => 'Bob', 'age' => 30],
     ['name' => 'Charlie', 'age' => 35],
@@ -213,7 +215,7 @@ $cursor->each(function ($doc) {
 });
 
 // Populate relasi
-$cursor->populate('user_id', $usersCollection, 'name', 'user_name');
+$cursor->populate('user_id', $usersCollection, ['as' => 'user_name']);
 ```
 
 ## Query Operators
@@ -259,7 +261,9 @@ Operator query yang didukung di dalam `find()`, `findOne()`, `count()`, dll:
 | `$exists` | Field ada/tidak | `['phone' => ['$exists' => true]]` |
 | `$mod` | Modulo | `['id' => ['$mod' => [10, 0]]]` |
 | `$where` | Custom criteria | `['$where' => fn($doc) => $doc['age'] > $doc['min_age']]` |
-| `$options` | Opsi regex (`i`, `u`) | `['name' => ['$regex' => '/john/i', '$options' => 'iu']]` |
+| `$options` | Placeholder regex | `['name' => ['$regex' => '/john/i', '$options' => 'iu']]` |
+
+> **Catatan:** `$options` disediakan untuk kompatibilitas sintaks MongoDB, tetapi **saat ini tidak berpengaruh** pada eksekusi. Sertakan flag regex langsung di dalam pola (misalnya `/john/iu`) untuk mengaktifkan case-insensitive dan Unicode.
 
 > Dokumentasi lengkap query operators ada di [query-operators.md](query-operators.md).
 

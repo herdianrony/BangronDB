@@ -14,7 +14,7 @@ Hooks memungkinkan Anda mengeksekusi kode sebelum atau sesudah operasi CRUD.
 |-------|---------------|---------------------|
 | `beforeInsert` | Sebelum insert | Membatalkan insert |
 | `afterInsert` | Setelah insert | - |
-| `beforeUpdate` | Sebelum update | - (return array untuk modify) |
+| `beforeUpdate` | Sebelum update | - (return array untuk modify criteria/data) |
 | `afterUpdate` | Setelah update | - |
 | `beforeRemove` | Sebelum remove | Membatalkan remove |
 | `afterRemove` | Setelah remove | - |
@@ -43,12 +43,17 @@ $collection->on('afterInsert', function ($document, $id) {
 
 $collection->on('beforeUpdate', function ($criteria, $data) {
     // Modify criteria/data sebelum update
+    // Format 1: associative array
     return [
         'criteria' => $criteria,
         'data' => $data,
     ];
+    // Format 2: positional array (juga didukung)
+    // return [$criteria, $data];
 });
 ```
+
+> **Catatan:** `beforeUpdate` **tidak** mendukung `return false` untuk membatalkan operasi. Untuk membatalkan, lempar exception dari dalam hook.
 
 ### Menghapus Hooks
 
@@ -364,19 +369,15 @@ foreach ($collection->stream(
 
 ## Schema Validation
 
-Validasi struktur dokumen sebelum insert/update.
+Validasi struktur dokumen sebelum insert/update. Schema didefinisikan dalam format **flat** — setiap key level atas adalah nama field, dan value-nya berisi aturan validasi.
 
 ```php
 $collection->setSchema([
-    'required' => ['name', 'email'],
-    'fields' => [
-        'name' => ['type' => 'string', 'minLength' => 2, 'maxLength' => 100],
-        'email' => ['type' => 'string', 'regex' => '/^[^@]+@[^@]+\.[^@]+$/'],
-        'age' => ['type' => 'integer', 'min' => 0, 'max' => 150],
-        'role' => ['type' => 'string', 'in' => ['admin', 'user', 'editor']],
-        'tags' => ['type' => 'array'],
-    ],
-    'unique' => ['email'],  // Unique constraint
+    'name'  => ['type' => 'string', 'required' => true, 'min' => 2, 'max' => 100],
+    'email' => ['type' => 'string', 'required' => true, 'regex' => '/^[^@]+@[^@]+\.[^@]+$/', 'unique' => true],
+    'age'   => ['type' => 'integer', 'min' => 0, 'max' => 150],
+    'role'  => ['type' => 'string', 'enum' => ['admin', 'user', 'editor']],
+    'tags'  => ['type' => 'array'],
 ]);
 
 // Insert yang valid → OK
@@ -389,11 +390,41 @@ $collection->insert(['name' => 'Bob']);  // Error: 'email' is required
 $collection->insert(['name' => 'Charlie', 'email' => 'c@test.com', 'age' => 'twenty-five']);
 ```
 
+### Properti Validasi yang Aktif
+
+| Properti | Tipe | Deskripsi |
+|----------|------|-----------|
+| `type` | `string` | Validasi tipe data: `string`, `integer`, `float`, `boolean`, `array`, `object` (dan alias: `text`, `email`, `url`, `number`, `bool`, `json`, dll.) |
+| `required` | `bool` | Field wajib ada di dokumen |
+| `enum` / `options` | `array` | Nilai harus salah satu dari daftar (strict comparison) |
+| `regex` | `string` | Nilai string harus cocok dengan pola regex |
+| `min` | `int\|float` | Nilai minimum (angka) atau panjang minimum (string/array) |
+| `max` | `int\|float` | Nilai maksimum (angka) atau panjang maksimum (string/array) |
+| `unique` | `bool` | Nilai harus unik di seluruh collection |
+
+### Properti Metadata (disimpan, tidak divalidasi)
+
+Properti berikut diterima di definisi schema dan disimpan sebagai metadata, tetapi **tidak digunakan** dalam validasi otomatis:
+
+| Properti | Kegunaan |
+|----------|----------|
+| `label` | Label tampilan untuk UI |
+| `searchable` | Penanda untuk blind index |
+| `sortable` | Penanda untuk kemampuan sort |
+| `index` | Penanda untuk index |
+| `ui` | Konfigurasi tampilan (tipe input, placeholder, dll.) |
+| `hidden` | Sembunyikan dari output UI |
+| `readonly` | Penanda read-only untuk UI |
+| `filterable` | Penanda untuk kemampuan filter |
+| `default` | Nilai default |
+| `relation` | Definisi relasi antar collection |
+
 ### Unique Constraint
 
 ```php
 $collection->setSchema([
-    'unique' => ['email', 'username'],
+    'email'    => ['type' => 'string', 'required' => true, 'unique' => true],
+    'username' => ['type' => 'string', 'required' => true, 'unique' => true],
 ]);
 
 // Duplikat → throw ValidationException
@@ -454,16 +485,16 @@ $populated = $orders->populate(
     'user'           // alias di result
 );
 
-// Via Cursor chaining
+// Via Cursor chaining (3 argumen: path, collection, options)
 $results = $orders->find()
-    ->populate('user_id', $users, '_id', 'user_info')
+    ->populate('user_id', $users, ['as' => 'user_info'])
     ->toArray();
 
-// Multiple populate
+// Multiple populate (format: path => collection atau path => [collection, options])
 $results = $orders->find()
     ->populateMany([
-        ['path' => 'user_id', 'collection' => $users, 'as' => 'user'],
-        ['path' => 'items.product_id', 'collection' => $products, 'as' => 'product'],
+        'user_id'           => $users,
+        'items.product_id'  => [$products, ['as' => 'product']],
     ])
     ->toArray();
 

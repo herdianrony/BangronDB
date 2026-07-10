@@ -235,7 +235,7 @@ $collection->setCustomConfig('theme', 'dark');
 $collection->setCustomConfig('locale', 'id_ID');
 ```
 
-**Field yang diblokir:** `encryption_key`, `password`, `secret`, `token`, `api_key`, `private_key`, `credential`.
+**Field yang diblokir:** `encryption_key`, `encryptionkey`, `password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `private_key`, `credential`.
 
 ---
 

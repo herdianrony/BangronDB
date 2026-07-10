@@ -281,15 +281,15 @@ $collection = Factory::createCollection('/path/to/data', 'myapp', 'users');
 
 ## Exceptions
 
-Semua exception BangronDB mewarisi `BangronDBException`:
+Semua exception BangronDB mewarisi `BangronDBException`, **kecuali** `QueryExecutionException`:
 
-| Exception | Deskripsi |
-|-----------|-----------|
-| `BangronDBException` | Base exception |
-| `DatabaseException` | Operasi database gagal |
-| `CollectionException` | Operasi collection gagal |
-| `ValidationException` | Validasi data gagal |
-| `QueryExecutionException` | Eksekusi query gagal |
+| Exception | Parent | Deskripsi |
+|-----------|--------|-----------|
+| `BangronDBException` | `Exception` | Base exception (dengan `errorCode`, `context`, `toJson()`) |
+| `DatabaseException` | `BangronDBException` | Operasi database gagal |
+| `CollectionException` | `BangronDBException` | Operasi collection gagal |
+| `ValidationException` | `BangronDBException` | Validasi data gagal |
+| `QueryExecutionException` | `RuntimeException` | Eksekusi query gagal (menyediakan `getSql()`, `getParams()`, `getRedactedParams()`) |
 
 ```php
 use BangronDB\Exceptions\DatabaseException;
