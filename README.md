@@ -4,20 +4,100 @@ BangronDB adalah database dokumen berbasis SQLite untuk PHP dengan API bergaya M
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.1-blue.svg)](https://www.php.net)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%209-brightgreen.svg)](phpstan.neon)
 
 ## Sorotan Fitur
 
 - API mirip MongoDB untuk operasi dokumen
 - Backend SQLite berbasis file atau in-memory
-- Enkripsi dokumen dengan **AES-256-GCM**
-- Searchable fields untuk data terenkripsi
+- **Dual query strategy**: SQL-first via `json_extract`, fallback ke PHP-side `UtilArrayQuery` untuk query kompleks
+- Enkripsi dokumen dengan **AES-256-GCM** + key rotation (v1.2.0)
+- Searchable fields (blind index SHA-256) untuk query pada data terenkripsi
 - Hooks untuk lifecycle insert, update, dan remove
-- Schema validation untuk type, enum, regex, min/max
+- Schema validation: type, enum/options, regex, min/max, unique constraint
+- Aggregation pipeline: `$match`, `$group`, `$sort`, `$limit`, `$skip`, `$project`, `$count`, `$unset`
 - Soft delete dengan restore dan force delete
+- TTL (Time-To-Live) auto-expiration
+- Cursor streaming via PHP Generator untuk efisiensi memori
 - ID mode fleksibel: UUID, manual, prefix
-- Populate relasi antar-collection dan antar-database dalam satu client
+- Populate relasi antar-collection dan antar-database
+- `EXPLAIN` query plan dan optimization suggestions
 - Health metrics, integrity check, dan change notification
-- Konfigurasi collection yang bisa disimpan ke database
+- Konfigurasi collection yang persisten ke database
+- Security auditor utilitas (opsional)
+
+## Arsitektur
+
+### Struktur Kode
+
+```
+src/
+├── Client.php              # Entry point: mengelola banyak database
+├── Database.php            # Satu file .bangron / :memory:
+├── Collection.php          # Tabel dokumen (menggunakan traits)
+├── Cursor.php              # Lazy query result iterator
+├── QueryExecutor.php       # Eksekusi SQL via PDO prepared statements
+├── UtilArrayQuery.php      # PHP-side query engine (fallback)
+├── Config.php              # Global configuration
+├── Enums/                  # Enum: HookEvent, IdMode
+├── Exceptions/             # Typed exceptions
+├── Security/               # SecurityAuditor (utilitas opsional)
+└── Traits/                 # Fitur-fitur collection (horizontal reuse)
+    ├── QueryBuilderTrait.php
+    ├── EncryptionTrait.php
+    ├── SchemaValidationTrait.php
+    ├── HooksTrait.php
+    ├── SearchableFieldsTrait.php
+    ├── IdGeneratorTrait.php
+    ├── SoftDeleteTrait.php
+    ├── TtlTrait.php
+    ├── ChangeTrackingTrait.php
+    └── ConfigurationPersistenceTrait.php
+```
+
+### Desain Trait-based
+
+`Collection` menggunakan **traits** untuk horizontal code reuse — bukan inheritance. Setiap trait adalah unit tunggal yang fokus pada satu tanggung jawab:
+
+| Trait | Tanggung Jawab |
+|-------|---------------|
+| `QueryBuilderTrait` | Query logic, `find()`, `findOne()`, `count()`, operator parsing |
+| `EncryptionTrait` | Enkripsi/dekripsi AES-256-GCM, key rotation |
+| `SchemaValidationTrait` | Validasi type, enum, regex, min/max, unique |
+| `HooksTrait` | Event lifecycle (before/after insert/update/remove) |
+| `SearchableFieldsTrait` | Blind index untuk query pada data terenkripsi |
+| `IdGeneratorTrait` | UUID, manual, prefix ID generation |
+| `SoftDeleteTrait` | Soft delete, restore, force delete |
+| `TtlTrait` | Auto-expiration dokumen berdasarkan TTL |
+| `ChangeTrackingTrait` | Versioning dan change notification |
+| `ConfigurationPersistenceTrait` | Simpan/muat konfigurasi collection ke database |
+
+Pendekatan ini menjaga `Collection.php` tetap ringan sebagai koordinator, sementara logika detail tersebar di file terpisah yang bisa di-maintain secara independen.
+
+### Dual Query Strategy
+
+BangronDB menggunakan **dua lapis query** secara otomatis:
+
+```
+Query masuk → _canTranslateToJsonWhere()?
+                ├─ YA → _buildJsonWhere() → SQL WHERE via json_extract/->>/->  (cepat)
+                └─ TIDAK → fetch semua → UtilArrayQuery::match() di PHP        (fleksibel)
+```
+
+- **SQL-first**: Query sederhana (equality, comparison, `$in`, logical operators) diterjemahkan ke SQL `WHERE json_extract(document, '$.field')` dan dieksekusi langsung oleh SQLite engine. Ini memanfaatkan index dan meminimalkan data yang di-load ke PHP.
+- **PHP fallback**: Query kompleks (regex, closure/`$where`, fuzzy search, dot notation nested) yang tidak bisa diterjemahkan ke SQL menggunakan `UtilArrayQuery` untuk filtering di level PHP.
+
+Strategi ini otomatis — pengguna tidak perlu memilih secara manual.
+
+### Yang BUKAN Bagian Core
+
+Beberapa fitur yang sering dikira built-in sebenarnya adalah **pola aplikasi** yang didemonstrasikan di `examples/`, bukan bagian dari library:
+
+- **RBAC/ACL** → Contoh 22, 23, 24: pola menggunakan `setCustomConfig()` + hooks untuk enforce permission di application layer
+- **Change tracking audit log** → Contoh di examples: pola menggunakan hooks untuk mencatat perubahan
+- **Authentication** → Contoh 20: pola hashing password + hooks
+
+BangronDB menyediakan **primitif** (hooks, schema, custom config) yang memungkinkan pola-pola ini dibangun di atasnya, tanpa memaksakan paradigma tertentu ke aplikasi pengguna.
 
 ## Kebutuhan Sistem
 
@@ -144,6 +224,25 @@ $count = $users->insert([
 ]);
 ```
 
+### InsertMany / UpdateMany / DeleteMany (API MongoDB-compatible)
+
+```php
+// InsertMany: insert batch dengan hasil detail
+$result = $users->insertMany([
+    ['name' => 'Alice', 'email' => 'alice@example.com'],
+    ['name' => 'Bob',   'email' => 'bob@example.com'],
+]);
+// ['inserted_count' => 2, 'inserted_ids' => ['...', '...']]
+
+// UpdateMany: update semua dokumen yang cocok
+$result = $users->updateMany(['status' => 'pending'], ['$set' => ['status' => 'active']]);
+// ['matched_count' => 5, 'modified_count' => 5]
+
+// DeleteMany
+$result = $users->deleteMany(['status' => 'banned']);
+// ['deleted_count' => 2]
+```
+
 ### Find
 
 ```php
@@ -268,6 +367,61 @@ $users->find(['address.city' => 'Jakarta']);
 
 > `'$where'` dan `'$func'` hanya menerima **Closure**, bukan string function name.
 
+## Aggregation Pipeline
+
+```php
+$results = $users->aggregate([
+    ['$match'  => ['status' => 'active']],
+    ['$group'  => ['_id' => '$role', 'total' => ['$sum' => 1], 'avg_age' => ['$avg' => '$age']]],
+    ['$sort'   => ['total' => -1]],
+    ['$limit'  => 10],
+]);
+```
+
+Operator yang didukung:
+
+| Stage | Deskripsi |
+|-------|-----------|
+| `$match` | Filter dokumen (sintaks sama seperti `find()`) |
+| `$group` | Grouping dengan akumulator: `$sum`, `$avg`, `$min`, `$max`, `$count`, `$first`, `$last`, `$push`, `$addToSet` |
+| `$sort` | Urutkan dokumen |
+| `$limit` | Batasi jumlah hasil |
+| `$skip` | Lewati N dokumen pertama |
+| `$project` | Reshape dokumen (include/exclude field, field reference) |
+| `$count` | Hitung dokumen yang lolos pipeline |
+| `$unset` | Hapus field dari semua dokumen |
+
+Field reference menggunakan prefix `$`: `'$fieldName'` merujuk ke nilai field dokumen.
+
+## Cursor Streaming
+
+Untuk dataset besar, gunakan `stream()` yang menghasilkan `Generator` — memori tetap konstan terlepas dari ukuran hasil:
+
+```php
+foreach ($users->stream(['status' => 'active'], [
+    'sort'  => ['created_at' => -1],
+    'limit' => 10000,
+]) as $doc) {
+    processDocument($doc); // hanya satu dokumen di memori
+}
+```
+
+## Explain Query
+
+Analisis bagaimana query dieksekusi — apakah menggunakan index, full scan, dan saran optimasi:
+
+```php
+$explanation = $users->explain(['status' => 'active', 'age' => ['$gte' => 21]]);
+
+echo $explanation['query_plan']['uses_index'] ? 'Uses index' : 'Full scan';
+echo "Scanned: {$explanation['performance']['documents_scanned']} documents";
+echo "Time: {$explanation['performance']['execution_time_ms']}ms";
+
+foreach ($explanation['suggestions'] as $suggestion) {
+    echo "Suggestion: {$suggestion}";
+}
+```
+
 ## Enkripsi
 
 ### Database-level encryption
@@ -299,7 +453,14 @@ $users->setSearchableFields(['email', 'phone'], true); // true = SHA-256 hash
 $users->saveConfiguration();
 ```
 
-**Catatan teknis:** BangronDB menggunakan **AES-256-GCM**, key derivation berbasis PBKDF2 SHA-256, IV acak per enkripsi, dan payload Base64 di dokumen JSON.
+**Catatan teknis:** BangronDB menggunakan **AES-256-GCM**, key derivation berbasis PBKDF2 SHA-256, IV acak per enkripsi, dan payload Base64 di dokumen JSON. Key version (v1.2.0) memungkinkan key rotation tanpa re-encrypt manual.
+
+### Key Rotation
+
+```php
+$users->setEncryptionKey($newKey, 'v2-2026');
+$users->rotateEncryptionKey(); // re-encrypt semua dokumen dengan key baru
+```
 
 ## Schema Validation
 
@@ -339,6 +500,19 @@ $users->insert(['email' => 'a@example.com']); // throws ValidationException
 > dapat dicari lewat blind index. Tanpa itu, dokumen terenkripsi tidak bisa
 > di-query per-nilai dan constraint tidak akan menemukan duplikat.
 
+## TTL (Time-To-Live)
+
+Dokumen bisa di-set untuk auto-expire setelah waktu tertentu:
+
+```php
+$logs->setTtl(3600); // dokumen auto-hapus setelah 1 jam
+$logs->setTtlField('_expires_at'); // field custom untuk TTL (default: _ttl_expires)
+
+$logs->insert(['message' => 'temp log']); // otomatis dapat _expires_at = now() + 3600
+
+$stats = $logs->ttlStats(); // lihat status TTL
+```
+
 ## Soft Deletes
 
 ```php
@@ -370,19 +544,18 @@ $users->on('beforeUpdate', function ($criteria, $data) {
 
 $users->on('beforeRemove', function ($document) {
     if ($document['protected'] ?? false) {
-        return false;
+        return false; // reject deletion
     }
 });
 ```
 
 Event yang tersedia:
 
-- `beforeInsert`
-- `afterInsert`
-- `beforeUpdate`
-- `afterUpdate`
-- `beforeRemove`
-- `afterRemove`
+- `beforeInsert` / `afterInsert`
+- `beforeUpdate` / `afterUpdate`
+- `beforeRemove` / `afterRemove`
+
+> Hook adalah **primitif** yang fleksibel. Bisa digunakan untuk ACL enforcement, audit logging, auto-timestamp, data transformation, dan lain-lain — semuanya di application layer, bukan di core library.
 
 ## Relationships / Populate
 
@@ -444,7 +617,26 @@ $users->useSoftDeletes(true);
 $users->saveConfiguration();
 ```
 
-> Encryption key **tidak disimpan** di database. Selalu supply dari `.env`, secret manager, atau runtime config.
+### Custom Config
+
+Simpan metadata aplikasi per collection — persisten dan auto-load saat reconnect:
+
+```php
+// Simpan ACL, settings, atau metadata lain
+$users->setCustomConfig('acl', [
+    'admin'  => ['create', 'read', 'update', 'delete'],
+    'editor' => ['create', 'read', 'update'],
+    'viewer' => ['read'],
+]);
+$users->setCustomConfig('max_login_attempts', 3);
+$users->saveConfiguration();
+
+// Baca kapan saja
+$acl = $users->getCustomConfig('acl');
+$all = $users->getAllCustomConfig();
+```
+
+> Sensitive keys (`encryption_key`, `password`, `secret`, `token`, dll.) **ditolak** otomatis dan tidak bisa disimpan via `setCustomConfig`. Encryption key selalu supply dari `.env`, secret manager, atau runtime config.
 >
 > Catatan: konfigurasi ID prefix yang dipersist kini dinormalisasi ke format `prefix:USR`. Konfigurasi lama yang masih menyimpan prefix mentah seperti `USR` tetap didukung saat dibaca ulang.
 
@@ -474,8 +666,9 @@ BangronDB menerapkan beberapa guardrail penting:
 | Closure-only untuk `$where` / `$func` | Mencegah RCE                     |
 | Validasi field name                   | Mencegah injection               |
 | PRAGMA key escaping                   | Mencegah SQLite injection        |
-| Regex hardening                       | Mengurangi risiko ReDoS          |
+| Regex hardening (ReDoS)               | Mengurangi risiko catastrophic backtracking |
 | Validasi path                         | Mengurangi risiko path traversal |
+| Sensitive config key blocking         | Mencegah credential leakage      |
 | `strict_types=1`                      | Type safety                      |
 
 Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
@@ -528,19 +721,28 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 | Method                                                               | Keterangan                         |
 | -------------------------------------------------------------------- | ---------------------------------- |
 | `insert($document)`                                                  | Insert satu/banyak dokumen         |
+| `insertMany($documents)`                                             | Insert batch dengan hasil detail   |
+| `updateMany($criteria, $data, $options = [])`                        | Update batch dengan hasil detail   |
+| `deleteMany($criteria)`                                              | Delete batch dengan hasil detail   |
 | `find($criteria = null, $projection = null)`                         | Query dokumen                      |
 | `findOne($criteria = null, $projection = null)`                      | Query satu dokumen                 |
 | `update($criteria, $data, $merge = true)`                            | Update dokumen                     |
 | `remove($criteria)`                                                  | Hapus dokumen                      |
 | `count($criteria = null)`                                            | Hitung dokumen                     |
 | `save($document)`                                                    | Insert / upsert dokumen            |
+| `aggregate($pipeline)`                                               | Aggregation pipeline               |
+| `explain($criteria = null)`                                          | Query plan analysis                |
+| `stream($criteria = null, $options = [])`                            | Cursor streaming (Generator)       |
 | `drop()`                                                             | Hapus collection                   |
 | `renameCollection($newName)`                                         | Rename collection                  |
 | `setIdModeAuto()` / `setIdModeManual()` / `setIdModePrefix($prefix)` | Atur mode ID                       |
-| `setEncryptionKey($key, $version = null)`                            | Atur key enkripsi + versi (v1.2.0) |
+| `setEncryptionKey($key, $version = null)`                            | Atur key enkripsi + versi          |
+| `rotateEncryptionKey()`                                              | Rotasi key enkripsi                |
 | `setSearchableFields($fields, $hash = false)`                        | Atur searchable fields             |
 | `removeSearchableField($field, $dropColumn = false)`                 | Hapus searchable field             |
 | `setSchema($schema)`                                                 | Atur schema                        |
+| `setTtl($seconds)`                                                   | Set TTL auto-expiration            |
+| `ttlStats()`                                                         | Status TTL collection              |
 | `useSoftDeletes($enabled = true)`                                    | Aktifkan soft delete               |
 | `restore($criteria)`                                                 | Restore dokumen terhapus           |
 | `forceDelete($criteria)`                                             | Hapus permanen                     |
@@ -550,6 +752,9 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 | `getLastModified()`                                                  | Ambil metadata perubahan           |
 | `notifyChange()`                                                     | Trigger manual change notification |
 | `saveConfiguration()`                                                | Simpan konfigurasi collection      |
+| `setCustomConfig($key, $value)`                                      | Simpan custom config               |
+| `getCustomConfig($key, $default = null)`                             | Baca custom config                 |
+| `getAllCustomConfig()`                                               | Baca semua custom config           |
 
 ### Cursor
 
@@ -580,21 +785,32 @@ PERFORMANCE_MONITORING=false
 
 Lihat folder [examples/](examples/) untuk contoh end-to-end:
 
-- `01-quick-start-crud.php`
-- `02-query-operators.php`
-- `03-encryption-searchable.php`
-- `04-schema-validation.php`
-- `05-soft-deletes.php`
-- `06-hooks.php`
-- `07-relationships-populate.php`
-- `08-transactions.php`
-- `09-indexing-health-monitoring.php`
-- `10-dynamic-configuration.php`
-- `11-multiple-databases.php`
-- `12-id-modes-collection-management.php`
-- `13-security-features.php`
-- `14-ecommerce-app.php`
-- `15-auth-encrypted.php`
+| No | File | Topik |
+|----|------|-------|
+| 01 | `01-quick-start-crud.php` | Quick start CRUD |
+| 02 | `02-query-operators.php` | Query operators |
+| 03 | `03-encryption-searchable.php` | Enkripsi & searchable fields |
+| 04 | `04-schema-validation.php` | Schema validation |
+| 05 | `05-bulk-operations.php` | Bulk insert/update/delete |
+| 06 | `06-aggregation-pipeline.php` | Aggregation pipeline |
+| 07 | `07-cursor-streaming.php` | Cursor streaming (Generator) |
+| 08 | `08-ttl-expiration.php` | TTL auto-expiration |
+| 09 | `09-explain-query.php` | Explain query plan |
+| 10 | `10-soft-deletes.php` | Soft delete & restore |
+| 11 | `11-hooks.php` | Hooks lifecycle |
+| 12 | `12-relationships-populate.php` | Relasi & populate |
+| 13 | `13-transactions.php` | Transaksi |
+| 14 | `14-indexing-health-monitoring.php` | Indexing & health monitoring |
+| 15 | `15-dynamic-configuration.php` | Konfigurasi dinamis |
+| 16 | `16-multiple-databases.php` | Multiple databases |
+| 17 | `17-id-modes-collection-management.php` | ID modes & collection management |
+| 18 | `18-security-features.php` | Fitur keamanan |
+| 19 | `19-ecommerce-app.php` | Aplikasi e-commerce lengkap |
+| 20 | `20-auth-encrypted.php` | Auth dengan enkripsi |
+| 21 | `21-key-rotation.php` | Key rotation |
+| 22 | `22-rbac-users-roles-permissions.php` | RBAC (pola aplikasi) |
+| 23 | `23-acl-relation-type.php` | ACL dengan relation type |
+| 24 | `24-dynamic-acl-per-collection.php` | Dynamic ACL per collection |
 
 ## Catatan Kompatibilitas
 
