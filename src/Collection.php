@@ -60,12 +60,17 @@ class Collection
      * PHP < 8.2 does not support constants in traits. The trait references
      * these via `self::CONSTANT` which PHP resolves to the using class
      * (Collection) at runtime.
+     *
+     * NOTE: Untyped `const NAME = value` syntax is used (not `const TYPE NAME`)
+     * because typed class constants are a PHP 8.3+ feature. The project's
+     * composer.json declares `"php": "^8.1"`, so all constants must stay
+     * compatible with PHP 8.1 and 8.2.
      */
-    public const int MAX_DOCUMENT_DEPTH = 20;
-    public const int MIN_KEY_LENGTH = 32;
-    public const int ENCRYPTION_VERSION = 2;
-    public const int MAX_DERIVED_KEY_CACHE_SIZE = 100;
-    public const string LEGACY_PBKDF2_SALT = 'bangrondb_legacy_salt_v1';
+    public const MAX_DOCUMENT_DEPTH = 20;
+    public const MIN_KEY_LENGTH = 32;
+    public const ENCRYPTION_VERSION = 2;
+    public const MAX_DERIVED_KEY_CACHE_SIZE = 100;
+    public const LEGACY_PBKDF2_SALT = 'bangrondb_legacy_salt_v1';
 
     public readonly Database $database;
 
