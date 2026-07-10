@@ -11,7 +11,8 @@
 5. [Session Management dengan JWT + Refresh Token](#5-session-management-dengan-jwt--refresh-token)
 6. [ACL per Collection dengan setCustomConfig](#6-acl-per-collection-dengan-setcustomconfig)
 7. [Hook Enforcement ACL otomatis](#7-hook-enforcement-acl-otomatis)
-8. [Multi-Tenant Auth](#8-multi-tenant-auth)
+8. [Transaction Safety: atomic multi-step operasi](#8-transaction-safety-atomic-multi-step-operasi)
+9. [Multi-Tenant Auth](#9-multi-tenant-auth)
 
 ---
 
@@ -203,37 +204,57 @@ class AuthService
         // Generate user_id
         $userId = 'USR-' . strtoupper(bin2hex(random_bytes(8)));
 
-        // Insert user
-        $this->users->insert([
-            'user_id'        => $userId,
-            'username'       => $data['username'],
-            'email'          => $data['email'],
-            'phone'          => $data['phone'] ?? null,
-            'password_hash'  => $passwordHash,
-            'display_name'   => $data['display_name'] ?? $data['username'],
-            'locale'         => $data['locale'] ?? 'id_ID',
-            'timezone'       => $data['timezone'] ?? 'Asia/Jakarta',
-            'is_active'      => true,
-            'is_verified'    => false,    // butuh email verification
-            'is_locked'      => false,
-            'failed_login_count' => 0,
-            'password_changed_at' => date('c'),
-            'created_at'     => date('c'),
-            'created_by'     => 'system',
-        ]);
+        // TRANSACTION WAJIB: insert user + audit log harus atomic.
+        // Kalau audit log gagal tapi user berhasil insert → data inkonsisten
+        // (user ada tapi tidak ada record siapa yang create).
+        $conn = $this->users->database->connection;
+        $conn->beginTransaction();
+        try {
+            // Insert user
+            $this->users->insert([
+                'user_id'        => $userId,
+                'username'       => $data['username'],
+                'email'          => $data['email'],
+                'phone'          => $data['phone'] ?? null,
+                'password_hash'  => $passwordHash,
+                'display_name'   => $data['display_name'] ?? $data['username'],
+                'locale'         => $data['locale'] ?? 'id_ID',
+                'timezone'       => $data['timezone'] ?? 'Asia/Jakarta',
+                'is_active'      => true,
+                'is_verified'    => false,    // butuh email verification
+                'is_locked'      => false,
+                'failed_login_count' => 0,
+                'password_changed_at' => date('c'),
+                'created_at'     => date('c'),
+                'created_by'     => 'system',
+            ]);
 
-        // Kirim email verification
-        $this->sendEmailVerification($userId, $data['email']);
+            // Audit log dalam transaction yang sama
+            $this->auditLog->insert([
+                'event_type'    => 'register',
+                'user_id'       => $userId,
+                'ip_address'    => $_SERVER['REMOTE_ADDR'] ?? '',
+                'user_agent'    => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                'occurred_at'   => date('c'),
+                'metadata'      => ['email' => $data['email']],
+            ]);
 
-        // Audit log
-        $this->auditLog->insert([
-            'event_type'    => 'register',
-            'user_id'       => $userId,
-            'ip_address'    => $_SERVER['REMOTE_ADDR'] ?? '',
-            'user_agent'    => $_SERVER['HTTP_USER_AGENT'] ?? '',
-            'occurred_at'   => date('c'),
-            'metadata'      => ['email' => $data['email']],
-        ]);
+            $conn->commit();
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            throw $e;
+        }
+
+        // Kirim email verification DI LUAR transaction
+        // (jangan block user creation kalau email service down)
+        try {
+            $this->sendEmailVerification($userId, $data['email']);
+        } catch (\Throwable $e) {
+            // Log error tapi jangan fail registration
+            error_log("Email verification failed for {$userId}: " . $e->getMessage());
+        }
 
         return ['user_id' => $userId, 'message' => 'Registration successful. Check email for verification.'];
     }
@@ -444,35 +465,70 @@ public function resetPassword(string $token, string $newPassword): array
         throw new \RuntimeException('Token expired. Please request a new reset link.');
     }
 
-    // Update password user
+    // ============================================================
+    // TRANSACTION WAJIB — 4 operasi yang HARUS atomic:
+    //   1. Update password user
+    //   2. Tandai token sebagai used (anti replay)
+    //   3. Revoke semua refresh token user (force re-login)
+    //   4. Audit log
+    //
+    // Skenario buruk tanpa transaction:
+    //   - Password berhasil diupdate, tapi token belum ditandai used
+    //     → attacker bisa pakai token lagi (replay attack)
+    //   - Password diupdate, refresh token tidak di-revoke
+    //     → attacker yang punya refresh token tetap bisa akses
+    //   - Semua berhasil tapi audit log gagal
+    //     → tidak ada bukti reset untuk compliance
+    // ============================================================
+    $conn = $this->users->database->connection;
     $newHash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
-    $this->users->update(
-        ['_id' => $resetRecord['user_id']],
-        ['$set' => [
-            'password_hash'        => $newHash,
-            'password_changed_at'  => date('c'),
-        ]]
-    );
 
-    // Tandai token sebagai used
-    coll('auth', 'password_resets')->update(
-        ['_id' => $resetRecord['_id']],
-        ['$set' => ['used_at' => date('c')]]
-    );
+    $conn->beginTransaction();
+    try {
+        // 1. Update password user
+        $this->users->update(
+            ['_id' => $resetRecord['user_id']],
+            ['$set' => [
+                'password_hash'        => $newHash,
+                'password_changed_at'  => date('c'),
+            ]]
+        );
 
-    // Revoke semua refresh token user (force re-login di device lain)
-    coll('auth', 'refresh_tokens')->update(
-        ['user_id' => $resetRecord['user_id'], 'revoked_at' => null],
-        ['$set' => ['revoked_at' => date('c'), 'revoke_reason' => 'password_reset']]
-    );
+        // 2. Tandai token sebagai used (anti replay)
+        coll('auth', 'password_resets')->update(
+            ['_id' => $resetRecord['_id']],
+            ['$set' => ['used_at' => date('c')]]
+        );
 
-    // Audit log
-    $this->auditLog->insert([
-        'event_type'  => 'password_reset_success',
-        'user_id'     => $resetRecord['user_id'],
-        'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '',
-        'occurred_at' => date('c'),
-    ]);
+        // 3. Revoke semua refresh token user (force re-login di device lain)
+        coll('auth', 'refresh_tokens')->update(
+            ['user_id' => $resetRecord['user_id'], 'revoked_at' => null],
+            ['$set' => ['revoked_at' => date('c'), 'revoke_reason' => 'password_reset']]
+        );
+
+        // 4. Audit log
+        $this->auditLog->insert([
+            'event_type'  => 'password_reset_success',
+            'user_id'     => $resetRecord['user_id'],
+            'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '',
+            'occurred_at' => date('c'),
+        ]);
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
+        // Audit log kegagalan (di luar transaction utama, jadi pasti tersimpan)
+        $this->auditLog->insert([
+            'event_type'  => 'password_reset_failed',
+            'user_id'     => $resetRecord['user_id'],
+            'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '',
+            'occurred_at' => date('c'),
+            'metadata'    => ['error' => $e->getMessage()],
+        ]);
+        throw $e;
+    }
 
     return ['message' => 'Password reset successful. Please login with new password.'];
 }
@@ -560,19 +616,52 @@ public function refreshAccessToken(string $refreshToken): array
         throw new \RuntimeException('Refresh token expired');
     }
 
-    // ROTATE: revoke old, issue new (defense against token theft)
-    coll('auth', 'refresh_tokens')->update(
-        ['_id' => $record['_id']],
-        ['$set' => ['revoked_at' => date('c'), 'revoke_reason' => 'rotated']]
-    );
-
     $user = $this->users->findOne(['_id' => $record['user_id']]);
     if (!$user || !$user['is_active']) {
         throw new \RuntimeException('User not found or inactive');
     }
 
-    $newAccessToken  = $this->generateJwt($user, 900);
-    $newRefreshToken = $this->issueRefreshToken($user['_id']);
+    // ============================================================
+    // TRANSACTION WAJIB — token rotation harus atomic:
+    //   1. Revoke old refresh token
+    //   2. Issue new refresh token
+    //
+    // Tanpa transaction: kalau revoke berhasil tapi insert new gagal,
+    // user logout tanpa token baru → UX buruk & harus login ulang.
+    // Lebih buruk lagi: kalau insert berhasil tapi revoke gagal,
+    // OLD TOKEN TETAP VALID → token theft defense gagal.
+    // ============================================================
+    $conn = $this->users->database->connection;
+    $conn->beginTransaction();
+    try {
+        // 1. Revoke old token
+        coll('auth', 'refresh_tokens')->update(
+            ['_id' => $record['_id']],
+            ['$set' => ['revoked_at' => date('c'), 'revoke_reason' => 'rotated']]
+        );
+
+        // 2. Issue new refresh token (atomic dengan revoke)
+        $newRefreshToken = bin2hex(random_bytes(32));
+        $newTokenHash    = hash('sha256', $newRefreshToken);
+        coll('auth', 'refresh_tokens')->insert([
+            'token_hash'  => $newTokenHash,
+            'user_id'     => $user['_id'],
+            'issued_at'   => date('c'),
+            'expires_at'  => date('c', time() + 60 * 60 * 24 * 30),
+            'device_info' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]);
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
+        throw $e;
+    }
+
+    // Generate JWT di luar transaction (tidak menyentuh DB)
+    $newAccessToken = $this->generateJwt($user, 900);
 
     return [
         'access_token'  => $newAccessToken,
@@ -909,7 +998,247 @@ Jadi ACL config aman — tidak akan ter-timpa dengan kredensial sensitif.
 
 ---
 
-## 8. Multi-Tenant Auth
+## 8. Transaction Safety: atomic multi-step operasi
+
+BangronDB menyimpan data di SQLite, yang mendukung ACID transaction. Untuk operasi multi-step di modul auth, transaction **WAJIB** dipakai untuk mencegah inconsistency. Akses PDO connection via `$collection->database->connection`.
+
+### 8.1 Kapan WAJIB Pakai Transaction
+
+| Skenario | Langkah Atomic | Konsekuensi Tanpa Transaction |
+|----------|----------------|-------------------------------|
+| **Register** | insert user + insert audit log | User ada tanpa audit trail |
+| **Login** (failed) | increment failed_count + audit log | Count salah, brute-force protection gagal |
+| **Login** (success) | reset failed_count + update last_login + audit log | Count tidak reset, audit log hilang |
+| **Logout** | revoke refresh token + audit log | Token masih valid, audit log hilang |
+| **Password Reset** | update password + mark token used + revoke refresh tokens + audit log | **REPLAY ATTACK** kalau token tidak di-mark |
+| **Refresh Token Rotation** | revoke old + insert new | Old token tetap valid → token theft defense gagal |
+| **Change Password** (logged in) | update password + revoke all refresh tokens + audit log | Old session masih valid setelah password berubah |
+| **Account Lock** | set is_locked + locked_until + audit log | Lock tidak konsisten |
+| **Email Verification** | set is_verified + mark token used + audit log | Token bisa dipakai berkali-kali |
+| **ACL Update** | setCustomConfig + saveConfiguration + audit log | Config inconsistent antara memory & DB |
+| **User Deactivate** | set is_active=false + revoke all sessions + audit log | Session masih valid padahal user sudah non-aktif |
+
+### 8.2 Pola Dasar Transaction
+
+```php
+// Akses PDO connection dari Collection
+$conn = coll('auth', 'users')->database->connection;
+
+$conn->beginTransaction();
+try {
+    // ... multiple Collection operations (insert, update, remove) ...
+    // Semua dalam transaction yang sama → atomic
+
+    $conn->commit();
+} catch (\Throwable $e) {
+    if ($conn->inTransaction()) {
+        $conn->rollBack();
+    }
+    throw $e;
+}
+```
+
+**Aturan penting:**
+
+1. **Cek `inTransaction()` sebelum `rollBack()`** — kalau PDO auto-rollback (misalnya karena nested transaction), panggil `rollBack()` akan throw.
+2. **Re-throw exception setelah rollback** — jangan swallow, biar caller tahu operasi gagal.
+3. **Side effects di luar transaction** — kirim email, panggil API eksternal, dll SETELAH commit, bukan di dalam. Kalau rollback, side effect sudah terlanjur terjadi.
+4. **Transaction cross-collection dalam database yang sama = OK** — SQLite transaction mencakup semua tabel di database.
+5. **Transaction cross-DATABASE TIDAK didukung** — modul `auth.bangron` dan `erp_core.bangron` punya connection terpisah, tidak bisa satu transaction. Untuk kasus ini, pakai [Saga Pattern](modular-architecture.md#83-strategi-mitigasi-inconsistency).
+
+### 8.3 Contoh: Change Password (Logged In)
+
+Operasi change password saat user sudah login — wajib revoke semua session lain:
+
+```php
+public function changePassword(string $userId, string $oldPassword, string $newPassword): array
+{
+    // 1. Verifikasi password lama
+    $user = $this->users->findOne(['_id' => $userId]);
+    if (!$user || !password_verify($oldPassword, $user['password_hash'])) {
+        // Audit log failed attempt
+        $this->auditLog->insert([
+            'event_type'  => 'password_change_failed',
+            'user_id'     => $userId,
+            'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '',
+            'occurred_at' => date('c'),
+            'metadata'    => ['reason' => 'wrong_old_password'],
+        ]);
+        throw new \RuntimeException('Current password incorrect');
+    }
+
+    // 2. Validasi password baru
+    if (strlen($newPassword) < 8) {
+        throw new \InvalidArgumentException('Password must be at least 8 characters');
+    }
+    if (!preg_match('/[A-Z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword)) {
+        throw new \InvalidArgumentException('Password must contain uppercase and digit');
+    }
+    // Cek password tidak sama dengan lama
+    if (password_verify($newPassword, $user['password_hash'])) {
+        throw new \InvalidArgumentException('New password must be different from current');
+    }
+
+    // 3. TRANSACTION: update password + revoke all sessions + audit
+    $conn = $this->users->database->connection;
+    $newHash = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
+
+    $conn->beginTransaction();
+    try {
+        // Update password
+        $this->users->update(
+            ['_id' => $userId],
+            ['$set' => [
+                'password_hash'        => $newHash,
+                'password_changed_at'  => date('c'),
+            ]]
+        );
+
+        // Revoke semua refresh token (force re-login di semua device)
+        coll('auth', 'refresh_tokens')->update(
+            ['user_id' => $userId, 'revoked_at' => null],
+            ['$set' => ['revoked_at' => date('c'), 'revoke_reason' => 'password_change']]
+        );
+
+        // Audit log
+        $this->auditLog->insert([
+            'event_type'  => 'password_change_success',
+            'user_id'     => $userId,
+            'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '',
+            'occurred_at' => date('c'),
+        ]);
+
+        $conn->commit();
+    } catch (\Throwable $e) {
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
+        throw $e;
+    }
+
+    return [
+        'message' => 'Password changed. All other sessions have been logged out.',
+        'must_relogin' => true,
+    ];
+}
+```
+
+### 8.4 Alternatif: `executeTransaction()` di QueryExecutor
+
+Untuk operasi yang fully SQL-based (tanpa hooks), BangronDB juga menyediakan helper `executeTransaction()` di `QueryExecutor`:
+
+```php
+// Pola ini cocok untuk SQL raw queries
+db('auth')->queryExecutor->executeTransaction([
+    ['sql' => 'UPDATE users SET password_hash = ?, password_changed_at = ? WHERE _id = ?',
+     'params' => [$newHash, date('c'), $userId]],
+    ['sql' => 'UPDATE refresh_tokens SET revoked_at = ?, revoke_reason = ? WHERE user_id = ? AND revoked_at IS NULL',
+     'params' => [date('c'), 'password_change', $userId]],
+    ['sql' => 'INSERT INTO login_audit_log (event_type, user_id, ip_address, occurred_at) VALUES (?, ?, ?, ?)',
+     'params' => ['password_change_success', $userId, $_SERVER['REMOTE_ADDR'] ?? '', date('c')]],
+]);
+// Auto-commit jika semua sukses, auto-rollback kalau ada yang gagal
+```
+
+**Pilih yang mana?**
+
+| Pola | Kapan Pakai |
+|------|-------------|
+| `$conn->beginTransaction()` manual | Operasi melibatkan `Collection::insert/update/remove` (karena hooks tetap jalan) |
+| `executeTransaction()` | Operasi SQL raw tanpa hooks, lebih ringkas |
+
+Untuk modul auth, **selalu pakai `$conn->beginTransaction()` manual** karena:
+- Hooks (`beforeInsert`/`afterInsert`) tetap berjalan → ACL enforcement & audit otomatis
+- Bisa mix Collection operations dengan logic PHP di tengah (mis. generate JWT)
+
+### 8.5 Anti-Pattern Transaction
+
+```php
+// ❌ WRONG: side effect di dalam transaction
+$conn->beginTransaction();
+try {
+    $this->users->insert([...]);
+    $this->auditLog->insert([...]);
+    $this->sendWelcomeEmail($user);  // ← JANGAN! Email service lambat, transaction lock lama
+    $conn->commit();
+} catch (\Throwable $e) {
+    $conn->rollBack();
+    throw $e;
+}
+
+// ✅ CORRECT: side effect setelah commit
+$conn->beginTransaction();
+try {
+    $this->users->insert([...]);
+    $this->auditLog->insert([...]);
+    $conn->commit();
+} catch (\Throwable $e) {
+    if ($conn->inTransaction()) $conn->rollBack();
+    throw $e;
+}
+$this->sendWelcomeEmail($user);  // ← setelah commit, tidak block transaction
+
+// ❌ WRONG: swallow exception tanpa re-throw
+$conn->beginTransaction();
+try {
+    // ... operations
+    $conn->commit();
+} catch (\Throwable $e) {
+    if ($conn->inTransaction()) $conn->rollBack();
+    // TIDAK ada throw → caller mengira sukses padahal rollback!
+    return false;
+}
+
+// ❌ WRONG: nested transaction tanpa savepoint
+$conn->beginTransaction();
+$this->users->insert([...]);  // ini sebenarnya masih dalam outer transaction
+$conn->beginTransaction();    // SQLite tidak support nested → error atau auto-commit
+$conn->commit();
+$conn->commit();              // double commit, behavior tidak terdefinisi
+
+// ✅ CORRECT: cek inTransaction sebelum begin
+if (!$conn->inTransaction()) {
+    $conn->beginTransaction();
+    $shouldCommit = true;
+}
+try {
+    // ... operations
+    if ($shouldCommit ?? false) $conn->commit();
+} catch (\Throwable $e) {
+    if (($shouldCommit ?? false) && $conn->inTransaction()) $conn->rollBack();
+    throw $e;
+}
+```
+
+### 8.6 Transaction di Hook
+
+Hook `beforeInsert`/`afterInsert` berjalan dalam transaction yang sama dengan operasi trigger-nya. Jadi kalau insert SO di transaction, hook `afterInsert` SO juga dalam transaction tersebut.
+
+```php
+// Hook ini otomatis dalam transaction yang sama dengan insert invoice
+coll('erp_sales', 'invoices')->on('afterInsert', function (array $invoice) {
+    // Insert JE — kalau gagal, invoice insert juga di-rollback (atomic!)
+    coll('erp_finance', 'journal_entries')->insert([
+        // ...
+    ]);
+});
+
+// Caller:
+$conn->beginTransaction();
+try {
+    coll('erp_sales', 'invoices')->insert($invoice);  // → trigger hook → insert JE
+    $conn->commit();  // invoice + JE atomic
+} catch (\Throwable $e) {
+    $conn->rollBack();  // invoice + JE both rolled back
+    throw $e;
+}
+```
+
+**Tapi hati-hati:** hook cross-DATABASE (insert ke `erp_finance` dari hook `erp_sales`) TIDAK dalam transaction yang sama karena connection berbeda. Lihat [Modular Architecture → Strategi Mitigasi Inconsistency](modular-architecture.md#82-strategi-mitigasi-inconsistency).
+
+---
+
+## 9. Multi-Tenant Auth
 
 Untuk SaaS multi-tenant, gabungkan pola di dokumen [Modular Architecture](modular-architecture.md#6-multi-tenant-dengan-strategi-yang-sama) dengan auth:
 
@@ -970,6 +1299,9 @@ $payload = [
 8. **Wrapper untuk enforcement Read** — BangronDB belum punya `beforeFind` hook, bungkus manual.
 9. **Audit log semua perubahan ACL** — siapa, kapan, dari role apa ke role apa.
 10. **Brute-force protection** — lock account setelah 5 percobaan gagal, unlock 30 menit.
+11. **Transaction WAJIB untuk operasi multi-step** — register, login, password reset, token rotation, change password, account lock, dll. Akses PDO via `$coll->database->connection->beginTransaction()`. Side effects (email, API call) di luar transaction.
+12. **Re-throw exception setelah rollback** — jangan swallow, biar caller tahu operasi gagal.
+13. **Hook berjalan dalam transaction yang sama** — insert + hook afterInsert atomic, tapi cross-database hook TIDAK atomic (pakai Saga Pattern).
 
 ---
 
