@@ -55,6 +55,14 @@ trait HooksTrait
         $this->hooks[$event] = array_values($this->hooks[$event]);
     }
 
+    /**
+     * Apply hooks for a given event.
+     *
+     * @param string $event
+     * @param array<mixed> $data
+     * @param mixed $id
+     * @return mixed
+     */
     protected function applyHooks(string $event, array $data, $id = null): mixed
     {
         if (!empty($this->hooks[$event])) {
@@ -88,6 +96,13 @@ trait HooksTrait
         $this->applyHooks('afterInsert', $document, $insertId);
     }
 
+    /**
+     * Apply update hooks.
+     *
+     * @param array<mixed> $criteria
+     * @param array<mixed> $data
+     * @return void
+     */
     protected function applyUpdateHooks(array &$criteria, array &$data): void
     {
         if (!empty($this->hooks['beforeUpdate'])) {

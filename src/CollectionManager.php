@@ -333,6 +333,7 @@ class CollectionManager
             return $timestamp === false ? null : $timestamp;
         }
 
+        // @phpstan-ignore-next-line deadCode.unreachable - runtime fallback for invalid types
         return null;
     }
 }

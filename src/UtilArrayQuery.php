@@ -66,8 +66,12 @@ class UtilArrayQuery
 
     /**
      * Match a full criteria array against a document array.
+     *
+     * @param array<mixed> $criteria
+     * @param array<mixed> $document
+     * @return bool
      */
-    public static function match(array $criteria, array $document)
+    public static function match(array $criteria, array $document): bool
     {
         if (!\is_array($criteria)) {
             return false;
