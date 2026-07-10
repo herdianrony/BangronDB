@@ -99,6 +99,7 @@ class Collection
     /**
      * Insert document.
      *
+     * @param array<string, mixed>|list<array<string, mixed>> $document Single document or list of documents for batch insert
      * @return mixed last_insert_id for single document or
      *               count count of inserted documents for arrays
      */
@@ -172,6 +173,8 @@ class Collection
 
     /**
      * Insert document.
+     *
+     * @param array<string, mixed> $document
      */
     protected function _insert(array $document): mixed
     {
@@ -206,6 +209,9 @@ class Collection
 
     /**
      * Prepare document data for storage (encoding + searchable fields).
+     *
+     * @param array<string, mixed> $document
+     * @return array<string, mixed>
      */
     protected function prepareDocumentForStorage(array $document): array
     {
@@ -223,6 +229,8 @@ class Collection
 
     /**
      * Execute the actual SQL insert statement using prepared statements.
+     *
+     * @param array<string, mixed> $data
      */
     protected function executeInsert(array $data, ?string $insertId = null): mixed
     {
@@ -263,6 +271,8 @@ class Collection
 
     /**
      * Save document.
+     *
+     * @param array<string, mixed> $document
      */
     public function save(array $document, bool $create = false): mixed
     {
@@ -276,6 +286,8 @@ class Collection
 
     /**
      * Perform an upsert operation (update if exists, insert if not).
+     *
+     * @param array<string, mixed> $document
      */
     protected function upsertDocument(array $document): mixed
     {
@@ -317,6 +329,8 @@ class Collection
 
     /**
      * Update documents.
+     *
+     * @param array<string, mixed> $data
      */
     public function update(mixed $criteria, array $data, bool $merge = true): int
     {
@@ -333,6 +347,8 @@ class Collection
     /**
      * Perform a bulk update using SQL UPDATE WHERE for criteria that can be translated to JSON WHERE.
      * Falls back to per-document update when hooks are registered or criteria cannot be translated.
+     *
+     * @param array<string, mixed> $data
      */
     protected function bulkUpdate(mixed $criteria, array $data, bool $merge): int
     {
@@ -389,6 +405,8 @@ class Collection
 
     /**
      * Perform per-document update (fallback for complex criteria or when hooks are registered).
+     *
+     * @param array<string, mixed> $data
      */
     protected function perDocumentUpdate(mixed $criteria, array $data, bool $merge): int
     {
@@ -402,6 +420,8 @@ class Collection
 
     /**
      * Find documents matching criteria for update/remove operations.
+     *
+     * @return array<int, array<string, mixed>>
      */
     protected function findDocumentsMatchingCriteria(mixed $criteria): array
     {
@@ -427,6 +447,9 @@ class Collection
 
     /**
      * Update a single document.
+     *
+     * @param array<string, mixed> $doc
+     * @param array<string, mixed> $data
      */
     protected function updateDocument(array $doc, array $data, bool $merge): int
     {
@@ -466,6 +489,10 @@ class Collection
 
     /**
      * Merge document data based on merge flag.
+     *
+     * @param array<string, mixed> $originalDoc
+     * @param array<string, mixed> $newData
+     * @return array<string, mixed>
      */
     protected function mergeDocumentData(array $originalDoc, array $newData, bool $merge): array
     {
@@ -519,6 +546,8 @@ class Collection
 
     /**
      * Execute the actual document update in database.
+     *
+     * @param array<string, mixed> $document
      */
     protected function executeDocumentUpdate(int $docId, array $document, string $encoded): void
     {
@@ -550,7 +579,7 @@ class Collection
     /**
      * Remove documents.
      *
-     * @return mixed
+     * @return int
      */
     public function remove(mixed $criteria): int
     {
@@ -645,7 +674,8 @@ class Collection
     /**
      * Find documents.
      *
-     * @return object Cursor
+     * @param array<string, mixed>|null $projection
+     * @return Cursor
      */
     public function find(mixed $criteria = null, ?array $projection = null): Cursor
     {
@@ -654,6 +684,9 @@ class Collection
 
     /**
      * Find one document.
+     *
+     * @param array<string, mixed>|null $projection
+     * @return array<string, mixed>|null
      */
     public function findOne(mixed $criteria = null, ?array $projection = null): ?array
     {
@@ -666,6 +699,8 @@ class Collection
      * Populate references in given documents.
      * $foreign may be "collection" or "db.collection".
      * Returns populated documents (array). If single document passed, returns single document.
+     *
+     * @param array<string, mixed>|list<array<string, mixed>> $documents Single document or list of documents
      */
     public function populate(array $documents, string $localField, string $foreign, string $foreignField = '_id', ?string $as = null): mixed
     {

@@ -17,6 +17,9 @@ trait HooksTrait
      */
     protected array $hooks = [];
 
+    /**
+     * @return array<string, array<int, \Closure>>
+     */
     public function getHooks(): array
     {
         return $this->hooks;
@@ -86,11 +89,13 @@ trait HooksTrait
         return $data;
     }
 
+    /** @param array<string, mixed> $document */
     protected function applyBeforeInsertHooks(array $document): mixed
     {
         return $this->applyHooks('beforeInsert', $document);
     }
 
+    /** @param array<string, mixed> $document */
     protected function applyAfterInsertHooks(array $document, mixed $insertId): void
     {
         $this->applyHooks('afterInsert', $document, $insertId);
@@ -126,6 +131,10 @@ trait HooksTrait
         }
     }
 
+    /**
+     * @param array<string, mixed> $originalDoc
+     * @param array<string, mixed> $updatedDocument
+     */
     protected function triggerAfterUpdateHooks(array $originalDoc, array $updatedDocument): void
     {
         if (!empty($this->hooks['afterUpdate'])) {
@@ -138,6 +147,7 @@ trait HooksTrait
         }
     }
 
+    /** @param array<string, mixed> $row */
     protected function shouldRemoveDocument(array $row): bool
     {
         $doc = $this->decodeStored($row['document']) ?: [];
@@ -157,6 +167,7 @@ trait HooksTrait
         return true;
     }
 
+    /** @param array<string, mixed> $document */
     protected function triggerAfterRemoveHooks(array $document): void
     {
         if (!empty($this->hooks['afterRemove'])) {

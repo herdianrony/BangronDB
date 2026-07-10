@@ -19,6 +19,8 @@ class QueryExecutor
 
     /**
      * Query log storage.
+     *
+     * @var list<array<string, mixed>>
      */
     private array $queryLog = [];
 
@@ -29,6 +31,8 @@ class QueryExecutor
 
     /**
      * Query execution statistics.
+     *
+     * @var array<string, array{count: int, total_time: float, avg_time: float, min_time: float, max_time: float}>
      */
     private array $queryStats = [];
 
@@ -73,6 +77,8 @@ class QueryExecutor
 
     /**
      * Get query log.
+     *
+     * @return list<array<string, mixed>>
      */
     public function getQueryLog(): array
     {
@@ -81,6 +87,8 @@ class QueryExecutor
 
     /**
      * Get query execution statistics.
+     *
+     * @return array<string, array{count: int, total_time: float, avg_time: float, min_time: float, max_time: float}>
      */
     public function getQueryStats(): array
     {
@@ -98,6 +106,8 @@ class QueryExecutor
 
     /**
      * Execute a SELECT query and return PDOStatement.
+     *
+     * @param array<int|string, mixed> $params
      *
      * @throws QueryExecutionException
      */
@@ -131,6 +141,8 @@ class QueryExecutor
 
     /**
      * Execute a non-SELECT query (INSERT, UPDATE, DELETE) and return affected rows.
+     *
+     * @param array<int|string, mixed> $params
      *
      * @throws QueryExecutionException
      */
@@ -262,7 +274,8 @@ class QueryExecutor
     /**
      * Execute multiple queries in a transaction.
      *
-     * @param array<array{sql: string, params?: array}> $queries
+     * @param list<array{sql: string, params?: array<int|string, mixed>}> $queries
+     * @return list<mixed> Results of each query (either int affected-rows or list<array<string, mixed>> rows)
      *
      * @throws QueryExecutionException
      */
@@ -337,6 +350,8 @@ class QueryExecutor
 
     /**
      * Bind parameters to a prepared statement.
+     *
+     * @param array<int|string, mixed> $params
      */
     private function bindParameters(\PDOStatement $stmt, array $params): void
     {
@@ -370,6 +385,10 @@ class QueryExecutor
 
     /**
      * Filter sensitive data from parameters before logging.
+     *
+     * @param array<int|string, mixed> $params
+     *
+     * @return array<int|string, mixed>
      */
     private function filterSensitiveParams(array $params): array
     {
@@ -395,6 +414,8 @@ class QueryExecutor
 
     /**
      * Log a successful query execution.
+     *
+     * @param array<int|string, mixed> $params
      */
     private function logQuery(string $sql, array $params, float $startTime, ?int $affectedRows = null): void
     {
@@ -431,6 +452,8 @@ class QueryExecutor
 
     /**
      * Log a query error.
+     *
+     * @param array<int|string, mixed> $params
      */
     private function logError(string $sql, array $params, \Exception $e): void
     {

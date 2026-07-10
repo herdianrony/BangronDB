@@ -14,10 +14,10 @@ class ValidationException extends BangronDBException
     /**
      * Create exception for schema validation failure.
      *
-     * @param string $field   Field name that failed validation
-     * @param string $rule    Validation rule that failed
-     * @param mixed  $value   The invalid value
-     * @param array  $context Additional context
+     * @param string                $field   Field name that failed validation
+     * @param string                $rule    Validation rule that failed
+     * @param mixed                 $value   The invalid value
+     * @param array<string, mixed>  $context Additional context
      */
     public static function schemaValidationFailed(
         string $field,
@@ -56,8 +56,8 @@ class ValidationException extends BangronDBException
     /**
      * Create exception for required field missing.
      *
-     * @param string $field   Field name
-     * @param array  $context Additional context
+     * @param string                $field   Field name
+     * @param array<string, mixed>  $context Additional context
      */
     public static function requiredFieldMissing(string $field, array $context = []): self
     {
@@ -70,10 +70,10 @@ class ValidationException extends BangronDBException
     /**
      * Create exception for invalid type.
      *
-     * @param string $field        Field name
-     * @param string $expectedType Expected type
-     * @param string $actualType   Actual type
-     * @param array  $context      Additional context
+     * @param string                $field        Field name
+     * @param string                $expectedType Expected type
+     * @param string                $actualType   Actual type
+     * @param array<string, mixed>  $context      Additional context
      */
     public static function invalidType(
         string $field,
@@ -94,10 +94,10 @@ class ValidationException extends BangronDBException
     /**
      * Create exception for invalid name format.
      *
-     * @param string $name    The invalid name
-     * @param string $pattern Expected pattern
-     * @param string $type    Type of name (database, collection, etc.)
-     * @param array  $context Additional context
+     * @param string                $name    The invalid name
+     * @param string                $pattern Expected pattern
+     * @param string                $type    Type of name (database, collection, etc.)
+     * @param array<string, mixed>  $context Additional context
      */
     public static function invalidNameFormat(
         string $name,

@@ -13,6 +13,8 @@ use BangronDB\Security\FieldValidator;
 class Factory
 {
     /**
+     * @param array<string, mixed> $options
+     *
      * @throws DatabaseException
      */
     public static function createClient(?string $path = null, array $options = []): Client
@@ -33,6 +35,8 @@ class Factory
     }
 
     /**
+     * @param array<string, mixed> $options
+     *
      * @throws DatabaseException
      */
     public static function createDatabase(string $path, string $name, array $options = []): Database
@@ -43,6 +47,8 @@ class Factory
     }
 
     /**
+     * @param array<string, mixed> $options
+     *
      * @throws DatabaseException
      */
     public static function createCollection(
@@ -84,6 +90,7 @@ class Factory
      *
      * @throws DatabaseException
      */
+    // @phpstan-ignore-next-line method.unused
     private static function validatePath(string $path): void
     {
         $directory = dirname($path);

@@ -14,9 +14,9 @@ class DatabaseException extends BangronDBException
     /**
      * Create exception for database not found.
      *
-     * @param string $databaseName Database name
-     * @param string $path         Database path
-     * @param array  $context      Additional context
+     * @param string                $databaseName Database name
+     * @param string                $path         Database path
+     * @param array<string, mixed>  $context      Additional context
      */
     public static function notFound(
         string $databaseName,
@@ -36,10 +36,10 @@ class DatabaseException extends BangronDBException
     /**
      * Create exception for connection failure.
      *
-     * @param string          $path     Database path
-     * @param string          $reason   Failure reason
-     * @param \Throwable|null $previous Previous exception
-     * @param array           $context  Additional context
+     * @param string                $path     Database path
+     * @param string                $reason   Failure reason
+     * @param \Throwable|null       $previous Previous exception
+     * @param array<string, mixed>  $context  Additional context
      */
     public static function connectionFailed(
         string $path,
@@ -62,9 +62,9 @@ class DatabaseException extends BangronDBException
     /**
      * Create exception for integrity check failure.
      *
-     * @param string $databaseName Database name
-     * @param array  $issues       Integrity issues found
-     * @param array  $context      Additional context
+     * @param string                $databaseName Database name
+     * @param array<string, mixed>  $issues       Integrity issues found
+     * @param array<string, mixed>  $context      Additional context
      */
     public static function integrityCheckFailed(
         string $databaseName,
@@ -83,9 +83,9 @@ class DatabaseException extends BangronDBException
     /**
      * Create exception for permission denied.
      *
-     * @param string $path      Database path
-     * @param string $operation Operation attempted (read, write, create)
-     * @param array  $context   Additional context
+     * @param string                $path      Database path
+     * @param string                $operation Operation attempted (read, write, create)
+     * @param array<string, mixed>  $context   Additional context
      */
     public static function permissionDenied(
         string $path,
@@ -104,9 +104,9 @@ class DatabaseException extends BangronDBException
     /**
      * Create exception for invalid database path.
      *
-     * @param string $path    Database path
-     * @param string $reason  Reason why path is invalid
-     * @param array  $context Additional context
+     * @param string                $path    Database path
+     * @param string                $reason  Reason why path is invalid
+     * @param array<string, mixed>  $context Additional context
      */
     public static function invalidPath(
         string $path,

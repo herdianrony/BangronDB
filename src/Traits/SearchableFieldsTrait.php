@@ -87,6 +87,8 @@ trait SearchableFieldsTrait
 
     /**
      * Get searchable fields configuration.
+     *
+     * @return array<string, array{hash: bool}>
      */
     public function getSearchableFields(): array
     {
@@ -97,6 +99,8 @@ trait SearchableFieldsTrait
      * Configure searchable fields. Each field will be stored into a dedicated
      * `si_{field}` TEXT column. If $hash is true the stored value will be
      * a hex SHA-256 of the string (useful for privacy-preserving search).
+     *
+     * @param array<int|string, mixed> $fields
      */
     public function setSearchableFields(array $fields, bool $hash = false): self
     {
@@ -250,6 +254,10 @@ trait SearchableFieldsTrait
 
     /**
      * Compute the map of searchable column => value for a given document.
+     *
+     * @param array<string, mixed> $doc
+     *
+     * @return array<string, string|null>
      */
     protected function _computeSearchIndexValues(array $doc): array
     {

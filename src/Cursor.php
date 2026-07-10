@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace BangronDB;
 
+use BangronDB\Exceptions\QueryExecutionException;
+
 /**
  * Cursor for iterating over query results.
+ *
+ * @implements \IteratorAggregate<int, array<string, mixed>>
  */
 class Cursor implements \IteratorAggregate
 {
     // Iterator state
     protected int $position = 0;
     protected ?\PDOStatement $stmt = null;
+
+    /** @var array<string, mixed>|null */
     protected ?array $currentRow = null;
     protected ?string $criteriaSql = null;
     protected int $lastKey = -1;
@@ -19,9 +25,12 @@ class Cursor implements \IteratorAggregate
     // Query modifiers
     protected ?int $limit = null;
     protected ?int $skip = null;
+
+    /** @var array<string, int>|null */
     protected ?array $sort = null;
 
     // Populate configuration
+    /** @var array<int, array{path: string, collection: Collection, options: array<string, mixed>}> */
     protected array $populate = [];
 
     // Soft delete configuration
@@ -29,6 +38,7 @@ class Cursor implements \IteratorAggregate
     protected bool $onlyTrashed = false;
 
     // Prepared statement parameters for WHERE clause
+    /** @var list<mixed> */
     protected array $whereParams = [];
 
     // Memory safety configuration
@@ -37,6 +47,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Constructor.
+     *
+     * @param array<string, mixed>|null $projection
      */
     public function __construct(
         public readonly Collection $collection,
@@ -72,7 +84,7 @@ class Cursor implements \IteratorAggregate
 
         try {
             $stmt = $this->collection->database->queryExecutor->executeQuery($sql, $this->whereParams);
-            $row = $stmt ? $stmt->fetch(\PDO::FETCH_ASSOC) : null;
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             return $row ? (int) $row['c'] : 0;
         } catch (QueryExecutionException $e) {
@@ -206,6 +218,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Set sort order for results.
+     *
+     * @param array<string, int> $sort
      */
     public function sort(array $sort): self
     {
@@ -218,6 +232,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Add population rule for a single relationship.
+     *
+     * @param array<string, mixed> $options
      */
     public function populate(string $path, Collection $collection, array $options = []): self
     {
@@ -228,6 +244,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Add multiple population rules.
+     *
+     * @param array<string, Collection|array{0: Collection, 1?: array<string, mixed>}> $defs
      */
     public function populateMany(array $defs): self
     {
@@ -244,6 +262,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Alternative populate API with fluent interface.
+     *
+     * @param string|array<string, Collection|array{0: Collection, 1?: array<string, mixed>}> $path
+     * @param array<string, mixed> $options
      */
     public function with(string|array $path, ?Collection $collection = null, array $options = []): self
     {
@@ -286,7 +307,7 @@ class Cursor implements \IteratorAggregate
      * - Iterator interface for memory-efficient processing
      *
      * @throws \RuntimeException If result set exceeds safe limits without explicit limit
-     * @return array Array of documents
+     * @return list<array<string, mixed>> Array of documents
      */
     public function toArray(): array
     {
@@ -322,7 +343,7 @@ class Cursor implements \IteratorAggregate
      *
      * @param int|null $maxResults Maximum number of results (default: 1000)
      *
-     * @return array Array of documents
+     * @return list<array<string, mixed>> Array of documents
      */
     public function toArraySafe(?int $maxResults = null): array
     {
@@ -344,6 +365,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Fetch all documents from the cursor.
+     *
+     * @return list<array<string, mixed>>
      */
     private function fetchAllDocuments(): array
     {
@@ -359,6 +382,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Apply population rules to documents.
+     *
+     * @param list<array<string, mixed>> $data
+     * @return list<array<string, mixed>>
      */
     private function applyPopulationRules(array $data): array
     {
@@ -447,6 +473,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Add LIMIT and OFFSET clauses to SQL.
+     *
+     * @param list<string> $sql
      */
     private function addPaginationClauses(array &$sql): void
     {
@@ -472,6 +500,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Get current document.
+     *
+     * @return array<string, mixed>|null
      */
     public function current(): ?array
     {
@@ -513,6 +543,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Get iterator for foreach loops.
+     *
+     * @return \Traversable<int, array<string, mixed>>
      */
     public function getIterator(): \Traversable
     {
@@ -527,6 +559,10 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Apply a single population rule to data.
+     *
+     * @param list<array<string, mixed>>                                                       $data
+     * @param array{path: string, collection: Collection, options: array<string, mixed>}       $rule
+     * @return list<array<string, mixed>>
      */
     protected function applyPopulate(array $data, array $rule): array
     {
@@ -548,6 +584,10 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Collect IDs from data based on path segments.
+     *
+     * @param list<array<string, mixed>> $data
+     * @param list<string>               $segments
+     * @return list<mixed>
      */
     private function collectIdsFromData(array $data, array $segments): array
     {
@@ -561,6 +601,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Fetch related documents from collection.
+     *
+     * @param list<mixed> $ids
+     * @return list<array<string, mixed>>
      */
     private function fetchRelatedDocuments(Collection $collection, array $ids): array
     {
@@ -569,6 +612,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Build map of related documents by ID.
+     *
+     * @param list<array<string, mixed>> $relatedDocuments
+     * @return array<mixed, array<string, mixed>>
      */
     private function buildDocumentMap(array $relatedDocuments): array
     {
@@ -582,6 +628,11 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Inject related documents into main data.
+     *
+     * @param list<array<string, mixed>>            $data
+     * @param list<string>                           $segments
+     * @param array<mixed, array<string, mixed>>     $map
+     * @return list<array<string, mixed>>
      */
     private function injectDocuments(array $data, array $segments, array $map, string $as): array
     {
@@ -620,6 +671,7 @@ class Cursor implements \IteratorAggregate
      * Check if path node is valid.
      *
      * @param array<int|string, mixed> $node
+     * @param list<string>             $path
      */
     private function isValidPathNode(array $node, array $path, int $index): bool
     {
@@ -630,6 +682,8 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Check if current index is the final path segment.
+     *
+     * @param list<string> $path
      */
     private function isFinalPathSegment(array $path, int $index): bool
     {
@@ -664,6 +718,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Apply projection to documents.
+     *
+     * @param list<array<string, mixed>> $data
+     * @return list<array<string, mixed>>
      */
     protected function applyProjection(array $data): array
     {
@@ -698,6 +755,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Apply projection to a single document.
+     *
+     * @param array<string, mixed> $doc
+     * @return array<string, mixed>
      */
     private function applyProjectionToDocument(array $doc, bool $isInclusive): array
     {
@@ -710,6 +770,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Apply inclusive projection (include specified fields).
+     *
+     * @param array<string, mixed> $doc
+     * @return array<string, mixed>
      */
     private function applyInclusiveProjection(array $doc): array
     {
@@ -731,6 +794,9 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Apply exclusive projection (exclude specified fields).
+     *
+     * @param array<string, mixed> $doc
+     * @return array<string, mixed>
      */
     private function applyExclusiveProjection(array $doc): array
     {

@@ -109,6 +109,9 @@ trait IdGeneratorTrait
         return $prefix . $id . $suffix;
     }
 
+    /**
+     * @param array<string, mixed> $document
+     */
     protected function ensureDocumentId(array $document): mixed
     {
         if (!isset($document['_id'])) {

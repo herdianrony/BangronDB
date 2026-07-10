@@ -69,7 +69,7 @@ trait SoftDeleteTrait
     /**
      * Restore soft-deleted documents.
      *
-     * @param array $criteria
+     * @param array<string, mixed> $criteria
      * @return int Number of restored documents
      */
     public function restore($criteria): int

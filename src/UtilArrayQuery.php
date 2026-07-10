@@ -24,8 +24,13 @@ class UtilArrayQuery
 
     /**
      * Get a value from an array using dot notation.
+     *
+     * @param array<string, mixed> $data
+     * @param mixed $default
+     *
+     * @return mixed
      */
-    public static function get(array $data, string $path, $default = null)
+    public static function get(array $data, string $path, mixed $default = null): mixed
     {
         if (strpos($path, '.') === false) {
             return array_key_exists($path, $data) ? $data[$path] : $default;
@@ -47,7 +52,7 @@ class UtilArrayQuery
      * @param mixed $value
      * @param array<string, mixed> $condition
      */
-    public static function check(mixed $value, array $condition)
+    public static function check(mixed $value, array $condition): bool
     {
         $keys = \array_keys($condition);
 
@@ -138,7 +143,13 @@ class UtilArrayQuery
         return true;
     }
 
-    private static function evaluate(string $func, mixed $a, mixed $b)
+    /**
+     * @param mixed $a
+     * @param mixed $b
+     *
+     * @return mixed
+     */
+    private static function evaluate(string $func, mixed $a, mixed $b): mixed
     {
         $r = false;
 
@@ -293,7 +304,7 @@ class UtilArrayQuery
     /**
      * Helper function for UTF-8 aware Levenshtein distance.
      */
-    public static function levenshtein_utf8(string $s1, string $s2)
+    public static function levenshtein_utf8(string $s1, string $s2): int
     {
         $map = [];
         $utf8ToExtendedAscii = function ($str) use ($map) {
@@ -317,8 +328,10 @@ class UtilArrayQuery
 
     /**
      * Fuzzy search function with distance-based matching.
+     *
+     * @return int|float
      */
-    public static function fuzzy_search(string $search, string $text, int $distance = 3)
+    public static function fuzzy_search(string $search, string $text, int $distance = 3): int|float
     {
         $needles = \explode(' ', \mb_strtolower($search, 'UTF-8'));
         $tokens = \explode(' ', \mb_strtolower($text, 'UTF-8'));
@@ -340,10 +353,10 @@ class UtilArrayQuery
             }
         }
 
+        // Note: explode() always returns at least one element (even for an empty
+        // string it yields ['']), so $needleCount is guaranteed >= 1 and there is
+        // no division-by-zero risk here.
         $needleCount = \count($needles);
-        if ($needleCount === 0) {
-            return 0;
-        }
 
         return $score / $needleCount;
     }
@@ -351,7 +364,7 @@ class UtilArrayQuery
     /**
      * Generate a unique ID (UUID v4).
      */
-    public static function generateId()
+    public static function generateId(): string
     {
         return sprintf(
             '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',

@@ -18,6 +18,8 @@ class DatabaseMetrics
 
     /**
      * Get database health and metrics information.
+     *
+     * @return array<string, mixed>
      */
     public function getHealthMetrics(): array
     {
@@ -36,6 +38,8 @@ class DatabaseMetrics
 
     /**
      * Check database integrity using SQLite's PRAGMA integrity_check.
+     *
+     * @return array<string, mixed>
      */
     public function checkIntegrity(): array
     {
@@ -59,6 +63,8 @@ class DatabaseMetrics
 
     /**
      * Get comprehensive data metrics for the database.
+     *
+     * @return array<string, mixed>
      */
     public function getDataMetrics(): array
     {
@@ -105,6 +111,8 @@ class DatabaseMetrics
 
     /**
      * Get performance metrics for the database.
+     *
+     * @return array<string, mixed>
      */
     public function getPerformanceMetrics(): array
     {
@@ -283,6 +291,8 @@ class DatabaseMetrics
 
     /**
      * Get index metrics for the database.
+     *
+     * @return array<string, mixed>
      */
     public function getIndexMetrics(): array
     {
@@ -315,6 +325,8 @@ class DatabaseMetrics
 
     /**
      * Get detailed metrics for each collection.
+     *
+     * @return array<string, mixed>
      */
     public function getCollectionMetrics(): array
     {
@@ -358,6 +370,7 @@ class DatabaseMetrics
         return $collections;
     }
 
+    /** @return array<string, int> */
     private function getHookCounts(Collection $collection): array
     {
         $hooks = $collection->getHooks();

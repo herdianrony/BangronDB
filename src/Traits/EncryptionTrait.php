@@ -21,6 +21,9 @@ trait EncryptionTrait
     /** @var array<string, string> cache of PBKDF2-derived keys keyed by sha256(key+salt) */
     private static array $derivedKeyCache = [];
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function getDebugEncryptionInfo(): array
     {
         return [
@@ -30,6 +33,9 @@ trait EncryptionTrait
         ];
     }
 
+    /**
+     * @param array<string, mixed> $document
+     */
     private function validateDocumentDepth(array $document, int $depth = 0): void
     {
         if ($depth > self::MAX_DOCUMENT_DEPTH) {
@@ -118,6 +124,7 @@ trait EncryptionTrait
         return $this->maxDocumentSize;
     }
 
+    /** @param array<string, mixed> $doc */
     protected function encodeStored(array $doc): string
     {
         $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
@@ -127,6 +134,7 @@ trait EncryptionTrait
         return $this->encodeEncrypted($doc, $key);
     }
 
+    /** @param array<string, mixed> $doc */
     private function encodeJson(array $doc): string
     {
         $this->validateDocumentDepth($doc);
@@ -140,6 +148,7 @@ trait EncryptionTrait
         return $json;
     }
 
+    /** @param array<string, mixed> $doc */
     private function encodeEncrypted(array $doc, string $key): string
     {
         $id = $doc['_id'] ?? null;
@@ -183,6 +192,7 @@ trait EncryptionTrait
         return isset($this->database) ? $this->database->getEncryptionSalt() : self::LEGACY_PBKDF2_SALT;
     }
 
+    /** @return array<string, string> */
     private function encryptData(string $plain, string $key): array
     {
         $rawKey = $this->getDerivedKey($key, $this->resolveKdfSalt());
@@ -198,6 +208,7 @@ trait EncryptionTrait
         ];
     }
 
+    /** @return array<string, mixed>|null */
     public function decodeStored(string $stored): ?array
     {
         $decoded = json_decode($stored, true);
@@ -210,11 +221,17 @@ trait EncryptionTrait
         return $this->decryptDocument($decoded);
     }
 
+    /** @param array<string, mixed> $decoded */
     private function isEncryptedFormat(array $decoded): bool
     {
         return \is_array($decoded) && isset($decoded['encrypted_data']) && isset($decoded['tag']);
     }
 
+    /**
+     * @param array<string, mixed> $decoded
+     *
+     * @return array<string, mixed>|null
+     */
     private function decryptDocument(array $decoded): ?array
     {
         $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
@@ -235,14 +252,18 @@ trait EncryptionTrait
         return $payload;
     }
 
+    /** @param array<string, mixed> $decoded */
     private function decryptData(array $decoded): ?string
     {
         $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
         if (empty($key)) {
             return null;
         }
+        /** @var string|false $cipher */
         $cipher = \base64_decode($decoded['encrypted_data'] ?? '');
+        /** @var string|false $iv */
         $iv = \base64_decode($decoded['iv'] ?? '');
+        /** @var string|false $tag */
         $tag = \base64_decode($decoded['tag'] ?? '');
         if ($cipher === false || $iv === false || $tag === false) {
             return null;
@@ -271,6 +292,7 @@ trait EncryptionTrait
         return null;
     }
 
+    /** @return array<string, string> */
     private function _encryptPlaintext(string $plain): array
     {
         $key = $this->encryptionKey ?? $this->database->getEncryptionKey() ?? null;
@@ -291,7 +313,9 @@ trait EncryptionTrait
 
     private function decryptDataString(string $encryptedBase64, string $ivBase64, string $key, ?string $tagBase64 = null): ?string
     {
+        /** @var string|false $cipher */
         $cipher = \base64_decode($encryptedBase64);
+        /** @var string|false $iv */
         $iv = \base64_decode($ivBase64);
         $tag = $tagBase64 !== null ? \base64_decode($tagBase64) : '';
         if ($cipher === false || $iv === false) {

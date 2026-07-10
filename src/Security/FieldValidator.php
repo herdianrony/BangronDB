@@ -19,10 +19,18 @@ class FieldValidator
 
     /**
      * High-risk regex constructs to reject from persisted config.
+     *
+     * Each pattern uses a negative lookbehind `(?<!\\\\)` to avoid false
+     * positives on escaped characters. Without this, an escaped literal
+     * followed by a quantifier (e.g. `\+?` meaning "optional literal plus",
+     * or `\.{2,}` meaning "literal dot repeated") would be flagged as a
+     * nested quantifier and trigger catastrophic downgrading to literal
+     * matching — silently breaking legitimate regexes like phone-number
+     * patterns `/^\+?[0-9]{10,15}$/`.
      */
     private const DANGEROUS_REGEX_PATTERNS = [
-        '/([+*?]|\{[^}]*\})\s*([+*?]|\{)/',
-        '/\((?:[^()\\]|\\.)*([+*?]|\{[^}]*\})(?:[^()\\]|\\.)*\)\s*(?:[+*?]|\{)/',
+        '/(?<!\\\\)(?:[+*?]|\{[^}]*\})\s*(?:[+*?]|\{)/',
+        '/\((?:[^()\\]|\\.)*(?<!\\\\)(?:[+*?]|\{[^}]*\})(?:[^()\\]|\\.)*\)\s*(?:[+*?]|\{)/',
         '/[\\\\][1-9][0-9]*/',
         '/\(\?(?:R|[0-9]|&)/',
         '/\(\?<(?=[=!])/',

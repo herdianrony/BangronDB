@@ -4,7 +4,9 @@ BangronDB adalah database dokumen berbasis SQLite untuk PHP dengan API bergaya M
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.1-blue.svg)](https://www.php.net)
-[![PHPStan](https://img.shields.io/badge/PHPStan-level%209-brightgreen.svg)](phpstan.neon)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%206-brightgreen.svg)](phpstan.neon)
+[![CI](https://github.com/herdianrony/BangronDB/actions/workflows/ci.yml/badge.svg)](https://github.com/herdianrony/BangronDB/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-376%20passed-brightgreen.svg)](tests)
 
 ## Sorotan Fitur
 

@@ -13,12 +13,14 @@ use BangronDB\Security\FieldValidator;
 trait SchemaValidationTrait
 {
     /**
-     * @var array Defined schema rules.
+     * @var array<string, mixed> Defined schema rules.
      */
     protected array $schema = [];
 
     /**
      * Set schema validation rules.
+     *
+     * @param array<string, mixed> $schema
      */
     public function setSchema(array $schema): self
     {
@@ -28,6 +30,8 @@ trait SchemaValidationTrait
 
     /**
      * Get defined schema rules.
+     *
+     * @return array<string, mixed>
      */
     public function getSchema(): array
     {
@@ -36,6 +40,8 @@ trait SchemaValidationTrait
 
     /**
      * Validate a document against the schema.
+     *
+     * @param array<string, mixed> $document
      *
      * @throws \Exception
      */
@@ -131,6 +137,10 @@ trait SchemaValidationTrait
 
     /**
      * Sanitize schema rules before use.
+     *
+     * @param array<string, mixed> $schema
+     *
+     * @return array<string, mixed>
      */
     protected function sanitizeSchemaRules(array $schema): array
     {
@@ -182,6 +192,8 @@ trait SchemaValidationTrait
 
     /**
      * Validate numeric range or string/array length.
+     *
+     * @param array<string, mixed> $rules
      */
     protected function validateRange(string $field, mixed $value, array $rules): void
     {

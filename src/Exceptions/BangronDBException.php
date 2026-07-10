@@ -15,7 +15,7 @@ use Exception;
 class BangronDBException extends Exception
 {
     /**
-     * @var array Additional context information about the error
+     * @var array<string, mixed> Additional context information about the error
      */
     protected array $context = [];
 
@@ -27,11 +27,11 @@ class BangronDBException extends Exception
     /**
      * Constructor.
      *
-     * @param string          $message  Error message
+     * @param string          $message   Error message
      * @param string          $errorCode Machine-readable error code
-     * @param array           $context  Additional context information
-     * @param int             $code     Exception code
-     * @param \Throwable|null $previous Previous exception
+     * @param array<string, mixed> $context  Additional context information
+     * @param int             $code      Exception code
+     * @param \Throwable|null $previous  Previous exception
      */
     public function __construct(
         string $message = '',
@@ -48,7 +48,7 @@ class BangronDBException extends Exception
     /**
      * Get additional context information.
      *
-     * @return array Context information
+     * @return array<string, mixed> Context information
      */
     public function getContext(): array
     {
@@ -68,7 +68,7 @@ class BangronDBException extends Exception
     /**
      * Get full error information including context.
      *
-     * @return array Complete error information
+     * @return array<string, mixed> Complete error information
      */
     public function toArray(): array
     {

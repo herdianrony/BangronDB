@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace BangronDB\Traits;
 
+use BangronDB\Exceptions\QueryExecutionException;
+
 /**
  * Trait for managing collection change notifications and version tracking.
  */
@@ -16,7 +18,7 @@ trait ChangeTrackingTrait
     {
         try {
             $this->database->touchCollectionMetadata($this->name);
-        } catch (\BangronDB\QueryExecutionException | \RuntimeException | \InvalidArgumentException $e) {
+        } catch (QueryExecutionException | \RuntimeException | \InvalidArgumentException $e) {
             // Silently fail if metadata table isn't ready or other DB issues
         }
     }
@@ -30,7 +32,7 @@ trait ChangeTrackingTrait
     {
         try {
             return $this->database->getCollectionMetadata($this->name);
-        } catch (\BangronDB\QueryExecutionException | \RuntimeException | \InvalidArgumentException $e) {
+        } catch (QueryExecutionException | \RuntimeException | \InvalidArgumentException $e) {
             return ['version' => 0, 'last_updated' => null];
         }
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BangronDB;
 
 use BangronDB\Exceptions\CollectionException;
+use BangronDB\Exceptions\QueryExecutionException;
 use BangronDB\Security\FieldValidator;
 
 /**
@@ -21,7 +22,11 @@ class Database
     public string $path;
     public ?Client $client = null;
     protected ?string $encryptionKey = null;
+
+    /** @var array<string, mixed> */
     protected array $options = [];
+
+    /** @var array<string, Collection> */
     protected array $collections = [];
     private ?string $encryptionSalt = null;
     protected ?string $encryptionKeyVersion = null;
@@ -29,16 +34,26 @@ class Database
     /** @var \PDO Database connection */
     public \PDO $connection;
     public ?QueryExecutor $queryExecutor = null;
+
+    /** @var array<string, callable> */
     protected array $document_criterias = [];
     private ?DatabaseMetrics $metrics = null;
 
+    /** @var array<string, \WeakReference<self>|self> */
     protected static array $criteria_registry = [];
+
+    /** @var array<int, \WeakReference<self>|self> */
     protected static array $instances = [];
 
     private const MAX_CRITERIA_REGISTRY_SIZE = 1000;
     private static int $lastCleanupTime = 0;
     private const CLEANUP_INTERVAL = 300;
 
+    /**
+     * Constructor.
+     *
+     * @param array<string, mixed> $options
+     */
     public function __construct(string $path = self::DSN_PATH_MEMORY, array $options = [])
     {
         $basePath = isset($options['base_path']) && is_string($options['base_path'])
@@ -110,6 +125,9 @@ class Database
         }
     }
 
+    /**
+     * @param array<int, string> $allowed
+     */
     private function execPragma(string $name, string $value, array $allowed): void
     {
         $upper = strtoupper($value);
@@ -215,6 +233,7 @@ class Database
         return $this->encryptionKey !== null;
     }
 
+    /** @return array<string, mixed> */
     public function getEncryptionKeyStatus(): array
     {
         return [
@@ -348,6 +367,9 @@ class Database
         return $id;
     }
 
+    /**
+     * @param array<string, mixed> $criteria
+     */
     private function registerArrayCriteria(string $id, array $criteria): string
     {
         $fn = function ($document) use ($criteria) {
@@ -517,6 +539,15 @@ class Database
     public function dropCollection(string $name): void
     {
         $this->validateCollectionName($name);
+
+        // SQLite returns "database table is locked" (SQLITE_LOCKED) when a
+        // DROP TABLE is attempted while there are still prepared statements
+        // referencing that table. QueryExecutor caches prepared statements
+        // for performance, so those cached PDOStatement objects keep the
+        // schema alive. Clear the cache before dropping so the table can be
+        // released cleanly.
+        $this->queryExecutor->clearStatementCache();
+
         $this->executeDropCollection($name);
         $this->removeCollectionFromCache($name);
     }
@@ -555,6 +586,7 @@ class Database
         );
     }
 
+    /** @return list<string> */
     public function getCollectionNames(): array
     {
         $sql = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('sqlite_sequence', '_meta', '_config', '_crypto')";
@@ -564,6 +596,7 @@ class Database
         return array_column($tables, 'name');
     }
 
+    /** @return array<string, Collection> */
     public function listCollections(): array
     {
         foreach ($this->getCollectionNames() as $name) {
@@ -668,26 +701,31 @@ class Database
         return $this->metrics;
     }
 
+    /** @return array<string, mixed> */
     public function getHealthMetrics(): array
     {
         return $this->getMetrics()->getHealthMetrics();
     }
 
+    /** @return array<string, mixed> */
     public function checkIntegrity(): array
     {
         return $this->getMetrics()->checkIntegrity();
     }
 
+    /** @return array<string, mixed> */
     public function getDataMetrics(): array
     {
         return $this->getMetrics()->getDataMetrics();
     }
 
+    /** @return array<string, mixed> */
     public function getPerformanceMetrics(): array
     {
         return $this->getMetrics()->getPerformanceMetrics();
     }
 
+    /** @return array<string, mixed> */
     public function getIndexMetrics(): array
     {
         return $this->getMetrics()->getIndexMetrics();
@@ -710,11 +748,13 @@ class Database
         return false;
     }
 
+    /** @return array<string, mixed> */
     public function getCollectionMetrics(): array
     {
         return $this->getMetrics()->getCollectionMetrics();
     }
 
+    /** @return array<string, mixed> */
     public function touchCollectionMetadata(string $collectionName): array
     {
         $this->validateCollectionName($collectionName);
@@ -752,6 +792,7 @@ class Database
         return $next;
     }
 
+    /** @return array<string, mixed> */
     public function getCollectionMetadata(string $collectionName): array
     {
         $this->validateCollectionName($collectionName);
@@ -773,11 +814,12 @@ class Database
         return $this->decodeMetadataRow($row['document']);
     }
 
+    /** @return array<string, array<string, mixed>> */
     public function getAllCollectionMetadata(): array
     {
         try {
             $stmt = $this->queryExecutor->executeQuery('SELECT document FROM _meta');
-            $rows = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (QueryExecutionException $e) {
             return [];
         }
@@ -795,6 +837,9 @@ class Database
         return $metadata;
     }
 
+    /**
+     * @param array<string, mixed> $metadata
+     */
     private function encodeMetadataDocument(string $collectionName, array $metadata): string
     {
         $document = json_encode([
@@ -810,6 +855,7 @@ class Database
         return $document;
     }
 
+    /** @return array<string, mixed> */
     private function decodeMetadataRow(string $document): array
     {
         $decoded = json_decode($document, true);
@@ -820,6 +866,11 @@ class Database
         return $this->decodeMetadataArray($decoded);
     }
 
+    /**
+     * @param array<string, mixed> $document
+     *
+     * @return array<string, mixed>
+     */
     private function decodeMetadataArray(array $document): array
     {
         return [
@@ -830,11 +881,15 @@ class Database
         ];
     }
 
+    /** @return array<string, mixed> */
     private function getEmptyMetadata(): array
     {
         return ['version' => 0, 'last_updated' => null];
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function saveCollectionConfig(string $collectionName, array $config): void
     {
         $this->validateCollectionName($collectionName);
@@ -872,6 +927,7 @@ class Database
         }
     }
 
+    /** @return array<string, mixed> */
     public function loadCollectionConfig(string $collectionName): array
     {
         $this->validateCollectionName($collectionName);
@@ -897,6 +953,7 @@ class Database
         return $document;
     }
 
+    /** @return array<string, array<string, mixed>> */
     public function getAllCollectionConfigs(): array
     {
         try {
@@ -926,6 +983,7 @@ class Database
         $this->queryExecutor->executeUpdate("DELETE FROM _config WHERE json_extract(document, '$._id') = ?", [$collectionName]);
     }
 
+    /** @return array<string, mixed> */
     public function getHealthReport(): array
     {
         $metrics = $this->getHealthMetrics();

@@ -18,8 +18,13 @@ class QueryExecutionException extends \RuntimeException
     private const SENSITIVE_KEYS = ['encryption_key', 'password', 'secret', 'token', 'api_key', 'credential'];
 
     private string $sql;
+
+    /** @var array<int|string, mixed> */
     private array $params;
 
+    /**
+     * @param array<int|string, mixed> $params
+     */
     public function __construct(string $message, string $sql, array $params = [], ?\Throwable $previous = null)
     {
         parent::__construct($message, 0, $previous);
@@ -32,6 +37,9 @@ class QueryExecutionException extends \RuntimeException
         return $this->sql;
     }
 
+    /**
+     * @return array<int|string, mixed>
+     */
     public function getParams(): array
     {
         return $this->params;
@@ -39,6 +47,8 @@ class QueryExecutionException extends \RuntimeException
 
     /**
      * Return redacted parameters for safe debugging.
+     *
+     * @return array<int|string, mixed>
      */
     public function getRedactedParams(): array
     {

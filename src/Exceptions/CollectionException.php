@@ -14,9 +14,9 @@ class CollectionException extends BangronDBException
     /**
      * Create exception for collection not found.
      *
-     * @param string $collectionName Collection name
-     * @param string $databaseName   Database name
-     * @param array  $context        Additional context
+     * @param string                $collectionName Collection name
+     * @param string                $databaseName   Database name
+     * @param array<string, mixed>  $context        Additional context
      */
     public static function notFound(
         string $collectionName,
@@ -36,9 +36,9 @@ class CollectionException extends BangronDBException
     /**
      * Create exception for collection already exists.
      *
-     * @param string $collectionName Collection name
-     * @param string $databaseName   Database name
-     * @param array  $context        Additional context
+     * @param string                $collectionName Collection name
+     * @param string                $databaseName   Database name
+     * @param array<string, mixed>  $context        Additional context
      */
     public static function alreadyExists(
         string $collectionName,
@@ -58,9 +58,9 @@ class CollectionException extends BangronDBException
     /**
      * Create exception for document not found.
      *
-     * @param mixed  $documentId     Document ID
-     * @param string $collectionName Collection name
-     * @param array  $context        Additional context
+     * @param mixed                 $documentId     Document ID
+     * @param string                $collectionName Collection name
+     * @param array<string, mixed>  $context        Additional context
      */
     public static function documentNotFound(
         $documentId,
@@ -80,10 +80,10 @@ class CollectionException extends BangronDBException
     /**
      * Create exception for operation failure.
      *
-     * @param string $operation      Operation name (insert, update, delete)
-     * @param string $collectionName Collection name
-     * @param string $reason         Failure reason
-     * @param array  $context        Additional context
+     * @param string                $operation      Operation name (insert, update, delete)
+     * @param string                $collectionName Collection name
+     * @param string                $reason         Failure reason
+     * @param array<string, mixed>  $context        Additional context
      */
     public static function operationFailed(
         string $operation,

@@ -19,10 +19,14 @@ class Client
     protected array $databases = [];
 
     public string $path;
+    /** @var array<string, mixed> */
     protected array $options = [];
 
     private const DATABASE_NAME_REGEX = '/^[a-z0-9_-]+$/i';
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(string $path, array $options = [])
     {
         $normalizedPath = $this->normalizePath($path);
@@ -41,6 +45,7 @@ class Client
         return \rtrim($path, '/\\');
     }
 
+    /** @return list<string> */
     public function listDBs(): array
     {
         if ($this->path === Database::DSN_PATH_MEMORY) {
@@ -50,11 +55,13 @@ class Client
         return $this->getDiskDatabaseNames();
     }
 
+    /** @return list<string> */
     private function getMemoryDatabaseNames(): array
     {
         return array_keys($this->databases);
     }
 
+    /** @return list<string> */
     private function getDiskDatabaseNames(): array
     {
         $databases = [];
@@ -158,6 +165,9 @@ class Client
         return $this->selectDB($database)->selectCollection($collection);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function createDB(string $name, array $options = []): Database
     {
         $this->validateDatabaseName($name);
@@ -212,6 +222,8 @@ class Client
     }
 
     /**
+     * @param array<string, mixed> $options
+     *
      * @throws DatabaseException
      */
     public function selectDB(string $name, array $options = []): Database
@@ -236,6 +248,7 @@ class Client
         }
     }
 
+    /** @param array<string, mixed> $options */
     private function createDatabaseInstance(string $name, array $options = []): Database
     {
         $dbPath = $this->buildDatabasePath($name);

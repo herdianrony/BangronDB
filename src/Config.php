@@ -14,6 +14,8 @@ class Config
 {
     /**
      * Default configuration values.
+     *
+     * @var array<string, mixed>
      */
     private static array $defaults = [
         'default_path' => ':memory:',
@@ -28,11 +30,15 @@ class Config
 
     /**
      * Current configuration.
+     *
+     * @var array<string, mixed>
      */
     private static array $config = [];
 
     /**
      * Valid configuration keys.
+     *
+     * @var list<string>
      */
     private static array $validKeys = [
         'default_path',
@@ -47,6 +53,8 @@ class Config
 
     /**
      * Valid values for enum-type configuration.
+     *
+     * @var array<string, list<string>>
      */
     private static array $validEnumValues = [
         'journal_mode' => ['DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'WAL', 'OFF'],
@@ -88,7 +96,7 @@ class Config
     /**
      * Get all configuration values.
      *
-     * @return array All configuration values
+     * @return array<string, mixed> All configuration values
      */
     public static function all(): array
     {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace BangronDB;
 
+use BangronDB\Exceptions\QueryExecutionException;
+
 /**
  * CollectionManager handles collection metadata and configuration management.
  *
@@ -13,8 +15,17 @@ namespace BangronDB;
 class CollectionManager
 {
     private Database $database;
+
+    /**
+     * @var array<string, array<string, mixed>>
+     */
     private array $configCache = [];
+
+    /**
+     * @var array<string, array<string, mixed>>
+     */
     private array $metadataCache = [];
+
     private bool $cacheEnabled = true;
 
     /**
@@ -61,6 +72,8 @@ class CollectionManager
 
     /**
      * Save collection configuration.
+     *
+     * @param array<string, mixed> $config
      */
     public function saveCollectionConfig(string $collectionName, array $config): void
     {
@@ -84,6 +97,8 @@ class CollectionManager
 
     /**
      * Load collection configuration.
+     *
+     * @return array<string, mixed>
      */
     public function loadCollectionConfig(string $collectionName): array
     {
@@ -102,6 +117,8 @@ class CollectionManager
 
     /**
      * Get all collection configurations.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getAllCollectionConfigs(): array
     {
@@ -133,6 +150,8 @@ class CollectionManager
 
     /**
      * Update collection metadata.
+     *
+     * @param array<string, mixed> $metadata
      */
     public function updateMetadata(string $collectionName, array $metadata = []): void
     {
@@ -152,6 +171,8 @@ class CollectionManager
 
     /**
      * Get collection metadata.
+     *
+     * @return array<string, mixed>
      */
     public function getMetadata(string $collectionName): array
     {
@@ -174,6 +195,8 @@ class CollectionManager
 
     /**
      * Get all collection metadata.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getAllMetadata(): array
     {
@@ -189,6 +212,8 @@ class CollectionManager
 
     /**
      * Load all metadata from database.
+     *
+     * @return array<string, array<string, mixed>>
      */
     private function loadAllMetadata(): array
     {
@@ -201,6 +226,8 @@ class CollectionManager
 
     /**
      * Validate collection configuration.
+     *
+     * @param array<string, mixed> $config
      */
     private function validateCollectionConfig(array $config): void
     {
@@ -256,6 +283,8 @@ class CollectionManager
 
     /**
      * Get collection statistics including config and metadata.
+     *
+     * @return array{config: array<string, mixed>, metadata: array<string, mixed>, exists: bool}
      */
     public function getCollectionStats(string $collectionName): array
     {
@@ -268,6 +297,8 @@ class CollectionManager
 
     /**
      * Get statistics for all collections.
+     *
+     * @return array<string, array{config: array<string, mixed>, metadata: array<string, mixed>, exists: bool}>
      */
     public function getAllCollectionStats(): array
     {
@@ -298,6 +329,8 @@ class CollectionManager
 
     /**
      * Get collections modified since a given timestamp.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getModifiedSince(int $timestamp): array
     {

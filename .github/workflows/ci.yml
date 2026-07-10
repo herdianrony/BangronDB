@@ -2,9 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [ master, main, develop ]
+    branches: [master, main, develop]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
+
+# Cancel in-progress runs on the same ref when a new commit is pushed.
+# Saves CI minutes and avoids stale status checks on PRs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -23,8 +29,20 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: pdo_sqlite, openssl
+          extensions: pdo_sqlite, openssl, sodium, mbstring, json
           coverage: xdebug
+          ini-values: error_reporting=E_ALL, display_errors=On
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-php-${{ matrix.php-version }}-
 
       - name: Validate composer.json
         run: composer validate --strict
@@ -39,6 +57,14 @@ jobs:
         if: matrix.php-version == '8.5'
         run: composer test-coverage
 
+      - name: Upload coverage to Codecov
+        if: matrix.php-version == '8.5'
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   lint:
     runs-on: ubuntu-latest
     name: Lint Check
@@ -51,6 +77,17 @@ jobs:
         with:
           php-version: '8.5'
           extensions: pdo_sqlite, openssl
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php-8.5-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-php-8.5-
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
@@ -71,12 +108,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          extensions: pdo_sqlite, openssl
-
       - name: Verify all test files end with Test.php
         run: |
           set -e
@@ -94,7 +125,7 @@ jobs:
 
   static-analysis:
     runs-on: ubuntu-latest
-    name: Static Analysis
+    name: Static Analysis (PHPStan)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -105,8 +136,81 @@ jobs:
           php-version: '8.5'
           extensions: pdo_sqlite, openssl
 
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php-8.5-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-php-8.5-
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Run PHPStan
         run: composer analyze
+
+  # Run every example script end-to-end. This catches runtime bugs that
+  # PHPUnit misses (e.g. an example referencing a feature that no longer
+  # behaves as documented, or a schema-validation regex that silently
+  # downgrades). This job would have caught both Issue #1 (schema regex
+  # sanitizer false-positive on \+?) and Issue #2 (SQLite "database
+  # table is locked" on dropCollection) before they shipped.
+  examples:
+    runs-on: ubuntu-latest
+    name: Examples Smoke Test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_sqlite, openssl, sodium, mbstring, json
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php-8.5-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-php-8.5-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run all example scripts
+        run: |
+          set -e
+          # Skip secure-bootstrap examples — they require manual key setup.
+          # Skip example 11 (hooks) — it intentionally throws a Hook error to stderr.
+          failed=0
+          for f in examples/*.php; do
+            # Skip non-direct entry points
+            case "$f" in
+              examples/bootstrap.php|examples/README.md)
+                continue
+                ;;
+            esac
+            echo "::group::Running $f"
+            if ! php "$f" > /tmp/example_output.txt 2>&1; then
+              echo "::error::$f failed"
+              cat /tmp/example_output.txt
+              failed=$((failed + 1))
+            else
+              echo "✓ $f"
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$failed" -gt 0 ]; then
+            echo "::error::$failed example script(s) failed."
+            exit 1
+          fi
+          echo "✓ All example scripts ran successfully."
