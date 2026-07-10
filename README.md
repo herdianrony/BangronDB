@@ -848,6 +848,20 @@ Lihat folder [examples/](examples/) untuk contoh end-to-end:
 | 23 | `23-acl-relation-type.php` | ACL dengan relation type |
 | 24 | `24-dynamic-acl-per-collection.php` | Dynamic ACL per collection |
 
+## Dokumentasi
+
+| Dokumen | Deskripsi |
+|---------|-----------|
+| [Getting Started](docs/getting-started.md) | Panduan cepat instalasi dan penggunaan dasar |
+| [Fitur Lanjutan](docs/features.md) | Hooks, soft delete, TTL, enkripsi, aggregation, dan lainnya |
+| [Query Operators](docs/query-operators.md) | Daftar lengkap operator query yang didukung |
+| [Schema & Metadata Guide](docs/schema-metadata-guide.md) | Panduan properti schema, validasi aktif, dan metadata |
+| [Hook Patterns](docs/hook-patterns.md) | 8 pola penggunaan hook dalam aplikasi nyata |
+| [Framework Integration](docs/framework-integration.md) | Integrasi dengan Laravel, Lumen, Slim, Flight, CodeIgniter 4, Symfony, dan lainnya |
+| [API Reference](docs/api-reference.md) | Referensi API lengkap |
+| [Security](docs/security.md) | Keamanan, enkripsi, dan best practices |
+| [Roadmap](docs/roadmap.md) | Fitur yang sudah dan akan diimplementasikan |
+
 ## Catatan Kompatibilitas
 
 Jika Anda bermigrasi dari perilaku lama yang mengandalkan create implicit saat `selectDB()` / `selectCollection()`, lihat:
