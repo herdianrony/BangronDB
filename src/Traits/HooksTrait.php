@@ -55,7 +55,7 @@ trait HooksTrait
         $this->hooks[$event] = array_values($this->hooks[$event]);
     }
 
-    protected function applyHooks(string $event, $data, $id = null): mixed
+    protected function applyHooks(string $event, array $data, $id = null): mixed
     {
         if (!empty($this->hooks[$event])) {
             foreach ($this->hooks[$event] as $hook) {
@@ -88,7 +88,7 @@ trait HooksTrait
         $this->applyHooks('afterInsert', $document, $insertId);
     }
 
-    protected function applyUpdateHooks(&$criteria, array &$data): void
+    protected function applyUpdateHooks(array &$criteria, array &$data): void
     {
         if (!empty($this->hooks['beforeUpdate'])) {
             foreach ($this->hooks['beforeUpdate'] as $hook) {

@@ -594,8 +594,12 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Collect IDs from a node recursively.
+     *
+     * @param array<int|string, mixed> $node
+     * @param array<int, string>       $path
+     * @param array<int, mixed>        $ids
      */
-    protected function collectIds($node, array $path, array &$ids, int $index = 0): void
+    protected function collectIds(array $node, array $path, array &$ids, int $index = 0): void
     {
         if (!$this->isValidPathNode($node, $path, $index)) {
             return;
@@ -614,8 +618,10 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Check if path node is valid.
+     *
+     * @param array<int|string, mixed> $node
      */
-    private function isValidPathNode($node, array $path, int $index): bool
+    private function isValidPathNode(array $node, array $path, int $index): bool
     {
         return is_array($node)
             && isset($path[$index])
@@ -632,8 +638,12 @@ class Cursor implements \IteratorAggregate
 
     /**
      * Inject related document into node.
+     *
+     * @param array<int|string, mixed> $node
+     * @param array<int, string>       $path
+     * @param array<mixed, mixed>      $map
      */
-    protected function inject(&$node, array $path, array $map, string $as, int $index = 0): void
+    protected function inject(array &$node, array $path, array $map, string $as, int $index = 0): void
     {
         if (!$this->isValidPathNode($node, $path, $index)) {
             return;

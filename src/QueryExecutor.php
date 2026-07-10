@@ -350,7 +350,7 @@ class QueryExecutor
     /**
      * Get PDO parameter type for a value.
      */
-    private function getParamType($value): int
+    private function getParamType(mixed $value): int
     {
         if (is_int($value)) {
             return \PDO::PARAM_INT;

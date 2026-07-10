@@ -53,15 +53,6 @@ class Collection
     public const HOOK_BEFORE_REMOVE = 'beforeRemove';
     public const HOOK_AFTER_REMOVE = 'afterRemove';
 
-    /**
-     * Encryption constants (PHP 8.1 compatible — cannot be declared in traits).
-     */
-    private const MAX_DERIVED_KEY_CACHE_SIZE = 16;
-    private const LEGACY_PBKDF2_SALT = 'bangrondb_encryption_salt';
-    private const MAX_DOCUMENT_DEPTH = 64;
-    private const MIN_KEY_LENGTH = 32;
-    private const ENCRYPTION_VERSION = 2;
-
     public readonly Database $database;
 
     public string $name; // NOT readonly because renameCollection modifies it
@@ -343,7 +334,7 @@ class Collection
      * Perform a bulk update using SQL UPDATE WHERE for criteria that can be translated to JSON WHERE.
      * Falls back to per-document update when hooks are registered or criteria cannot be translated.
      */
-    protected function bulkUpdate($criteria, array $data, bool $merge): int
+    protected function bulkUpdate(mixed $criteria, array $data, bool $merge): int
     {
         if (!empty($this->hooks[self::HOOK_AFTER_UPDATE]) || !$this->_canTranslateToJsonWhere($criteria)) {
             return $this->perDocumentUpdate($criteria, $data, $merge);
@@ -399,7 +390,7 @@ class Collection
     /**
      * Perform per-document update (fallback for complex criteria or when hooks are registered).
      */
-    protected function perDocumentUpdate($criteria, array $data, bool $merge): int
+    protected function perDocumentUpdate(mixed $criteria, array $data, bool $merge): int
     {
         $documentsToUpdate = $this->findDocumentsMatchingCriteria($criteria);
         $updated = 0;
@@ -412,7 +403,7 @@ class Collection
     /**
      * Find documents matching criteria for update/remove operations.
      */
-    protected function findDocumentsMatchingCriteria($criteria): array
+    protected function findDocumentsMatchingCriteria(mixed $criteria): array
     {
         $table = $this->database->quoteIdentifier($this->name);
 

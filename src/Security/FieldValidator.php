@@ -239,7 +239,7 @@ class FieldValidator
      * Check if a value is a safe callable (must be a Closure).
      * Prevents RCE via string function names like "system", "exec", etc.
      */
-    public static function isSafeCallable($value): bool
+    public static function isSafeCallable(mixed $value): bool
     {
         return $value instanceof \Closure;
     }
@@ -249,7 +249,7 @@ class FieldValidator
      *
      * @throws ValidationException If not a safe callable
      */
-    public static function validateSafeCallable($value, string $operatorName = 'operator'): void
+    public static function validateSafeCallable(mixed $value, string $operatorName = 'operator'): void
     {
         if (!self::isSafeCallable($value)) {
             throw new ValidationException("The '{$operatorName}' operator only accepts Closure objects (anonymous functions). String function names like 'system', 'exec', etc. are not allowed. Example: ['{$operatorName}' => fn(\$doc) => \$doc['field'] > 10]");

@@ -41,7 +41,13 @@ class UtilArrayQuery
         return $data;
     }
 
-    public static function check($value, $condition)
+    /**
+     * Check if a value matches a condition.
+     *
+     * @param mixed $value
+     * @param array<string, mixed> $condition
+     */
+    public static function check(mixed $value, array $condition)
     {
         $keys = \array_keys($condition);
 
@@ -61,7 +67,7 @@ class UtilArrayQuery
     /**
      * Match a full criteria array against a document array.
      */
-    public static function match($criteria, $document)
+    public static function match(array $criteria, array $document)
     {
         if (!\is_array($criteria)) {
             return false;
@@ -128,7 +134,7 @@ class UtilArrayQuery
         return true;
     }
 
-    private static function evaluate($func, $a, $b)
+    private static function evaluate(string $func, mixed $a, mixed $b)
     {
         $r = false;
 
@@ -283,7 +289,7 @@ class UtilArrayQuery
     /**
      * Helper function for UTF-8 aware Levenshtein distance.
      */
-    public static function levenshtein_utf8($s1, $s2)
+    public static function levenshtein_utf8(string $s1, string $s2)
     {
         $map = [];
         $utf8ToExtendedAscii = function ($str) use ($map) {
@@ -308,7 +314,7 @@ class UtilArrayQuery
     /**
      * Fuzzy search function with distance-based matching.
      */
-    public static function fuzzy_search($search, $text, $distance = 3)
+    public static function fuzzy_search(string $search, string $text, int $distance = 3)
     {
         $needles = \explode(' ', \mb_strtolower($search, 'UTF-8'));
         $tokens = \explode(' ', \mb_strtolower($text, 'UTF-8'));

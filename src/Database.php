@@ -154,7 +154,7 @@ class Database
         }
     }
 
-    public function createDocumentKeyFunction(string $key, $document): string
+    public function createDocumentKeyFunction(string $key, mixed $document): string
     {
         if ($document === null) {
             return '';
@@ -275,9 +275,14 @@ class Database
         self::$instances = [];
     }
 
-    private static function closeInstance($ref, int $key): void
+    /**
+     * Close a single database instance from the registry.
+     *
+     * @param \WeakReference<self>|self $ref
+     */
+    private static function closeInstance(\WeakReference|self $ref, int $key): void
     {
-        if (is_object($ref) && $ref instanceof \WeakReference) {
+        if ($ref instanceof \WeakReference) {
             $db = $ref->get();
             if ($db) {
                 $db->close();
@@ -315,7 +320,12 @@ class Database
         $this->cleanupStaleCriteriaReferences();
     }
 
-    public function registerCriteriaFunction($criteria): ?string
+    /**
+     * Register a criteria function (callable or array) for use in SQL queries.
+     *
+     * @param array<mixed>|callable|null $criteria The criteria to register
+     */
+    public function registerCriteriaFunction(array|callable|null $criteria): ?string
     {
         $id = 'criteria_' . bin2hex(random_bytes(8));
 
@@ -387,19 +397,29 @@ class Database
         }
     }
 
-    private function isStaleReference($ref): bool
+    /**
+     * Check if a weak reference is stale (referent has been garbage collected).
+     *
+     * @param \WeakReference<self> $ref
+     */
+    private function isStaleReference(\WeakReference $ref): bool
     {
-        return $ref instanceof \WeakReference && $ref->get() === null;
+        return $ref->get() === null;
     }
 
-    public function callCriteriaFunction(string $id, $document): bool
+    /**
+     * Call a registered criteria function with a document.
+     *
+     * @param array<mixed>|null $document
+     */
+    public function callCriteriaFunction(string $id, array|null $document): bool
     {
         return isset($this->document_criterias[$id])
             ? $this->document_criterias[$id]($document)
             : false;
     }
 
-    public static function staticCallCriteria(string $id, $document): bool
+    public static function staticCallCriteria(string $id, string|null $document): bool
     {
         if (!isset(self::$criteria_registry[$id])) {
             return false;
@@ -421,9 +441,14 @@ class Database
         return $db->callCriteriaFunction($id, $document);
     }
 
-    private static function resolveDatabaseReference($ref): ?Database
+    /**
+     * Resolve a database reference from the criteria registry.
+     *
+     * @param \WeakReference<self>|self|null $ref
+     */
+    private static function resolveDatabaseReference(\WeakReference|self|null $ref): ?Database
     {
-        if (is_object($ref) && $ref instanceof \WeakReference) {
+        if ($ref instanceof \WeakReference) {
             return $ref->get();
         }
 

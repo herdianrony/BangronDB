@@ -358,7 +358,7 @@ class DatabaseMetrics
         return $collections;
     }
 
-    private function getHookCounts($collection): array
+    private function getHookCounts(Collection $collection): array
     {
         $hooks = $collection->getHooks();
         $events = ['beforeInsert', 'afterInsert', 'beforeUpdate', 'afterUpdate', 'beforeRemove', 'afterRemove'];

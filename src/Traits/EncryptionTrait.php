@@ -10,6 +10,12 @@ namespace BangronDB\Traits;
  */
 trait EncryptionTrait
 {
+    public const int MAX_DOCUMENT_DEPTH = 20;
+    public const int MIN_KEY_LENGTH = 32;
+    public const int ENCRYPTION_VERSION = 2;
+    public const int MAX_DERIVED_KEY_CACHE_SIZE = 100;
+    public const string LEGACY_PBKDF2_SALT = 'bangrondb_legacy_salt_v1';
+
     protected ?string $encryptionKey = null;
     protected ?string $encryptionKeyVersion = null;
     /** @var array<string, string> cache of PBKDF2-derived keys keyed by sha256(key+salt) */

@@ -151,7 +151,7 @@ trait SchemaValidationTrait
     /**
      * Validate field type.
      */
-    protected function validateType(string $field, $value, string $type): void
+    protected function validateType(string $field, mixed $value, string $type): void
     {
         // Normalize enhanced UI types to native validation
         $type = strtolower($type);
@@ -183,7 +183,7 @@ trait SchemaValidationTrait
     /**
      * Validate numeric range or string/array length.
      */
-    protected function validateRange(string $field, $value, array $rules): void
+    protected function validateRange(string $field, mixed $value, array $rules): void
     {
         $checkValue = $value;
         if (is_string($value)) {

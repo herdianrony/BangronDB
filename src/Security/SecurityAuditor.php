@@ -79,7 +79,7 @@ class SecurityAuditor
         ];
     }
 
-    /** @return array{is_encrypted: bool, is_secure: bool, key_version: string|null, searchable_fields_count: int<0, max>, mixed_encryption_detected: bool, issues: array<int, string>, recommendations: array<int, string>} */
+    /** @return array{is_encrypted: bool, is_secure: bool, key_version: string|null, searchable_fields_count: int, mixed_encryption_detected: bool, issues: array<int, string>, recommendations: array<int, string>} */
     private static function auditEncryption(\BangronDB\Collection $collection): array
     {
         $recommendations = [];

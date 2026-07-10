@@ -190,7 +190,7 @@ class Config
      *
      * @throws \InvalidArgumentException If value is invalid
      */
-    private static function validateDefaultPath($value): void
+    private static function validateDefaultPath(mixed $value): void
     {
         if (!is_string($value) || trim($value) === '') {
             throw new \InvalidArgumentException(
@@ -204,7 +204,7 @@ class Config
      *
      * @throws \InvalidArgumentException If value is invalid
      */
-    private static function validateEncryptionKey($value): void
+    private static function validateEncryptionKey(mixed $value): void
     {
         if ($value !== null && !is_string($value)) {
             throw new \InvalidArgumentException(
@@ -218,7 +218,7 @@ class Config
      *
      * @throws \InvalidArgumentException If value is not in allowed enum values
      */
-    private static function validateEnumValue(string $key, $value): void
+    private static function validateEnumValue(string $key, mixed $value): void
     {
         if (!is_string($value)) {
             throw new \InvalidArgumentException(
@@ -242,7 +242,7 @@ class Config
      *
      * @throws \InvalidArgumentException If value is invalid
      */
-    private static function validatePageSize($value): void
+    private static function validatePageSize(mixed $value): void
     {
         if (!is_int($value)) {
             throw new \InvalidArgumentException(
@@ -266,7 +266,7 @@ class Config
      *
      * @throws \InvalidArgumentException If value is invalid
      */
-    private static function validateCacheSize($value): void
+    private static function validateCacheSize(mixed $value): void
     {
         if (!is_int($value)) {
             throw new \InvalidArgumentException(
@@ -289,7 +289,7 @@ class Config
      *
      * @throws \InvalidArgumentException If value is invalid
      */
-    private static function validateWalAutocheckpoint($value): void
+    private static function validateWalAutocheckpoint(mixed $value): void
     {
         if (!is_int($value)) {
             throw new \InvalidArgumentException(

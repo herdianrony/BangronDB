@@ -1200,15 +1200,7 @@ parameters:
 			count: 1
 			path: src/QueryExecutor.php
 
-		-
-			message: "#^Method BangronDB\\\\Security\\\\FieldValidator\\:\\:isSafeCallable\\(\\) has parameter \\$value with no type specified\\.$#"
-			count: 1
-			path: src/Security/FieldValidator.php
 
-		-
-			message: "#^Method BangronDB\\\\Security\\\\FieldValidator\\:\\:validateSafeCallable\\(\\) has parameter \\$value with no type specified\\.$#"
-			count: 1
-			path: src/Security/FieldValidator.php
 
 		-
 			message: "#^Method BangronDB\\\\UtilArrayQuery\\:\\:check\\(\\) has no return type specified\\.$#"

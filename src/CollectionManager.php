@@ -317,7 +317,7 @@ class CollectionManager
     /**
      * Normalize metadata timestamps to a Unix timestamp.
      */
-    private function normalizeMetadataTimestamp($lastUpdated): ?int
+    private function normalizeMetadataTimestamp(int|string|null $lastUpdated): ?int
     {
         if ($lastUpdated === null || $lastUpdated === '') {
             return null;
