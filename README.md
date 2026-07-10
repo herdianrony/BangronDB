@@ -449,7 +449,16 @@ $users->insert([
 
 ```php
 $users->setEncryptionKey($_ENV['DB_ENCRYPTION_KEY']);
-$users->setSearchableFields(['email', 'phone'], true); // true = SHA-256 hash
+
+// Format baru (direkomendasikan) — kontrol per-field
+$users->setSearchableFields([
+    'email' => ['hash' => true],     // HMAC-SHA256 blind index (aman)
+    'username' => ['hash' => false], // Plain text (untuk field non-sensitif)
+]);
+
+// Format lama (masih didukung) — semua field mendapat perlakuan sama
+$users->setSearchableFields(['email', 'phone'], true);
+
 $users->saveConfiguration();
 ```
 
@@ -458,9 +467,15 @@ $users->saveConfiguration();
 ### Key Rotation
 
 ```php
-$users->setEncryptionKey($newKey, 'v2-2026');
-$users->rotateEncryptionKey(); // re-encrypt semua dokumen dengan key baru
+// Set key lama, lalu rotate ke key baru
+$users->setEncryptionKey($oldKey, 'v1');
+$rotated = $users->rotateEncryptionKey($newKey, 'v2'); // return jumlah dokumen
+
+// Set key baru sebagai active
+$users->setEncryptionKey($newKey, 'v2');
 ```
+
+> Lihat contoh 21 (`21-key-rotation.php`) untuk demo lengkap termasuk `reencryptAll()`.
 
 ## Schema Validation
 
@@ -500,18 +515,32 @@ $users->insert(['email' => 'a@example.com']); // throws ValidationException
 > dapat dicari lewat blind index. Tanpa itu, dokumen terenkripsi tidak bisa
 > di-query per-nilai dan constraint tidak akan menemukan duplikat.
 
+> Lihat [docs/schema-metadata-guide.md](docs/schema-metadata-guide.md) untuk panduan lengkap tentang properti metadata (`label`, `ui`, `relation`, dll.) yang tidak divalidasi otomatis.
+
 ## TTL (Time-To-Live)
 
 Dokumen bisa di-set untuk auto-expire setelah waktu tertentu:
 
 ```php
-$logs->setTtl(3600); // dokumen auto-hapus setelah 1 jam
-$logs->setTtlField('_expires_at'); // field custom untuk TTL (default: _ttl_expires)
+// Aktifkan TTL pada field 'expires_at' dengan default 1 jam
+$logs->enableTtl('expires_at', 3600);
 
-$logs->insert(['message' => 'temp log']); // otomatis dapat _expires_at = now() + 3600
+// Tanpa default TTL (set manual per dokumen)
+$logs->enableTtl('expires_at');
 
-$stats = $logs->ttlStats(); // lihat status TTL
+$logs->insert(['message' => 'temp log']); // otomatis dapat expires_at = now() + 3600
+
+// Insert dengan expiry manual (override default)
+$logs->insert(['message' => 'short', 'expires_at' => time() + 300]);
+
+// Bersihkan dokumen yang sudah expired
+$removed = $logs->cleanExpired();
+
+// Statistik TTL
+$stats = $logs->ttlStats();
 ```
+
+> `cleanExpired()` harus dipanggil manual (misalnya via cron). BangronDB tidak membersihkan otomatis.
 
 ## Soft Deletes
 
@@ -737,13 +766,20 @@ Lihat juga [SECURITY_USAGE_GUIDE.md](SECURITY_USAGE_GUIDE.md).
 | `renameCollection($newName)`                                         | Rename collection                  |
 | `setIdModeAuto()` / `setIdModeManual()` / `setIdModePrefix($prefix)` | Atur mode ID                       |
 | `setEncryptionKey($key, $version = null)`                            | Atur key enkripsi + versi          |
-| `rotateEncryptionKey()`                                              | Rotasi key enkripsi                |
+| `rotateEncryptionKey($newKey, $newVersion = null)`                   | Rotasi key enkripsi                |
+| `reencryptAll()`                                                     | Re-encrypt semua dokumen (bump versi) |
 | `setSearchableFields($fields, $hash = false)`                        | Atur searchable fields             |
 | `removeSearchableField($field, $dropColumn = false)`                 | Hapus searchable field             |
+| `rehashSearchableField($field)`                                     | Rehash blind index (migration)     |
 | `setSchema($schema)`                                                 | Atur schema                        |
-| `setTtl($seconds)`                                                   | Set TTL auto-expiration            |
-| `ttlStats()`                                                         | Status TTL collection              |
+| `validate($document)`                                                | Validasi dokumen manual            |
+| `enableTtl($field, $seconds = null)`                                    | Aktifkan TTL auto-expiration     |
+| `disableTtl()`                                                       | Nonaktifkan TTL                 |
+| `cleanExpired()`                                                     | Hapus dokumen expired            |
+| `expiredCount()`                                                     | Hitung dokumen expired           |
+| `ttlStats()`                                                         | Status TTL collection            |
 | `useSoftDeletes($enabled = true)`                                    | Aktifkan soft delete               |
+| `setDeletedAtField($field)`                                         | Custom field name (default: deleted_at) |
 | `restore($criteria)`                                                 | Restore dokumen terhapus           |
 | `forceDelete($criteria)`                                             | Hapus permanen                     |
 | `on($event, $callback)`                                              | Register hook                      |

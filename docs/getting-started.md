@@ -280,4 +280,5 @@ Operator query yang didukung di dalam `find()`, `findOne()`, `count()`, dll:
 - [API Reference lengkap](api-reference.md)
 - [Fitur lanjutan](features.md) — Encryption, Hooks, Soft Delete, TTL, Aggregation
 - [Keamanan](security.md) — Enkripsi, Searchable Fields, Key Rotation
+- [Schema Metadata Guide](schema-metadata-guide.md) — Properti validasi vs metadata, tipe data, contoh lengkap
 - [Contoh lengkap](../examples/) — Semua contoh bisa dijalankan langsung
