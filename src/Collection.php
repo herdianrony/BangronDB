@@ -53,6 +53,20 @@ class Collection
     public const HOOK_BEFORE_REMOVE = 'beforeRemove';
     public const HOOK_AFTER_REMOVE = 'afterRemove';
 
+    /**
+     * Encryption constants.
+     *
+     * Declared on the Collection class (not in EncryptionTrait) because
+     * PHP < 8.2 does not support constants in traits. The trait references
+     * these via `self::CONSTANT` which PHP resolves to the using class
+     * (Collection) at runtime.
+     */
+    public const int MAX_DOCUMENT_DEPTH = 20;
+    public const int MIN_KEY_LENGTH = 32;
+    public const int ENCRYPTION_VERSION = 2;
+    public const int MAX_DERIVED_KEY_CACHE_SIZE = 100;
+    public const string LEGACY_PBKDF2_SALT = 'bangrondb_legacy_salt_v1';
+
     public readonly Database $database;
 
     public string $name; // NOT readonly because renameCollection modifies it

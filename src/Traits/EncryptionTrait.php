@@ -10,11 +10,12 @@ namespace BangronDB\Traits;
  */
 trait EncryptionTrait
 {
-    public const int MAX_DOCUMENT_DEPTH = 20;
-    public const int MIN_KEY_LENGTH = 32;
-    public const int ENCRYPTION_VERSION = 2;
-    public const int MAX_DERIVED_KEY_CACHE_SIZE = 100;
-    public const string LEGACY_PBKDF2_SALT = 'bangrondb_legacy_salt_v1';
+    // Encryption constants (MAX_DOCUMENT_DEPTH, MIN_KEY_LENGTH,
+    // ENCRYPTION_VERSION, MAX_DERIVED_KEY_CACHE_SIZE, LEGACY_PBKDF2_SALT)
+    // are declared on the BangronDB\Collection class that uses this trait.
+    // PHP < 8.2 does not support constants in traits, so they cannot live
+    // here. References via `self::CONSTANT` resolve to Collection at
+    // runtime, which is the only class that uses this trait.
 
     protected ?string $encryptionKey = null;
     protected ?string $encryptionKeyVersion = null;
