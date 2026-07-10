@@ -1062,8 +1062,10 @@ class Collection
 
     /**
      * $match stage: Filter documents using query criteria.
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageMatch(array $documents, mixed $criteria, int $index): array
     {
         if (!is_array($criteria)) {
@@ -1091,8 +1093,10 @@ class Collection
      *       'total' => ['$sum' => '$price'],
      *       'count' => ['$count' => null],
      *   ]]
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageGroup(array $documents, mixed $args, int $index): array
     {
         if (!is_array($args) || !array_key_exists('_id', $args)) {
@@ -1198,8 +1202,10 @@ class Collection
 
     /**
      * Accumulate a value into the current accumulator state.
+     *
+     * @param array<string, mixed> $accExpr
+     * @param array<string, mixed> $doc
      */
-    /** @param array<string, mixed> $accExpr @param array<string, mixed> $doc */
     private function accumulateValue(mixed $current, array $accExpr, array $doc, string $field): mixed
     {
         $operator = array_key_first($accExpr);
@@ -1257,8 +1263,10 @@ class Collection
 
     /**
      * $sort stage: Sort documents by specified fields.
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageSort(array $documents, mixed $sortFields, int $index): array
     {
         if (!is_array($sortFields) || empty($sortFields)) {
@@ -1316,8 +1324,10 @@ class Collection
 
     /**
      * $limit stage: Limit the number of documents.
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageLimit(array $documents, mixed $limit, int $index): array
     {
         if (!is_int($limit) || $limit < 0) {
@@ -1332,8 +1342,10 @@ class Collection
 
     /**
      * $skip stage: Skip N documents.
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageSkip(array $documents, mixed $skip, int $index): array
     {
         if (!is_int($skip) || $skip < 0) {
@@ -1355,8 +1367,10 @@ class Collection
      * @example
      *   ['$project' => ['name' => 1, 'email' => 1, 'password' => 0]]
      *   ['$project' => ['userName' => '$name', 'userEmail' => '$email']]
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageProject(array $documents, mixed $projection, int $index): array
     {
         if (!is_array($projection) || empty($projection)) {
@@ -1396,8 +1410,11 @@ class Collection
 
     /**
      * Apply inclusive projection (only include specified fields).
+     *
+     * @param array<string, mixed> $doc
+     * @param array<string, mixed> $projection
+     * @return array<string, mixed>
      */
-    /** @param array<string, mixed> $doc @param array<string, mixed> $projection @return array<string, mixed> */
     private function applyInclusiveProjectStage(array $doc, array $projection): array
     {
         $result = [];
@@ -1430,8 +1447,11 @@ class Collection
 
     /**
      * Apply exclusive projection (remove specified fields).
+     *
+     * @param array<string, mixed> $doc
+     * @param array<string, mixed> $projection
+     * @return array<string, mixed>
      */
-    /** @param array<string, mixed> $doc @param array<string, mixed> $projection @return array<string, mixed> */
     private function applyExclusiveProjectStage(array $doc, array $projection): array
     {
         foreach ($projection as $field => $spec) {
@@ -1445,8 +1465,10 @@ class Collection
 
     /**
      * $count stage: Count documents and return a single document with the count.
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageCount(array $documents, mixed $fieldName, int $index): array
     {
         if (!is_string($fieldName)) {
@@ -1461,8 +1483,10 @@ class Collection
 
     /**
      * $unset stage: Remove specific fields from all documents.
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $documents @return array<int, array<string, mixed>> */
     private function stageUnset(array $documents, mixed $fields, int $index): array
     {
         $fieldsToRemove = is_array($fields) ? $fields : [$fields];
@@ -1647,7 +1671,11 @@ class Collection
         return array_unique($fields);
     }
 
-    /** @param array<int, string> $fields @param array<int, array<string, string>> $indexes @return array<int, string> */
+    /**
+     * @param array<int, string> $fields
+     * @param array<int, array<string, string>> $indexes
+     * @return array<int, string>
+     */
     private function findMatchingIndexes(array $fields, array $indexes): array
     {
         $matching = [];
@@ -1716,7 +1744,11 @@ class Collection
         return 'unknown criteria type';
     }
 
-    /** @param array<int, string> $fields @param array<int, string> $usedIndexes @return array<int, string> */
+    /**
+     * @param array<int, string> $fields
+     * @param array<int, string> $usedIndexes
+     * @return array<int, string>
+     */
     private function generateQuerySuggestions(array $fields, array $usedIndexes, int $totalDocs, int $matchedDocs): array
     {
         $suggestions = [];
