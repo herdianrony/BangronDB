@@ -28,7 +28,7 @@ BangronDB dirancang sebagai **embedded document database** — ringan, tanpa ser
   <tr>
     <td><strong>{{ p.title }}</strong></td>
     <td>{{ p.description | default: "—" }}</td>
-    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+    <td><a href="{{ p.url | relative_url }}">{{ p.url }}</a></td>
   </tr>
 {% endfor %}
 </tbody>
@@ -39,6 +39,7 @@ BangronDB dirancang sebagai **embedded document database** — ringan, tanpa ser
 ### Flight PHP
 
 Micro-framework paling minimalis — hanya routing dan middleware. Tidak ada DI container, tidak ada ORM, tidak ada opinionated structure. Cocok untuk:
+
 - Aplikasi kecil yang butuh cepat jalan
 - Prototyping dan PoC
 - Embedded application (POS, kiosk, IoT)
@@ -49,6 +50,7 @@ Micro-framework paling minimalis — hanya routing dan middleware. Tidak ada DI 
 ### Slim Framework
 
 Micro-framework dengan fokus ke PSR-7 (HTTP message interface) dan PSR-15 (middleware). Lebih structured dari Flight, cocok untuk:
+
 - REST API service
 - Microservice architecture
 - Aplikasi yang butuh banyak middleware (auth, logging, rate limit)
@@ -57,6 +59,7 @@ Micro-framework dengan fokus ke PSR-7 (HTTP message interface) dan PSR-15 (middl
 ### Lumen
 
 Micro-framework by Laravel — versi ringan Laravel tanpa view rendering, tanpa session, tanpa cookie. Cocok untuk:
+
 - API yang sudah pakai Laravel ecosystem (queue, cache, events)
 - Migration dari Laravel ke microservice
 - Aplikasi yang butuh Artisan CLI commands
@@ -66,6 +69,7 @@ Micro-framework by Laravel — versi ringan Laravel tanpa view rendering, tanpa 
 ### Vanilla PHP
 
 Tanpa framework sama sekali. Cocok untuk:
+
 - Scripts dan CLI tools (import, export, migration)
 - Cron job dan background task
 - Aplikasi single-file yang sangat minimal
@@ -120,7 +124,7 @@ $client = new Client(__DIR__ . '/data', ['encryption_key' => $encKey]);
 
 ```bash
 # Generate 32-char random key
-php -r "echo bin2hex(random_bytes(16));" 
+php -r "echo bin2hex(random_bytes(16));"
 # Atau
 openssl rand -hex 16
 ```
