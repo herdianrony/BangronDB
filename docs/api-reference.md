@@ -5,10 +5,10 @@ description: "Referensi method Client, Database, Collection, Cursor."
 toc: true
 edit_on_github: true
 prev:
-  url: /framework-integration/
+  url: /docs/framework-integration/
   title: "Framework Integration"
 next:
-  url: /project-scenarios-erp/
+  url: /docs/project-scenarios-erp/
   title: "Project Scenarios: ERP"
 ---
 # API Reference

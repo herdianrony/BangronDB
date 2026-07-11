@@ -5,10 +5,10 @@ description: "Auth & ACL dengan setCustomConfig."
 toc: true
 edit_on_github: true
 prev:
-  url: /project-scenarios-pos/
+  url: /docs/project-scenarios-pos/
   title: "Project Scenarios: POS"
 next:
-  url: /modular-architecture/
+  url: /docs/modular-architecture/
   title: "Modular Architecture"
 ---
 # Tips & Trick BangronDB: Modul Auth & ACL dengan Custom Config
@@ -1320,10 +1320,10 @@ $payload = [
 
 ## Referensi
 
-- [Modular Architecture](modular-architecture.md) — strategi multi-database, tempat modul `auth` berada.
-- [HRIS Scenario](project-scenarios-hris.md) — pola encryption PII yang sama relevan untuk auth.
-- [Security](security.md) — encryption, blind index, key rotation.
-- [Hook Patterns](hook-patterns.md) — pola hook untuk enforcement logic.
+- [Modular Architecture](/docs/modular-architecture/) — strategi multi-database, tempat modul `auth` berada.
+- [HRIS Scenario](/docs/project-scenarios-hris/) — pola encryption PII yang sama relevan untuk auth.
+- [Security](/docs/security/) — encryption, blind index, key rotation.
+- [Hook Patterns](/docs/hook-patterns/) — pola hook untuk enforcement logic.
 - [examples/20-auth-encrypted.php](../examples/20-auth-encrypted.php) — contoh auth dengan encryption.
 - [examples/22-rbac-users-roles-permissions.php](../examples/22-rbac-users-roles-permissions.php) — RBAC implementation.
 - [examples/24-dynamic-acl-per-collection.php](../examples/24-dynamic-acl-per-collection.php) — ACL via `setCustomConfig`.

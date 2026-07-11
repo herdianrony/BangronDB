@@ -5,10 +5,10 @@ description: "8 pola praktis hook."
 toc: true
 edit_on_github: true
 prev:
-  url: /schema-metadata-guide/
+  url: /docs/schema-metadata-guide/
   title: "Schema & Metadata"
 next:
-  url: /security/
+  url: /docs/security/
   title: "Security"
 ---
 # Pola Penggunaan Hook

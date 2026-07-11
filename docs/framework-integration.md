@@ -5,17 +5,17 @@ description: "Integrasi dengan framework PHP."
 toc: true
 edit_on_github: true
 prev:
-  url: /security/
+  url: /docs/security/
   title: "Security"
 next:
-  url: /api-reference/
+  url: /docs/api-reference/
   title: "API Reference"
 ---
 # Integrasi Framework PHP
 
 Panduan praktis mengintegrasikan BangronDB ke berbagai framework PHP. Setiap bagian mencakup pola Service Provider / DI Container, konfigurasi, dan contoh controller yang lengkap.
 
-> **Prasyarat:** Pastikan Anda sudah memahami [Getting Started](getting-started.md) dan [Fitur Lanjutan](features.md) sebelum melanjutkan.
+> **Prasyarat:** Pastikan Anda sudah memahami [Getting Started](/docs/getting-started/) dan [Fitur Lanjutan](/docs/features/) sebelum melanjutkan.
 >
 > **Composer package:** `bangrondb/bangrondb` (PHP 8.1+, PDO SQLite3)
 

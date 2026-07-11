@@ -5,10 +5,10 @@ description: "Tips implementasi ERP dengan Flight PHP."
 toc: true
 edit_on_github: true
 prev:
-  url: /api-reference/
+  url: /docs/api-reference/
   title: "API Reference"
 next:
-  url: /project-scenarios-crm/
+  url: /docs/project-scenarios-crm/
   title: "Project Scenarios: CRM"
 ---
 # Tips & Trick BangronDB: Skenario Project ERP dengan Flight PHP
@@ -997,7 +997,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 4. **Hard-delete tanpa audit** — di ERP, delete adalah operasi berbahaya. Selalu pakai soft delete (`useSoftDeletes(true)`) untuk transaksi, dan simpan alasan delete di field `delete_reason`.
 
-5. **Encryption key di code / git** — ini kardus. Simpan di `.env`, rotate per tahun, backup di password manager. Lihat [docs/security.md](security.md) untuk panduan key rotation.
+5. **Encryption key di code / git** — ini kardus. Simpan di `.env`, rotate per tahun, backup di password manager. Lihat [docs/security.md](/docs/security/) untuk panduan key rotation.
 
 6. **Query N+1 di loop reporting** — mis. loop 1000 invoice, di tiap iterasi `findOne(['customer_id' => ...])`. Solusi: ambil semua customer sekali, map ke dictionary, lookup in-memory.
 
@@ -1039,13 +1039,13 @@ Flight PHP cocok dengan BangronDB karena keduanya sama-sama "embedded" — tidak
 
 ### Referensi Dokumen Lain
 
-- [Getting Started](getting-started.md) — instalasi, konsep dasar, quick start CRUD.
-- [Query Operators](query-operators.md) — daftar lengkap operator `$gt`, `$in`, `$regex`, dll.
-- [Security](security.md) — encryption, key rotation, blind index, security auditor.
-- [Hook Patterns](hook-patterns.md) — pola hook lanjutan, veto, recursion guard.
-- [Schema Metadata Guide](schema-metadata-guide.md) — UI-enhanced types (email, password, slug, relation), metadata collection.
-- [Framework Integration](framework-integration.md) — integrasi dengan Laravel, Slim, CodeIgniter, Symfony, dan framework lain.
-- [API Reference](api-reference.md) — referensi lengkap semua method Client, Database, Collection, Cursor.
+- [Getting Started](/docs/getting-started/) — instalasi, konsep dasar, quick start CRUD.
+- [Query Operators](/docs/query-operators/) — daftar lengkap operator `$gt`, `$in`, `$regex`, dll.
+- [Security](/docs/security/) — encryption, key rotation, blind index, security auditor.
+- [Hook Patterns](/docs/hook-patterns/) — pola hook lanjutan, veto, recursion guard.
+- [Schema Metadata Guide](/docs/schema-metadata-guide/) — UI-enhanced types (email, password, slug, relation), metadata collection.
+- [Framework Integration](/docs/framework-integration/) — integrasi dengan Laravel, Slim, CodeIgniter, Symfony, dan framework lain.
+- [API Reference](/docs/api-reference/) — referensi lengkap semua method Client, Database, Collection, Cursor.
 
 ### Contoh Code Lengkap
 

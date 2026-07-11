@@ -5,10 +5,10 @@ description: "Leads, opportunities, sales pipeline."
 toc: true
 edit_on_github: true
 prev:
-  url: /project-scenarios-erp/
+  url: /docs/project-scenarios-erp/
   title: "Project Scenarios: ERP"
 next:
-  url: /project-scenarios-scm/
+  url: /docs/project-scenarios-scm/
   title: "Project Scenarios: SCM"
 ---
 # Tips & Trick BangronDB: Skenario Project CRM dengan Flight PHP
@@ -732,7 +732,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](project-scenarios-erp.md) — modul ERP yang sering jadi target konversi CRM.
-- [Modular Architecture](modular-architecture.md) — cara setup multi-database (CRM + ERP + SCM + HRIS + POS).
-- [Hook Patterns](hook-patterns.md) — pola hook lanjutan.
-- [Security](security.md) — encryption, blind index, RBAC.
+- [ERP Scenario](/docs/project-scenarios-erp/) — modul ERP yang sering jadi target konversi CRM.
+- [Modular Architecture](/docs/modular-architecture/) — cara setup multi-database (CRM + ERP + SCM + HRIS + POS).
+- [Hook Patterns](/docs/hook-patterns/) — pola hook lanjutan.
+- [Security](/docs/security/) — encryption, blind index, RBAC.

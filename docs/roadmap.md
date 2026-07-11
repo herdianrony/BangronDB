@@ -5,7 +5,7 @@ description: "Roadmap pengembangan BangronDB."
 toc: true
 edit_on_github: true
 prev:
-  url: /modular-architecture/
+  url: /docs/modular-architecture/
   title: "Modular Architecture"
 ---
 # BangronDB Roadmap

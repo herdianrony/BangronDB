@@ -5,10 +5,10 @@ description: "Employees, attendance, payroll, PII encryption."
 toc: true
 edit_on_github: true
 prev:
-  url: /project-scenarios-scm/
+  url: /docs/project-scenarios-scm/
   title: "Project Scenarios: SCM"
 next:
-  url: /project-scenarios-pos/
+  url: /docs/project-scenarios-pos/
   title: "Project Scenarios: POS"
 ---
 # Tips & Trick BangronDB: Skenario Project HRIS dengan Flight PHP
@@ -1006,7 +1006,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](project-scenarios-erp.md) — modul ERP yang jadi tujuan integrasi (journal entry, user account).
-- [Modular Architecture](modular-architecture.md) — setup multi-database HRIS + ERP + lainnya.
-- [Security](security.md) — encryption, blind index, audit log (sangat relevan untuk HRIS).
-- [Hook Patterns](hook-patterns.md) — pola hook untuk business logic payroll & attendance.
+- [ERP Scenario](/docs/project-scenarios-erp/) — modul ERP yang jadi tujuan integrasi (journal entry, user account).
+- [Modular Architecture](/docs/modular-architecture/) — setup multi-database HRIS + ERP + lainnya.
+- [Security](/docs/security/) — encryption, blind index, audit log (sangat relevan untuk HRIS).
+- [Hook Patterns](/docs/hook-patterns/) — pola hook untuk business logic payroll & attendance.

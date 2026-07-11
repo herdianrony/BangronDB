@@ -5,10 +5,10 @@ description: "Cash drawer, transactions, multi-outlet sync."
 toc: true
 edit_on_github: true
 prev:
-  url: /project-scenarios-hris/
+  url: /docs/project-scenarios-hris/
   title: "Project Scenarios: HRIS"
 next:
-  url: /project-scenarios-auth-acl/
+  url: /docs/project-scenarios-auth-acl/
   title: "Auth & ACL"
 ---
 # Tips & Trick BangronDB: Skenario Project POS dengan Flight PHP
@@ -1083,7 +1083,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](project-scenarios-erp.md) — modul ERP yang jadi tujuan sync POS (sales_order, journal_entry).
-- [SCM Scenario](project-scenarios-scm.md) — modul SCM untuk stock_movement reference.
-- [Modular Architecture](modular-architecture.md) — setup multi-database POS + ERP + SCM.
-- [Security](security.md) — PIN hashing, encryption cost data, audit log.
+- [ERP Scenario](/docs/project-scenarios-erp/) — modul ERP yang jadi tujuan sync POS (sales_order, journal_entry).
+- [SCM Scenario](/docs/project-scenarios-scm/) — modul SCM untuk stock_movement reference.
+- [Modular Architecture](/docs/modular-architecture/) — setup multi-database POS + ERP + SCM.
+- [Security](/docs/security/) — PIN hashing, encryption cost data, audit log.

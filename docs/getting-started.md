@@ -5,7 +5,7 @@ description: "Panduan cepat untuk mulai menggunakan BangronDB."
 toc: true
 edit_on_github: true
 next:
-  url: /features/
+  url: /docs/features/
   title: "Features"
 ---
 # Getting Started
@@ -275,7 +275,7 @@ Operator query yang didukung di dalam `find()`, `findOne()`, `count()`, dll:
 
 > **Catatan:** `$options` disediakan untuk kompatibilitas sintaks MongoDB, tetapi **saat ini tidak berpengaruh** pada eksekusi. Sertakan flag regex langsung di dalam pola (misalnya `/john/iu`) untuk mengaktifkan case-insensitive dan Unicode.
 
-> Dokumentasi lengkap query operators ada di [query-operators.md](query-operators.md).
+> Dokumentasi lengkap query operators ada di [query-operators.md](/docs/query-operators/).
 
 ## Update Operators
 
@@ -287,9 +287,9 @@ Operator query yang didukung di dalam `find()`, `findOne()`, `count()`, dll:
 
 ## Langkah Selanjutnya
 
-- [API Reference lengkap](api-reference.md)
-- [Fitur lanjutan](features.md) — Encryption, Hooks, Soft Delete, TTL, Aggregation
-- [Keamanan](security.md) — Enkripsi, Searchable Fields, Key Rotation
-- [Schema Metadata Guide](schema-metadata-guide.md) — Properti validasi vs metadata, tipe data, contoh lengkap
-- [Hook Patterns](hook-patterns.md) — 8 pola praktis: auto-timestamp, audit log, ACL, slug, cascade delete
+- [API Reference lengkap](/docs/api-reference/)
+- [Fitur lanjutan](/docs/features/) — Encryption, Hooks, Soft Delete, TTL, Aggregation
+- [Keamanan](/docs/security/) — Enkripsi, Searchable Fields, Key Rotation
+- [Schema Metadata Guide](/docs/schema-metadata-guide/) — Properti validasi vs metadata, tipe data, contoh lengkap
+- [Hook Patterns](/docs/hook-patterns/) — 8 pola praktis: auto-timestamp, audit log, ACL, slug, cascade delete
 - [Contoh lengkap](../examples/) — Semua contoh bisa dijalankan langsung

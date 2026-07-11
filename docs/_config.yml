@@ -46,11 +46,15 @@ defaults:
       layout: "doc"
       toc: true
       edit_on_github: true
+      # Clean URL structure: /BangronDB/docs/getting-started/
+      # :path is the file path relative to docs/ without .md extension
+      permalink: /docs/:path/
   - scope:
       path: "index.html"
       type: "pages"
     values:
       layout: "home"
+      permalink: /              # landing page at root
 
 # Optional front matter (don't require front-matter on every file)
 optional_front_matter:

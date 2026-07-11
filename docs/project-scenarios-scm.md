@@ -5,10 +5,10 @@ description: "Purchase orders, shipments, stock movements."
 toc: true
 edit_on_github: true
 prev:
-  url: /project-scenarios-crm/
+  url: /docs/project-scenarios-crm/
   title: "Project Scenarios: CRM"
 next:
-  url: /project-scenarios-hris/
+  url: /docs/project-scenarios-hris/
   title: "Project Scenarios: HRIS"
 ---
 # Tips & Trick BangronDB: Skenario Project SCM dengan Flight PHP
@@ -801,7 +801,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](project-scenarios-erp.md) — ERP modul yang sering jadi tujuan integrasi SCM (sales_order, journal_entry).
-- [Modular Architecture](modular-architecture.md) — setup multi-database SCM + ERP + lainnya.
-- [Hook Patterns](hook-patterns.md) — pola hook lanjutan.
-- [Security](security.md) — encryption cost data, audit log.
+- [ERP Scenario](/docs/project-scenarios-erp/) — ERP modul yang sering jadi tujuan integrasi SCM (sales_order, journal_entry).
+- [Modular Architecture](/docs/modular-architecture/) — setup multi-database SCM + ERP + lainnya.
+- [Hook Patterns](/docs/hook-patterns/) — pola hook lanjutan.
+- [Security](/docs/security/) — encryption cost data, audit log.

@@ -5,10 +5,10 @@ description: "Sorotan fitur BangronDB."
 toc: true
 edit_on_github: true
 prev:
-  url: /getting-started/
+  url: /docs/getting-started/
   title: "Getting Started"
 next:
-  url: /query-operators/
+  url: /docs/query-operators/
   title: "Query Operators"
 ---
 # Fitur Lanjutan
@@ -68,7 +68,7 @@ $collection->on('beforeUpdate', function ($criteria, $data) {
 
 > **Catatan:** `beforeUpdate` **tidak** mendukung `return false` untuk membatalkan operasi. Untuk membatalkan, lempar exception dari dalam hook.
 >
-> **Pola penggunaan hook:** Lihat [hook-patterns.md](hook-patterns.md) untuk 8 pola praktis (auto-timestamp, audit log, ACL, slug, cascade delete, dll.).
+> **Pola penggunaan hook:** Lihat [hook-patterns.md](/docs/hook-patterns/) untuk 8 pola praktis (auto-timestamp, audit log, ACL, slug, cascade delete, dll.).
 
 ### Menghapus Hooks
 

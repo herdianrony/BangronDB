@@ -5,10 +5,10 @@ description: "Schema format, validasi, type aliases."
 toc: true
 edit_on_github: true
 prev:
-  url: /query-operators/
+  url: /docs/query-operators/
   title: "Query Operators"
 next:
-  url: /hook-patterns/
+  url: /docs/hook-patterns/
   title: "Hook Patterns"
 ---
 # Schema Metadata Guide

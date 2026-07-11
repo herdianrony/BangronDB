@@ -5,10 +5,10 @@ description: "Daftar lengkap operator query."
 toc: true
 edit_on_github: true
 prev:
-  url: /features/
+  url: /docs/features/
   title: "Features"
 next:
-  url: /schema-metadata-guide/
+  url: /docs/schema-metadata-guide/
   title: "Schema & Metadata"
 ---
 # Query Operators

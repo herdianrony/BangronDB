@@ -5,10 +5,10 @@ description: "Enkripsi, blind index, key rotation."
 toc: true
 edit_on_github: true
 prev:
-  url: /hook-patterns/
+  url: /docs/hook-patterns/
   title: "Hook Patterns"
 next:
-  url: /framework-integration/
+  url: /docs/framework-integration/
   title: "Framework Integration"
 ---
 # Keamanan
