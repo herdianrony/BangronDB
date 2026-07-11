@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/security/
 title: "Security"
 description: "Enkripsi, blind index, key rotation."
 toc: true

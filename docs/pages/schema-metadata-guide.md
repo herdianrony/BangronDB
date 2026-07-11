@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/schema-metadata-guide/
 title: "Schema & Metadata"
 description: "Schema format, validasi, type aliases."
 toc: true

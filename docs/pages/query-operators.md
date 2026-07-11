@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/query-operators/
 title: "Query Operators"
 description: "Daftar lengkap operator query."
 toc: true

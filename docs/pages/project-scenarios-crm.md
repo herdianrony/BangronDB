@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/project-scenarios-crm/
 title: "Project Scenarios: CRM"
 description: "Leads, opportunities, sales pipeline."
 toc: true

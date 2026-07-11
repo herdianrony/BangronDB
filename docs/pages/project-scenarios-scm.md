@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/project-scenarios-scm/
 title: "Project Scenarios: SCM"
 description: "Purchase orders, shipments, stock movements."
 toc: true

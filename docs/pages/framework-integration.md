@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/framework-integration/
 title: "Framework Integration"
 description: "Integrasi dengan framework PHP."
 toc: true

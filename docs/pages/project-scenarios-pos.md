@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/project-scenarios-pos/
 title: "Project Scenarios: POS"
 description: "Cash drawer, transactions, multi-outlet sync."
 toc: true

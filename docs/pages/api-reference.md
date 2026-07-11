@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/api-reference/
 title: "API Reference"
 description: "Referensi method Client, Database, Collection, Cursor."
 toc: true

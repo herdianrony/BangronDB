@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/project-scenarios-hris/
 title: "Project Scenarios: HRIS"
 description: "Employees, attendance, payroll, PII encryption."
 toc: true

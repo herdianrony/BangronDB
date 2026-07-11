@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/project-scenarios-erp/
 title: "Project Scenarios: ERP"
 description: "Tips implementasi ERP dengan Flight PHP."
 toc: true

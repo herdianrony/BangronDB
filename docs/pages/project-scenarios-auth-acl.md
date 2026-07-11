@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/project-scenarios-auth-acl/
 title: "Auth & ACL"
 description: "Auth & ACL dengan setCustomConfig."
 toc: true

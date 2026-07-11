@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/roadmap/
 title: "Roadmap"
 description: "Roadmap pengembangan BangronDB."
 toc: true

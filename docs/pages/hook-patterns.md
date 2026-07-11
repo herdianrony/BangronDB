@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/hook-patterns/
 title: "Hook Patterns"
 description: "8 pola praktis hook."
 toc: true

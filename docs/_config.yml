@@ -46,13 +46,9 @@ defaults:
       layout: "doc"
       toc: true
       edit_on_github: true
-  # Doc pages live in pages/ subfolder. Permalink rewrites them to /docs/:name/
-  # so the URL is /BangronDB/docs/getting-started/ (not /BangronDB/pages/getting-started/)
-  - scope:
-      path: "pages"
-      type: "pages"
-    values:
-      permalink: /docs/:name/
+  # NOTE: permalink with variables (:name) does NOT work in defaults scope.
+  # It must be set in each file's front-matter. See pages/*.md for the
+  # individual `permalink: /docs/<name>/` settings.
   - scope:
       path: "index.html"
       type: "pages"

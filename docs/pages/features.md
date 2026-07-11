@@ -1,5 +1,6 @@
 ---
 layout: doc
+permalink: /docs/features/
 title: "Features"
 description: "Sorotan fitur BangronDB."
 toc: true
