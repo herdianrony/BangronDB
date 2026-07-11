@@ -47,8 +47,8 @@ defaults:
       toc: true
       edit_on_github: true
       # Clean URL structure: /BangronDB/docs/getting-started/
-      # :path is the file path relative to docs/ without .md extension
-      permalink: /docs/:path/
+      # :name is the filename without extension (e.g. getting-started)
+      permalink: /docs/:name/
   - scope:
       path: "index.html"
       type: "pages"
