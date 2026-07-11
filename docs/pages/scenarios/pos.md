@@ -1,15 +1,15 @@
 ---
 layout: doc
-permalink: /docs/project-scenarios-pos/
+permalink: /docs/scenarios/pos/
 title: "Project Scenarios: POS"
 description: "Cash drawer, transactions, multi-outlet sync."
 toc: true
 edit_on_github: true
 prev:
-  url: /docs/project-scenarios-hris/
+  url: /docs/scenarios/hris/
   title: "Project Scenarios: HRIS"
 next:
-  url: /docs/project-scenarios-auth-acl/
+  url: /docs/scenarios/auth-acl/
   title: "Auth & ACL"
 ---
 # Tips & Trick BangronDB: Skenario Project POS dengan Flight PHP
@@ -1054,7 +1054,7 @@ function syncOutletToCentral(string $outletId): array {
 6. `insertMany()` otomatis transactional — pakai untuk stock movements bulk.
 7. Jika stock_movement insert gagal di hook afterInsert, transaction POS tetap ada di database tapi stok salah. Mark transaction status sebagai 'error' agar kasir tahu.
 
-Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+Lihat juga: [Auth & ACL → Transaction Safety](/docs/scenarios/auth-acl/#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
 
 ---
 
@@ -1084,7 +1084,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](/docs/project-scenarios-erp/) — modul ERP yang jadi tujuan sync POS (sales_order, journal_entry).
-- [SCM Scenario](/docs/project-scenarios-scm/) — modul SCM untuk stock_movement reference.
+- [ERP Scenario](/docs/scenarios/erp/) — modul ERP yang jadi tujuan sync POS (sales_order, journal_entry).
+- [SCM Scenario](/docs/scenarios/scm/) — modul SCM untuk stock_movement reference.
 - [Modular Architecture](/docs/modular-architecture/) — setup multi-database POS + ERP + SCM.
 - [Security](/docs/security/) — PIN hashing, encryption cost data, audit log.

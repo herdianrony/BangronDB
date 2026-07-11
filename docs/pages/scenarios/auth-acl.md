@@ -1,12 +1,12 @@
 ---
 layout: doc
-permalink: /docs/project-scenarios-auth-acl/
+permalink: /docs/scenarios/auth-acl/
 title: "Auth & ACL"
 description: "Auth & ACL dengan setCustomConfig."
 toc: true
 edit_on_github: true
 prev:
-  url: /docs/project-scenarios-pos/
+  url: /docs/scenarios/pos/
   title: "Project Scenarios: POS"
 next:
   url: /docs/modular-architecture/
@@ -1322,7 +1322,7 @@ $payload = [
 ## Referensi
 
 - [Modular Architecture](/docs/modular-architecture/) — strategi multi-database, tempat modul `auth` berada.
-- [HRIS Scenario](/docs/project-scenarios-hris/) — pola encryption PII yang sama relevan untuk auth.
+- [HRIS Scenario](/docs/scenarios/hris/) — pola encryption PII yang sama relevan untuk auth.
 - [Security](/docs/security/) — encryption, blind index, key rotation.
 - [Hook Patterns](/docs/hook-patterns/) — pola hook untuk enforcement logic.
 - [examples/20-auth-encrypted.php](../examples/20-auth-encrypted.php) — contoh auth dengan encryption.

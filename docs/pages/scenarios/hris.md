@@ -1,15 +1,15 @@
 ---
 layout: doc
-permalink: /docs/project-scenarios-hris/
+permalink: /docs/scenarios/hris/
 title: "Project Scenarios: HRIS"
 description: "Employees, attendance, payroll, PII encryption."
 toc: true
 edit_on_github: true
 prev:
-  url: /docs/project-scenarios-scm/
+  url: /docs/scenarios/scm/
   title: "Project Scenarios: SCM"
 next:
-  url: /docs/project-scenarios-pos/
+  url: /docs/scenarios/pos/
   title: "Project Scenarios: POS"
 ---
 # Tips & Trick BangronDB: Skenario Project HRIS dengan Flight PHP
@@ -981,7 +981,7 @@ function approveLeave(string $leaveId, string $approverId): void {
 6. Payslips WAJIB encryption — transaction tetap berfungsi normal dengan encrypted collection.
 7. Untuk payroll run ribuan karyawan, pakai batch transaction (500 per batch) untuk hindari lock lama.
 
-Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+Lihat juga: [Auth & ACL → Transaction Safety](/docs/scenarios/auth-acl/#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
 
 ---
 
@@ -1007,7 +1007,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](/docs/project-scenarios-erp/) — modul ERP yang jadi tujuan integrasi (journal entry, user account).
+- [ERP Scenario](/docs/scenarios/erp/) — modul ERP yang jadi tujuan integrasi (journal entry, user account).
 - [Modular Architecture](/docs/modular-architecture/) — setup multi-database HRIS + ERP + lainnya.
 - [Security](/docs/security/) — encryption, blind index, audit log (sangat relevan untuk HRIS).
 - [Hook Patterns](/docs/hook-patterns/) — pola hook untuk business logic payroll & attendance.

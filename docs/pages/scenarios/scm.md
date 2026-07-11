@@ -1,15 +1,15 @@
 ---
 layout: doc
-permalink: /docs/project-scenarios-scm/
+permalink: /docs/scenarios/scm/
 title: "Project Scenarios: SCM"
 description: "Purchase orders, shipments, stock movements."
 toc: true
 edit_on_github: true
 prev:
-  url: /docs/project-scenarios-crm/
+  url: /docs/scenarios/crm/
   title: "Project Scenarios: CRM"
 next:
-  url: /docs/project-scenarios-hris/
+  url: /docs/scenarios/hris/
   title: "Project Scenarios: HRIS"
 ---
 # Tips & Trick BangronDB: Skenario Project SCM dengan Flight PHP
@@ -778,7 +778,7 @@ function transferStock(string $productId, string $fromWh, string $toWh, int $qty
 5. `stock_movements` harus immutable — untuk koreksi, insert movement lawan dalam transaction baru, jangan update/delete movement existing.
 6. `insertMany()` otomatis transactional — pakai untuk bulk insert master data atau batch movements.
 
-Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+Lihat juga: [Auth & ACL → Transaction Safety](/docs/scenarios/auth-acl/#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
 
 ---
 
@@ -802,7 +802,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](/docs/project-scenarios-erp/) — ERP modul yang sering jadi tujuan integrasi SCM (sales_order, journal_entry).
+- [ERP Scenario](/docs/scenarios/erp/) — ERP modul yang sering jadi tujuan integrasi SCM (sales_order, journal_entry).
 - [Modular Architecture](/docs/modular-architecture/) — setup multi-database SCM + ERP + lainnya.
 - [Hook Patterns](/docs/hook-patterns/) — pola hook lanjutan.
 - [Security](/docs/security/) — encryption cost data, audit log.

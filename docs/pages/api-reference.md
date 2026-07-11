@@ -9,7 +9,7 @@ prev:
   url: /docs/framework-integration/
   title: "Framework Integration"
 next:
-  url: /docs/project-scenarios-erp/
+  url: /docs/scenarios/erp/
   title: "Project Scenarios: ERP"
 ---
 # API Reference

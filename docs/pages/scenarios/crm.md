@@ -1,15 +1,15 @@
 ---
 layout: doc
-permalink: /docs/project-scenarios-crm/
+permalink: /docs/scenarios/crm/
 title: "Project Scenarios: CRM"
 description: "Leads, opportunities, sales pipeline."
 toc: true
 edit_on_github: true
 prev:
-  url: /docs/project-scenarios-erp/
+  url: /docs/scenarios/erp/
   title: "Project Scenarios: ERP"
 next:
-  url: /docs/project-scenarios-scm/
+  url: /docs/scenarios/scm/
   title: "Project Scenarios: SCM"
 ---
 # Tips & Trick BangronDB: Skenario Project CRM dengan Flight PHP
@@ -709,7 +709,7 @@ collection('leads')->on('afterUpdate', function (array $old, array $new) {
 5. Hook dalam database yang sama = atomic otomatis.
 6. Untuk bulk import, pakai `insertMany()` yang otomatis transactional.
 
-Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+Lihat juga: [Auth & ACL → Transaction Safety](/docs/scenarios/auth-acl/#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
 
 ---
 
@@ -733,7 +733,7 @@ Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-
 
 ## Referensi
 
-- [ERP Scenario](/docs/project-scenarios-erp/) — modul ERP yang sering jadi target konversi CRM.
+- [ERP Scenario](/docs/scenarios/erp/) — modul ERP yang sering jadi target konversi CRM.
 - [Modular Architecture](/docs/modular-architecture/) — cara setup multi-database (CRM + ERP + SCM + HRIS + POS).
 - [Hook Patterns](/docs/hook-patterns/) — pola hook lanjutan.
 - [Security](/docs/security/) — encryption, blind index, RBAC.

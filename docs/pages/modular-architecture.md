@@ -6,7 +6,7 @@ description: "Integrasi multi-modul dengan cross-database."
 toc: true
 edit_on_github: true
 prev:
-  url: /docs/project-scenarios-auth-acl/
+  url: /docs/scenarios/auth-acl/
   title: "Auth & ACL"
 next:
   url: /docs/roadmap/
@@ -384,7 +384,7 @@ coll('crm', 'leads')->on('afterUpdate', function (array $old, array $new) {
 ```php
 coll('scm', 'goods_receipts')->on('afterInsert', function (array $gr) {
     // Stock movement (di scm)
-    // ... (lihat docs/project-scenarios-scm.md)
+    // ... (lihat docs/scenarios/scm/)
 
     // Journal entry (di erp_finance)
     $totalValue = array_sum(array_map(
@@ -914,11 +914,11 @@ Untuk project dengan requirement real-time consistency atau multi-region, pertim
 
 ## Referensi
 
-- [ERP Scenario](/docs/project-scenarios-erp/) — implementasi ERP modular.
-- [CRM Scenario](/docs/project-scenarios-crm/) — implementasi CRM dengan PII encryption.
-- [SCM Scenario](/docs/project-scenarios-scm/) — implementasi SCM dengan stock movement event log.
-- [HRIS Scenario](/docs/project-scenarios-hris/) — implementasi HRIS dengan multi-level encryption.
-- [POS Scenario](/docs/project-scenarios-pos/) — implementasi POS offline-first.
+- [ERP Scenario](/docs/scenarios/erp/) — implementasi ERP modular.
+- [CRM Scenario](/docs/scenarios/crm/) — implementasi CRM dengan PII encryption.
+- [SCM Scenario](/docs/scenarios/scm/) — implementasi SCM dengan stock movement event log.
+- [HRIS Scenario](/docs/scenarios/hris/) — implementasi HRIS dengan multi-level encryption.
+- [POS Scenario](/docs/scenarios/pos/) — implementasi POS offline-first.
 - [Framework Integration](/docs/framework-integration/) — integrasi dengan framework lain.
 - [Security](/docs/security/) — encryption, blind index, RBAC.
 - [Hook Patterns](/docs/hook-patterns/) — pola hook lanjutan untuk event-driven integration.

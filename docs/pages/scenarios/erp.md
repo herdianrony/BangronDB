@@ -1,6 +1,6 @@
 ---
 layout: doc
-permalink: /docs/project-scenarios-erp/
+permalink: /docs/scenarios/erp/
 title: "Project Scenarios: ERP"
 description: "Tips implementasi ERP dengan Flight PHP."
 toc: true
@@ -9,7 +9,7 @@ prev:
   url: /docs/api-reference/
   title: "API Reference"
 next:
-  url: /docs/project-scenarios-crm/
+  url: /docs/scenarios/crm/
   title: "Project Scenarios: CRM"
 ---
 # Tips & Trick BangronDB: Skenario Project ERP dengan Flight PHP
@@ -967,7 +967,7 @@ Pola ini cocok juga untuk **migration script** (update massal dokumen dengan fie
 5. Transaction cross-DATABASE tidak didukung — `erp_sales.bangron` dan `erp_finance.bangron` punya connection terpisah. Pakai [Saga Pattern](modular-architecture.md#82-strategi-mitigasi-inconsistency) atau idempotent hook dengan status flag.
 6. Hook cross-database TIDAK atomic — hook di `erp_sales.invoices` yang insert ke `erp_finance.journal_entries` tidak dalam transaction yang sama.
 
-Lihat juga: [Auth & ACL → Transaction Safety](project-scenarios-auth-acl.md#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
+Lihat juga: [Auth & ACL → Transaction Safety](/docs/scenarios/auth-acl/#8-transaction-safety-atomic-multi-step-operasi) untuk pola lengkap.
 
 ---
 
