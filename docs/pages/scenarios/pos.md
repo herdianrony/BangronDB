@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: scenarios
 permalink: /docs/scenarios/pos/
 title: "Project Scenarios: POS"
 description: "Cash drawer, transactions, multi-outlet sync."

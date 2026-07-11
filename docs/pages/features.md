@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: dasar
 permalink: /docs/features/
 title: "Features"
 description: "Sorotan fitur BangronDB."

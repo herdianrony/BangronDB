@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: keamanan-api
 permalink: /docs/api-reference/
 title: "API Reference"
 description: "Referensi method Client, Database, Collection, Cursor."

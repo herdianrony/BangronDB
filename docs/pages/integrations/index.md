@@ -5,6 +5,7 @@ description: "Integrasi BangronDB dengan micro-framework PHP: Flight, Slim, Lume
 permalink: /docs/integrations/
 toc: true
 edit_on_github: true
+category: integrations
 ---
 
 # Integrasi Micro-Framework PHP
@@ -15,12 +16,24 @@ BangronDB dirancang sebagai **embedded document database** — ringan, tanpa ser
 
 ## Daftar Micro-Framework
 
-| Framework | Cocok untuk | Footprint | Link |
-|-----------|-------------|-----------|------|
-| **Flight PHP** | Aplikasi kecil-menengah, prototyping, embedded | ~50KB | [/docs/integrations/flight/](/docs/integrations/flight/) |
-| **Slim Framework** | API service, microservice, middleware-heavy | ~150KB | [/docs/integrations/slim/](/docs/integrations/slim/) |
-| **Lumen** | API yang butuh Laravel ecosystem (queue, cache) | ~2MB | [/docs/integrations/lumen/](/docs/integrations/lumen/) |
-| **Vanilla PHP** | Aplikasi minimal tanpa framework, scripts, CLI | 0KB | [/docs/integrations/vanilla-php/](/docs/integrations/vanilla-php/) |
+> Halaman ini di-generate otomatis dari file di `pages/integrations/`. Tambah file `.md` baru dengan `category: integrations`, dan halaman ini akan otomatis ter-update.
+
+{% assign integration_pages = site.pages | where: "category", "integrations" | sort: "title" %}
+
+<table>
+<thead>
+<tr><th>Framework</th><th>Deskripsi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in integration_pages %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+  </tr>
+{% endfor %}
+</tbody>
+</table>
 
 ## Penjelasan Singkat
 

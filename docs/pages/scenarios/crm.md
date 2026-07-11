@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: scenarios
 permalink: /docs/scenarios/crm/
 title: "Project Scenarios: CRM"
 description: "Leads, opportunities, sales pipeline."

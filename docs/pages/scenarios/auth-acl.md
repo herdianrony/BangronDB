@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: scenarios
 permalink: /docs/scenarios/auth-acl/
 title: "Auth & ACL"
 description: "Auth & ACL dengan setCustomConfig."

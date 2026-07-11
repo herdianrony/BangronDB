@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: lainnya
 permalink: /docs/roadmap/
 title: "Roadmap"
 description: "Roadmap pengembangan BangronDB."

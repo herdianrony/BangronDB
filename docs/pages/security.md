@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: keamanan-api
 permalink: /docs/security/
 title: "Security"
 description: "Enkripsi, blind index, key rotation."

@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: dasar
 permalink: /docs/getting-started/
 title: "Getting Started"
 description: "Panduan cepat untuk mulai menggunakan BangronDB."

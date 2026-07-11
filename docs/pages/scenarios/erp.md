@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: scenarios
 permalink: /docs/scenarios/erp/
 title: "Project Scenarios: ERP"
 description: "Tips implementasi ERP dengan Flight PHP."

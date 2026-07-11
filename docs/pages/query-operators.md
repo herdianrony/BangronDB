@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: dasar
 permalink: /docs/query-operators/
 title: "Query Operators"
 description: "Daftar lengkap operator query."

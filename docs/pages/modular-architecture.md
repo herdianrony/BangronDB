@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: arsitektur
 permalink: /docs/modular-architecture/
 title: "Modular Architecture"
 description: "Integrasi multi-modul dengan cross-database."

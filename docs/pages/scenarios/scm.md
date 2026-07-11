@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: scenarios
 permalink: /docs/scenarios/scm/
 title: "Project Scenarios: SCM"
 description: "Purchase orders, shipments, stock movements."

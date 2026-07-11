@@ -11,54 +11,135 @@ edit_on_github: true
 
 Selamat datang di dokumentasi BangronDB — embedded document database untuk PHP. MongoDB-style API, SQLite backend, zero server, zero config.
 
+> Halaman ini di-generate otomatis dari front-matter setiap file `.md`. Tambah file baru dengan `category` di front-matter, dan halaman ini akan otomatis ter-update.
+
 ## Daftar Lengkap Dokumentasi
+
+{% comment %}
+  Auto-generate dari site.pages yang punya layout: doc dan category.
+  Exclude index pages (yang punya permalink ending with /docs/, /docs/integrations/, /docs/scenarios/).
+  Group by category: dasar, keamanan-api, integrations, scenarios, arsitektur, lainnya.
+{% endcomment %}
+
+{% assign doc_pages = site.pages | where: "layout", "doc" | sort: "title" %}
 
 ### Dasar
 
-| Dokumen | Isi | Link |
-|---------|-----|------|
-| **Getting Started** | Instalasi, konsep dasar, quick start CRUD | [/docs/getting-started/](/docs/getting-started/) |
-| **Features** | Sorotan fitur: API MongoDB-style, schema, encryption, hooks, aggregation | [/docs/features/](/docs/features/) |
-| **Query Operators** | Daftar lengkap operator: `$gt`, `$in`, `$regex`, fuzzy search, dll | [/docs/query-operators/](/docs/query-operators/) |
-| **Schema & Metadata** | Flat schema format, validasi, type aliases, metadata UI | [/docs/schema-metadata-guide/](/docs/schema-metadata-guide/) |
-| **Hook Patterns** | 8 pola praktis hook: auto-timestamp, audit log, ACL, cascade delete | [/docs/hook-patterns/](/docs/hook-patterns/) |
+<table>
+<thead>
+<tr><th>Dokumen</th><th>Isi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in doc_pages %}
+  {% if p.category == "dasar" %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">/docs{{ p.url | remove: "/docs" }}/</a></td>
+  </tr>
+  {% endif %}
+{% endfor %}
+</tbody>
+</table>
 
 ### Keamanan & API
 
-| Dokumen | Isi | Link |
-|---------|-----|------|
-| **Security** | Encryption AES-256-GCM, blind index, key rotation, security auditor | [/docs/security/](/docs/security/) |
-| **API Reference** | Referensi lengkap method Client, Database, Collection, Cursor | [/docs/api-reference/](/docs/api-reference/) |
+<table>
+<thead>
+<tr><th>Dokumen</th><th>Isi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in doc_pages %}
+  {% if p.category == "keamanan-api" %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+  </tr>
+  {% endif %}
+{% endfor %}
+</tbody>
+</table>
 
 ### Integrasi
 
-| Dokumen | Isi | Link |
-|---------|-----|------|
-| **Integrations** | Daftar integrasi micro-framework: Flight, Slim, Lumen, Vanilla PHP | [/docs/integrations/](/docs/integrations/) |
+Lihat halaman index: [/docs/integrations/](/docs/integrations/)
+
+<table>
+<thead>
+<tr><th>Dokumen</th><th>Isi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in doc_pages %}
+  {% if p.category == "integrations" %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+  </tr>
+  {% endif %}
+{% endfor %}
+</tbody>
+</table>
 
 ### Skenario Project
 
-| Dokumen | Isi | Link |
-|---------|-----|------|
-| **Scenarios Index** | Daftar skenario implementasi: ERP, CRM, SCM, HRIS, POS, Auth | [/docs/scenarios/](/docs/scenarios/) |
-| **ERP** | Inventory, sales, accounting, journal entries | [/docs/scenarios/erp/](/docs/scenarios/erp/) |
-| **CRM** | Leads, opportunities, sales pipeline, activities | [/docs/scenarios/crm/](/docs/scenarios/crm/) |
-| **SCM** | Purchase orders, goods receipt, shipments, stock movements | [/docs/scenarios/scm/](/docs/scenarios/scm/) |
-| **HRIS** | Employees, attendance, leave, payroll, PII encryption | [/docs/scenarios/hris/](/docs/scenarios/hris/) |
-| **POS** | Cash drawer, transactions, multi-outlet sync, offline-first | [/docs/scenarios/pos/](/docs/scenarios/pos/) |
-| **Auth & ACL** | Login, register, JWT, ACL per-collection via setCustomConfig | [/docs/scenarios/auth-acl/](/docs/scenarios/auth-acl/) |
+Lihat halaman index: [/docs/scenarios/](/docs/scenarios/)
+
+<table>
+<thead>
+<tr><th>Dokumen</th><th>Isi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in doc_pages %}
+  {% if p.category == "scenarios" %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+  </tr>
+  {% endif %}
+{% endfor %}
+</tbody>
+</table>
 
 ### Arsitektur
 
-| Dokumen | Isi | Link |
-|---------|-----|------|
-| **Modular Architecture** | Integrasi ERP + CRM + SCM + HRIS + POS dengan cross-database + hooks | [/docs/modular-architecture/](/docs/modular-architecture/) |
+<table>
+<thead>
+<tr><th>Dokumen</th><th>Isi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in doc_pages %}
+  {% if p.category == "arsitektur" %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+  </tr>
+  {% endif %}
+{% endfor %}
+</tbody>
+</table>
 
 ### Lainnya
 
-| Dokumen | Isi | Link |
-|---------|-----|------|
-| **Roadmap** | Roadmap pengembangan BangronDB — fitur yang sudah ada & akan datang | [/docs/roadmap/](/docs/roadmap/) |
+<table>
+<thead>
+<tr><th>Dokumen</th><th>Isi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in doc_pages %}
+  {% if p.category == "lainnya" %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+  </tr>
+  {% endif %}
+{% endfor %}
+</tbody>
+</table>
 
 ## Mulai Dari Mana?
 

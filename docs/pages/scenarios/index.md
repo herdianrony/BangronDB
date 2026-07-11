@@ -5,6 +5,7 @@ description: "Tips & trick implementasi BangronDB pada skenario project nyata: E
 permalink: /docs/scenarios/
 toc: true
 edit_on_github: true
+category: scenarios
 ---
 
 # Project Scenarios
@@ -13,15 +14,24 @@ Dokumen ini berisi panduan praktis implementasi BangronDB pada berbagai skenario
 
 ## Daftar Skenario
 
-| Skenario | Fokus | Link |
-|----------|-------|------|
-| **ERP** | Inventory, sales, accounting, journal entries | [/docs/scenarios/erp/](/docs/scenarios/erp/) |
-| **CRM** | Leads, opportunities, sales pipeline, activities | [/docs/scenarios/crm/](/docs/scenarios/crm/) |
-| **SCM** | Purchase orders, goods receipt, shipments, stock movements | [/docs/scenarios/scm/](/docs/scenarios/scm/) |
-| **HRIS** | Employees, attendance, leave, payroll, PII encryption | [/docs/scenarios/hris/](/docs/scenarios/hris/) |
-| **POS** | Cash drawer, transactions, multi-outlet sync, offline-first | [/docs/scenarios/pos/](/docs/scenarios/pos/) |
-| **Auth & ACL** | Login, register, JWT, ACL per-collection via setCustomConfig | [/docs/scenarios/auth-acl/](/docs/scenarios/auth-acl/) |
-| **Modular Architecture** | Integrasi multi-modul dengan cross-database + hooks | [/docs/modular-architecture/](/docs/modular-architecture/) |
+> Halaman ini di-generate otomatis dari file di `pages/scenarios/`. Tambah file `.md` baru dengan `category: scenarios`, dan halaman ini akan otomatis ter-update.
+
+{% assign scenario_pages = site.pages | where: "category", "scenarios" | sort: "title" %}
+
+<table>
+<thead>
+<tr><th>Skenario</th><th>Deskripsi</th><th>Link</th></tr>
+</thead>
+<tbody>
+{% for p in scenario_pages %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.description | default: "—" }}</td>
+    <td><a href="{{ p.url }}">{{ p.url }}</a></td>
+  </tr>
+{% endfor %}
+</tbody>
+</table>
 
 ## Pola Umum di Semua Skenario
 
@@ -46,7 +56,7 @@ Semua skenario menggunakan kombinasi:
 - **Flight PHP** — micro-framework paling cocok untuk BangronDB karena keduanya embedded.
 - **PHP 8.1+** — sesuai requirement `composer.json` BangronDB.
 
-Untuk integrasi dengan framework lain (Laravel, Slim, Symfony, dll), lihat [Integrations](/docs/integrations/).
+Untuk integrasi dengan framework lain (Slim, Lumen, Vanilla PHP), lihat [Integrations](/docs/integrations/).
 
 ## Kombinasi Skenario
 

@@ -1,5 +1,6 @@
 ---
 layout: doc
+category: dasar
 permalink: /docs/schema-metadata-guide/
 title: "Schema & Metadata"
 description: "Schema format, validasi, type aliases."
