@@ -7,17 +7,16 @@ toc: true
 edit_on_github: true
 category: integrations
 prev:
-  url: /docs/integrations/laravel/
-  title: "Laravel Integration"
-next:
   url: /docs/integrations/slim/
   title: "Slim Framework Integration"
+next:
+  url: /docs/integrations/vanilla-php/
+  title: "Vanilla PHP Integration"
 ---
 
-> Halaman ini adalah bagian dari [Integrations](/docs/integrations/). Lihat juga integrasi framework lain di sidebar kiri.
 # Lumen Integration
 
-Lumen adalah mikro-framework dari Laravel. Integrasi BangronDB hampir identik, tanpa facade dan config file yang lebih minimal.
+> Bagian dari [Integrations](/docs/integrations/) — daftar micro-framework yang cocok untuk BangronDB.
 
 ### Bootstrap
 

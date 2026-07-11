@@ -7,13 +7,13 @@ toc: true
 edit_on_github: true
 category: integrations
 prev:
-  url: /docs/integrations/windwalker/
-  title: "Windwalker Integration"
-
+  url: /docs/integrations/lumen/
+  title: "Lumen Integration"
 ---
 
-> Halaman ini adalah bagian dari [Integrations](/docs/integrations/). Lihat juga integrasi framework lain di sidebar kiri.
 # Vanilla PHP Integration
+
+> Bagian dari [Integrations](/docs/integrations/) — daftar micro-framework yang cocok untuk BangronDB.
 
 Untuk proyek PHP tanpa framework, gunakan pola sederhana: satu file bootstrap yang menginisialisasi BangronDB dan mengekspos helper function.
 

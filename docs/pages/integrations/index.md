@@ -1,242 +1,147 @@
 ---
 layout: doc
 title: "Integrations"
-description: "Daftar integrasi BangronDB dengan framework PHP populer: Laravel, Lumen, Slim, Flight, CodeIgniter, Symfony, Filament, Laravel Zero, Windwalker, dan Vanilla PHP."
+description: "Integrasi BangronDB dengan micro-framework PHP: Flight, Slim, Lumen, dan Vanilla PHP. Ringan, embedded, tanpa server database."
 permalink: /docs/integrations/
 toc: true
 edit_on_github: true
 ---
 
-# Integrasi Framework PHP
+# Integrasi Micro-Framework PHP
 
-BangronDB dapat diintegrasikan dengan hampir semua framework PHP. Karena BangronDB adalah library murni (tidak butuh server database), integrasinya sangat sederhana — biasanya cukup daftarkan sebagai service di container framework.
+BangronDB dirancang sebagai **embedded document database** — ringan, tanpa server, tanpa konfigurasi. Maka integrasinya pun sebaiknya dengan framework yang memiliki filosofi yang sama: **micro-framework**.
 
-## Daftar Integrasi
+> **Kenapa micro-framework?** BangronDB tujuannya adalah kesederhanaan. Menggabungkannya dengan full-stack framework (Laravel, Symfony, dll) justru menghilangkan keunggulan "ringan & embedded". Micro-framework memberi struktur minimal (routing + middleware) tanpa memaksakan ORM, queue, atau service container yang berat.
 
-Pilih framework yang Anda gunakan:
+## Daftar Micro-Framework
 
-| Framework | Cocok untuk | Link |
-|-----------|-------------|------|
-| **Laravel** | Aplikasi full-stack dengan Eloquent, queue, dan ecosystem besar | [/docs/integrations/laravel/](/docs/integrations/laravel/) |
-| **Lumen** | Micro-service dan API-only dengan footprint kecil | [/docs/integrations/lumen/](/docs/integrations/lumen/) |
-| **Slim Framework** | API minimalis dengan middleware | [/docs/integrations/slim/](/docs/integrations/slim/) |
-| **Flight PHP** | Micro-framework paling cocok untuk BangronDB (keduanya embedded) | [/docs/integrations/flight/](/docs/integrations/flight/) |
-| **CodeIgniter 4** | Aplikasi dengan pola MVC tradisional | [/docs/integrations/codeigniter-4/](/docs/integrations/codeigniter-4/) |
-| **Symfony** | Enterprise application dengan service container dan bundle | [/docs/integrations/symfony/](/docs/integrations/symfony/) |
-| **Filament** | Admin panel untuk Laravel dengan resource management | [/docs/integrations/filament/](/docs/integrations/filament/) |
-| **Laravel Zero** | CLI app untuk background job, import/export, automation | [/docs/integrations/laravel-zero/](/docs/integrations/laravel-zero/) |
-| **Windwalker** | Alternatif Laravel-free dengan struktur modular | [/docs/integrations/windwalker/](/docs/integrations/windwalker/) |
-| **Vanilla PHP** | Aplikasi tanpa framework — setup minimal | [/docs/integrations/vanilla-php/](/docs/integrations/vanilla-php/) |
+| Framework | Cocok untuk | Footprint | Link |
+|-----------|-------------|-----------|------|
+| **Flight PHP** | Aplikasi kecil-menengah, prototyping, embedded | ~50KB | [/docs/integrations/flight/](/docs/integrations/flight/) |
+| **Slim Framework** | API service, microservice, middleware-heavy | ~150KB | [/docs/integrations/slim/](/docs/integrations/slim/) |
+| **Lumen** | API yang butuh Laravel ecosystem (queue, cache) | ~2MB | [/docs/integrations/lumen/](/docs/integrations/lumen/) |
+| **Vanilla PHP** | Aplikasi minimal tanpa framework, scripts, CLI | 0KB | [/docs/integrations/vanilla-php/](/docs/integrations/vanilla-php/) |
+
+## Penjelasan Singkat
+
+### Flight PHP
+
+Micro-framework paling minimalis — hanya routing dan middleware. Tidak ada DI container, tidak ada ORM, tidak ada opinionated structure. Cocok untuk:
+- Aplikasi kecil yang butuh cepat jalan
+- Prototyping dan PoC
+- Embedded application (POS, kiosk, IoT)
+- Aplikasi yang di-deploy per-customer (appliance model)
+
+**Kenapa paling cocok untuk BangronDB?** Keduanya sama-sama "embedded" — Flight PHP tidak butuh server, BangronDB tidak butuh server. Stack lengkap: Flight PHP + BangronDB + PHP bisa di-deploy dengan 1 file `.phar` atau 1 folder.
+
+### Slim Framework
+
+Micro-framework dengan fokus ke PSR-7 (HTTP message interface) dan PSR-15 (middleware). Lebih structured dari Flight, cocok untuk:
+- REST API service
+- Microservice architecture
+- Aplikasi yang butuh banyak middleware (auth, logging, rate limit)
+- Tim yang familiar dengan PSR standards
+
+### Lumen
+
+Micro-framework by Laravel — versi ringan Laravel tanpa view rendering, tanpa session, tanpa cookie. Cocok untuk:
+- API yang sudah pakai Laravel ecosystem (queue, cache, events)
+- Migration dari Laravel ke microservice
+- Aplikasi yang butuh Artisan CLI commands
+
+**Catatan:** Lumen secara official sudah deprecated (Laravel merekomendasikan pakai Laravel langsung dengan route caching). Tapi masih relevan untuk project existing.
+
+### Vanilla PHP
+
+Tanpa framework sama sekali. Cocok untuk:
+- Scripts dan CLI tools (import, export, migration)
+- Cron job dan background task
+- Aplikasi single-file yang sangat minimal
+- Learning purposes — pahami BangronDB tanpa abstraction framework
 
 ## Pola Umum Integrasi
 
-BangronDB bukanlah framework — ia adalah **library embedded database** yang dirancang untuk diinisialisasi sekali lalu dibagikan ke seluruh komponen aplikasi melalui **Dependency Injection (DI) Container** atau **Service Locator**.
-
-### Tiga Langkah Inti
+Semua micro-framework pada dasarnya pakai pola yang sama:
 
 ```php
-// 1. INISIALISASI — sekali per request/process
+// 1. Bootstrap BangronDB (sekali di entry point)
+require 'vendor/autoload.php';
 use BangronDB\Client;
-
-$client = new Client($dataPath, [
-    'encryption_key'        => getenv('DB_ENCRYPTION_KEY') ?: null,
-    'encryption_key_version' => 'v1',
-]);
-
-// 2. REGISTRASI — simpan di DI container sebagai singleton
-$container->singleton(Client::class, fn() => $client);
-
-// 3. GUNAKAN — inject ke controller/service
-$users = $client->selectDB('myapp')->selectCollection('users');
-$users->insert(['name' => 'Rony', 'email' => 'rony@example.com']);
-```
-
-### Prinsip Penting
-
-| Prinsip | Penjelasan |
-|---------|-----------|
-| **Satu Client per proses** | `Client` mengelola cache koneksi database internal. Membuat beberapa instance untuk path yang sama membuang resource dan berisiko lock conflict pada SQLite. |
-| **Encryption key dari env** | Kunci enkripsi **tidak pernah dipersist** ke database. Selalu inject dari environment variable atau secret manager. |
-| **Hooks harus didaftarkan ulang** | Hooks (`on()`) tidak dipersist. Setiap kali request baru dimulai (atau setelah `createCollection`/`selectCollection`), hooks harus didaftarkan kembali. |
-| **Shutdown cleanup** | Panggil `$client->close()` atau `Database::closeAll()` saat proses berakhir untuk melepaskan file lock dan koneksi PDO. `__destruct()` menangani ini, tapi eksplisit lebih aman. |
-| **Konfigurasi collection persist** | Schema, searchable fields, ID mode, dan soft delete settings **otomatis dipersist** ke tabel `_config` saat `saveConfiguration()` dipanggil. Jadi hanya perlu konfigurasi sekali saat pertama kali pembuatan collection. |
-
----
-
-
-## Tips Integrasi Umum
-
-## Tips Integrasi Umum
-
-### 1. Path Penyimpanan
-
-Pilih path yang sesuai dengan konvensi framework:
-
-| Framework | Path yang Direkomendasikan |
-|-----------|--------------------------|
-| Laravel | `storage_path('bangrondb')` atau `database_path('bangrondb')` |
-| Lumen | `storage_path('bangrondb')` |
-| Slim | `__DIR__ . '/../data/bangrondb'` |
-| Flight | `__DIR__ . '/data/bangrondb'` |
-| CodeIgniter 4 | `WRITEPATH . 'bangrondb'` |
-| Symfony | `%kernel.project_dir%/var/bangrondb` |
-| Laravel Zero | `getcwd() . '/data'` |
-| Windwalker | `WINDWALKER_CACHE . '/bangrondb'` |
-
-> **Penting:** Pastikan direktori tersebut **tidak termasuk dalam version control** (tambahkan ke `.gitignore`).
-
-### 2. Encryption Key Management
-
-**Jangan pernah** hardcode encryption key di source code. Gunakan salah satu metode berikut:
-
-```bash
-# .env file (paling umum)
-BANGRONDB_ENCRYPTION_KEY=base64-encoded-key-minimum-32-chars
-
-# Generate key baru:
-openssl rand -base64 48
-```
-
-```php
-// Dari secret manager (AWS Secrets Manager, HashiCorp Vault, dll.)
-$key = $secretsManager->getSecret('bangrondb/encryption_key');
-```
-
-### 3. Hook Registration Strategy
-
-Karena hooks **tidak dipersist**, pilih salah satu strategi berikut:
-
-| Strategi | Cocok Untuk | Contoh |
-|----------|-------------|--------|
-| **Middleware / Filter** | Web framework (Laravel, Slim, CI4, Symfony) | Daftarkan hooks di middleware yang berjalan di setiap request |
-| **Event Subscriber** | Symfony, Laravel (EventServiceProvider) | Daftarkan di event kernel.request |
-| **Service Provider boot()** | Laravel, Lumen | Daftarkan di `boot()` method service provider |
-| **Bootstrap file** | Vanilla PHP, Flight | Daftarkan di file bootstrap yang di-require di setiap halaman |
-| **Command handle()** | Laravel Zero, Artisan command | Daftarkan di awal method `handle()` |
-| **Pola Repository** | Semua framework | Enkapsulasi hook registration di dalam constructor repository |
-
-### 4. Testing dengan In-Memory Database
-
-Untuk unit/feature test, gunakan `:memory:` agar test berjalan cepat dan tidak meninggalkan file sisa:
-
-```php
-// Laravel TestCase
-protected function setUp(): void
-{
-    parent::setUp();
-
-    $this->app->singleton(Client::class, function () {
-        return new Client(':memory:', [
-            'encryption_key' => 'test-key-for-unit-testing-minimum-32-chars',
-        ]);
-    });
-}
-```
-
-```php
-// PHPUnit murni
-class UserRepositoryTest extends \PHPUnit\Framework\TestCase
-{
-    private Client $client;
-
-    protected function setUp(): void
-    {
-        $this->client = new Client(':memory:');
-        $db = $this->client->createDB('test');
-        $users = $db->createCollection('users');
-        $users->setSchema([
-            'name'  => ['type' => 'string', 'required' => true],
-            'email' => ['type' => 'string', 'required' => true],
-        ]);
-    }
-
-    public function testInsertAndFind(): void
-    {
-        $users = $this->client->selectDB('test')->selectCollection('users');
-        $id = $users->insert(['name' => 'Test', 'email' => 'test@example.com']);
-
-        $found = $users->findOne(['_id' => $id]);
-        $this->assertEquals('Test', $found['name']);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->client->close();
-    }
-}
-```
-
-### 5. Concurrent Access (SQLite Limitations)
-
-SQLite mendukung concurrent read, tapi **hanya satu writer pada satu waktu**. Untuk aplikasi web dengan traffic tinggi, perhatikan:
-
-```php
-// Aktifkan WAL mode untuk read-concurrency yang lebih baik
 use BangronDB\Config;
 
-Config::set('journal_mode', 'WAL');
-Config::set('synchronous', 'NORMAL');
-Config::set('busy_timeout', 5000);  // via PDO attribute
+Config::set('default_path', __DIR__ . '/data');
+$client = new Client(__DIR__ . '/data');
 
-// Aktifkan sebelum membuat Client
-$client = new Client($path, [
-    'encryption_key' => $key,
-    // PDO attribute untuk busy timeout
-    \PDO::ATTR_TIMEOUT => 5,
-]);
-```
+// 2. Buat database & collection
+$db = $client->createDB('myapp');
+$users = $db->createCollection('users');
 
-> **Catatan:** BangronDB menggunakan `PRAGMA journal_mode=WAL` secara default. Tambahkan `busy_timeout` melalui opsi PDO jika diperlukan.
-
-### 6. Health Monitoring
-
-BangronDB menyediakan metode untuk monitoring kesehatan database. Integrasikan ke health check endpoint framework Anda:
-
-```php
-// Contoh: Laravel health check endpoint
-$app->get('/health', function (Client $client) {
-    $db = $client->selectDB('myapp');
-    $health = $db->getHealthReport();
-
-    return response()->json([
-        'status'  => $health['fragmentation_percent'] > 50 ? 'warning' : 'healthy',
-        'details' => $health,
-    ]);
+// 3. Pakai di route handler
+$app->get('/users', function () use ($users) {
+    return $users->find(['active' => true])->toArray();
 });
 ```
 
-### 7. Database Per-Tenant (Multi-Tenancy Sederhana)
+Perbedaan hanya di **cara register BangronDB ke container framework** (kalau ada) — tapi karena micro-framework minim opinion, ini trivial.
 
-Untuk SaaS dengan data terpisah per tenant, gunakan database terpisah per tenant:
+## Tips Integrasi Umum
 
-```php
-// Laravel middleware
-$client = app(Client::class);
-$tenantId = $request->user()->tenant_id;
-$dbName = "tenant_{$tenantId}";
+### Konfigurasi Encryption Key
 
-if (!$client->dbExists($dbName)) {
-    $client->createDB($dbName);
-}
+Simpan di environment variable, jangan di code:
 
-$db = $client->selectDB($dbName);
+```bash
+# .env
+BANGRON_ENCRYPTION_KEY=change-me-to-32-char-random-string
 ```
 
-> **Catatan:** Pola ini aman karena setiap tenant memiliki file `.bangron` terpisah. Encryption key bisa sama atau berbeda per tenant tergantung kebutuhan isolasi.
+```php
+// Bootstrap
+$encKey = $_ENV['BANGRON_ENCRYPTION_KEY'] ?? null;
+if ($encKey === null || strlen($encKey) < 32) {
+    throw new RuntimeException('BANGRON_ENCRYPTION_KEY must be set (min 32 chars)');
+}
+$client = new Client(__DIR__ . '/data', ['encryption_key' => $encKey]);
+```
 
+### Generate Encryption Key
 
-## Pilih Framework Mana?
+```bash
+# Generate 32-char random key
+php -r "echo bin2hex(random_bytes(16));" 
+# Atau
+openssl rand -hex 16
+```
 
-- **Pemula / ingin cepat jalan**: Flight PHP — paling sederhana, cocok untuk prototyping.
-- **Tim dengan experience Laravel**: Laravel atau Lumen (tergantung skala).
-- **Microservice / API-only**: Lumen atau Slim.
-- **Enterprise dengan compliance**: Symfony.
-- **CLI tool / automation**: Laravel Zero.
-- **Admin dashboard existing**: Filament (di atas Laravel).
-- **Tanpa framework**: Vanilla PHP — BangronDB tidak butuh framework untuk jalan.
+### Multi-Database Setup
+
+Untuk aplikasi modular, pakai 1 database per modul:
+
+```php
+$core   = $client->createDB('core');     // users, settings
+$sales  = $client->createDB('sales');    // orders, invoices
+$hr     = $client->createDB('hr');       // employees, attendance
+```
+
+Lihat [Modular Architecture](/docs/modular-architecture/) untuk panduan lengkap.
+
+### Database Path untuk Production
+
+- **On-premise**: `/var/lib/myapp/data/` (chmod 750, owner = web user)
+- **Docker**: volume mount ke `/data`
+- **Shared hosting**: di luar `public_html/` (jangan world-readable)
+- **Appliance**: `/opt/myapp/data/` dengan backup harian
+
+## Pilih Micro-Framework Mana?
+
+- **Pemula / ingin cepat jalan**: [Flight PHP](/docs/integrations/flight/) — paling sederhana.
+- **API-only service**: [Slim](/docs/integrations/slim/) — PSR-7/15 standards.
+- **Sudah pakai Laravel ecosystem**: [Lumen](/docs/integrations/lumen/) — familiar Artisan.
+- **Tidak butuh framework**: [Vanilla PHP](/docs/integrations/vanilla-php/) — paling minimal.
 
 ## Lihat Juga
 
 - [Getting Started](/docs/getting-started/) — instalasi dan konsep dasar.
-- [Project Scenarios: ERP](/docs/project-scenarios-erp/) — contoh implementasi ERP dengan Flight PHP.
-- [Modular Architecture](/docs/modular-architecture/) — strategi multi-database untuk aplikasi modular.
+- [Project Scenarios](/docs/scenarios/) — implementasi BangronDB di ERP, CRM, SCM, HRIS, POS.
+- [Modular Architecture](/docs/modular-architecture/) — strategi multi-database.
+- [Security](/docs/security/) — encryption, blind index, key rotation.
