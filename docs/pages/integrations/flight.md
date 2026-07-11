@@ -2,12 +2,12 @@
 layout: doc
 title: "Flight PHP Integration"
 description: "Integrasi BangronDB dengan Flight PHP — micro-framework paling cocok untuk BangronDB karena keduanya embedded."
-permalink: /docs/integrations/flight/
+permalink: ./docs/integrations/flight/
 toc: true
 edit_on_github: true
 category: integrations
 next:
-  url: /docs/integrations/slim/
+  url: ./docs/integrations/slim/
   title: "Slim Framework Integration"
 ---
 
