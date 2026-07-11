@@ -162,8 +162,15 @@ footer{border-top:1px solid var(--border);padding:48px 24px}
 /* Focus */
 a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+/* ============================================================
+   DOC PAGE LAYOUT
+   ============================================================ */
 
-
+.doc-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 220px;
+  gap: 32px;
+  max-width: var(--max-w);
   margin: 0 auto;
   padding: 96px 24px 80px;
   min-height: 100vh;
