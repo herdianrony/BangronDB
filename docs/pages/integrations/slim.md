@@ -7,17 +7,16 @@ toc: true
 edit_on_github: true
 category: integrations
 prev:
-  url: /docs/integrations/lumen/
-  title: "Lumen Integration"
-next:
   url: /docs/integrations/flight/
   title: "Flight PHP Integration"
+next:
+  url: /docs/integrations/lumen/
+  title: "Lumen Integration"
 ---
 
-> Halaman ini adalah bagian dari [Integrations](/docs/integrations/). Lihat juga integrasi framework lain di sidebar kiri.
 # Slim Framework Integration
 
-Slim 4 menggunakan PSR-11 DI Container. Berikut integrasi dengan PHP-DI.
+> Bagian dari [Integrations](/docs/integrations/) — daftar micro-framework yang cocok untuk BangronDB.
 
 ### Setup dengan PHP-DI
 

@@ -6,16 +6,14 @@ permalink: /docs/integrations/flight/
 toc: true
 edit_on_github: true
 category: integrations
-prev:
+next:
   url: /docs/integrations/slim/
   title: "Slim Framework Integration"
-next:
-  url: /docs/integrations/codeigniter-4/
-  title: "CodeIgniter 4 Integration"
 ---
 
-> Halaman ini adalah bagian dari [Integrations](/docs/integrations/). Lihat juga integrasi framework lain di sidebar kiri.
 # Flight PHP Integration
+
+> Bagian dari [Integrations](/docs/integrations/) — daftar micro-framework yang cocok untuk BangronDB.
 
 Flight PHP adalah mikro-framework minimalis. Integrasi sangat sederhana karena tidak ada DI container bawaan.
 
