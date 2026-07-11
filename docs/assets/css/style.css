@@ -197,19 +197,24 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   position: sticky;
   top: 88px;
   align-self: start;
-  /* Use fit-content so the sidebar takes its natural content height
-     (not collapsed to the first child like align-self:start would do
-     with overflow-y:auto + max-height). Cap at viewport height minus
-     navbar so long nav lists become scrollable inside the sidebar. */
-  height: fit-content;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
   padding-right: 8px;
 }
 
-.doc-sidebar::-webkit-scrollbar { width: 6px; }
-.doc-sidebar::-webkit-scrollbar-track { background: transparent; }
-.doc-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* Move overflow + max-height to inner <nav> instead of .doc-sidebar.
+   Reason: in CSS Grid, an item with `align-self: start` + `overflow-y: auto`
+   + `max-height` collapses its height to the first visible child only
+   (the title), making the nav list invisible. By keeping the sticky
+   container free of overflow and moving scroll behavior to the nav,
+   the sidebar takes its natural content height while the nav remains
+   independently scrollable when it exceeds the viewport. */
+.doc-sidebar nav {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.doc-sidebar nav::-webkit-scrollbar { width: 6px; }
+.doc-sidebar nav::-webkit-scrollbar-track { background: transparent; }
+.doc-sidebar nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 .doc-sidebar-title {
   font-size: 0.72rem;
@@ -606,17 +611,19 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   position: sticky;
   top: 88px;
   align-self: start;
-  /* fit-content prevents the same height-collapse bug as .doc-sidebar
-     (align-self:start + overflow-y:auto collapsing to first child). */
-  height: fit-content;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
   padding-left: 8px;
 }
 
-.doc-toc-right::-webkit-scrollbar { width: 4px; }
-.doc-toc-right::-webkit-scrollbar-track { background: transparent; }
-.doc-toc-right::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+/* Same pattern as .doc-sidebar: keep overflow on inner <nav> to avoid
+   the grid-item height-collapse bug. */
+.doc-toc-right nav {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.doc-toc-right nav::-webkit-scrollbar { width: 4px; }
+.doc-toc-right nav::-webkit-scrollbar-track { background: transparent; }
+.doc-toc-right nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 .doc-toc-title {
   font-size: 0.72rem;
