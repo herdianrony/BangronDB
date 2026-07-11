@@ -197,6 +197,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   position: sticky;
   top: 88px;
   align-self: start;
+  /* Use fit-content so the sidebar takes its natural content height
+     (not collapsed to the first child like align-self:start would do
+     with overflow-y:auto + max-height). Cap at viewport height minus
+     navbar so long nav lists become scrollable inside the sidebar. */
+  height: fit-content;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   padding-right: 8px;
@@ -601,6 +606,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   position: sticky;
   top: 88px;
   align-self: start;
+  /* fit-content prevents the same height-collapse bug as .doc-sidebar
+     (align-self:start + overflow-y:auto collapsing to first child). */
+  height: fit-content;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   padding-left: 8px;
