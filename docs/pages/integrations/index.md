@@ -5,7 +5,6 @@ description: "Integrasi BangronDB dengan micro-framework PHP: Flight, Slim, Lume
 permalink: /docs/integrations/
 toc: true
 edit_on_github: true
-category: integrations
 ---
 
 # Integrasi Micro-Framework PHP

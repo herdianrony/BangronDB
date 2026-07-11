@@ -5,7 +5,6 @@ description: "Tips & trick implementasi BangronDB pada skenario project nyata: E
 permalink: /docs/scenarios/
 toc: true
 edit_on_github: true
-category: scenarios
 ---
 
 # Project Scenarios
