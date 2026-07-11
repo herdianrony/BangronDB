@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "API Reference"
+description: "Referensi method Client, Database, Collection, Cursor."
+toc: true
+edit_on_github: true
+prev:
+  url: /framework-integration/
+  title: "Framework Integration"
+next:
+  url: /project-scenarios-erp/
+  title: "Project Scenarios: ERP"
+---
 # API Reference
 
 Referensi lengkap semua class dan method publik BangronDB.

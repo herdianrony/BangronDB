@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Project Scenarios: HRIS"
+description: "Employees, attendance, payroll, PII encryption."
+toc: true
+edit_on_github: true
+prev:
+  url: /project-scenarios-scm/
+  title: "Project Scenarios: SCM"
+next:
+  url: /project-scenarios-pos/
+  title: "Project Scenarios: POS"
+---
 # Tips & Trick BangronDB: Skenario Project HRIS dengan Flight PHP
 
 > Panduan praktis implementasi BangronDB pada modul HRIS (Human Resource Information System) — mencakup employee master, attendance, leave, payroll, performance review, dan training. Data sangat sensitif (gaji, KTP, NPWP) sehingga encryption wajib. Stack: Flight PHP.

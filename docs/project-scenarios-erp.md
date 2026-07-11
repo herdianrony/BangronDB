@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Project Scenarios: ERP"
+description: "Tips implementasi ERP dengan Flight PHP."
+toc: true
+edit_on_github: true
+prev:
+  url: /api-reference/
+  title: "API Reference"
+next:
+  url: /project-scenarios-crm/
+  title: "Project Scenarios: CRM"
+---
 # Tips & Trick BangronDB: Skenario Project ERP dengan Flight PHP
 
 > Dokumen ini berisi panduan praktis memakai BangronDB pada project ERP menggunakan framework **Flight PHP**. Ditujukan untuk PHP developer yang sudah familiar dengan konsep database document (NoSQL) dan ingin mengimplementasikan modul ERP (inventory, sales, purchasing, accounting) tanpa menjalankan server database terpisah.

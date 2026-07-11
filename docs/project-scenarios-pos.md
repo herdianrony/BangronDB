@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Project Scenarios: POS"
+description: "Cash drawer, transactions, multi-outlet sync."
+toc: true
+edit_on_github: true
+prev:
+  url: /project-scenarios-hris/
+  title: "Project Scenarios: HRIS"
+next:
+  url: /project-scenarios-auth-acl/
+  title: "Auth & ACL"
+---
 # Tips & Trick BangronDB: Skenario Project POS dengan Flight PHP
 
 > Panduan praktis implementasi BangronDB pada modul POS (Point of Sale) — mencakup cash drawer, transaction processing, receipt printing, multi-outlet sync, dan real-time stock deduction. Pola high-volume write (ribuan transaksi/outlet/hari) dengan offline-first capability. Stack: Flight PHP.

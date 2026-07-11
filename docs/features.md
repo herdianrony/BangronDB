@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Features"
+description: "Sorotan fitur BangronDB."
+toc: true
+edit_on_github: true
+prev:
+  url: /getting-started/
+  title: "Getting Started"
+next:
+  url: /query-operators/
+  title: "Query Operators"
+---
 # Fitur Lanjutan
 
 Fitur-fitur BangronDB yang melampaui CRUD dasar.

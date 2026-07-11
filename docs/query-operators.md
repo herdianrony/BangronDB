@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Query Operators"
+description: "Daftar lengkap operator query."
+toc: true
+edit_on_github: true
+prev:
+  url: /features/
+  title: "Features"
+next:
+  url: /schema-metadata-guide/
+  title: "Schema & Metadata"
+---
 # Query Operators
 
 Referensi lengkap operator query yang didukung BangronDB dalam `find()`, `findOne()`, `count()`, `update()`, `remove()`, dan method query lainnya.

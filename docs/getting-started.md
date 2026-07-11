@@ -1,3 +1,13 @@
+---
+layout: doc
+title: "Getting Started"
+description: "Panduan cepat untuk mulai menggunakan BangronDB."
+toc: true
+edit_on_github: true
+next:
+  url: /features/
+  title: "Features"
+---
 # Getting Started
 
 Panduan cepat untuk mulai menggunakan BangronDB — Embedded Document Database untuk PHP yang ringan dan aman, dibangun di atas SQLite.

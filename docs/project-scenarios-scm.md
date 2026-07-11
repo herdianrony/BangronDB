@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Project Scenarios: SCM"
+description: "Purchase orders, shipments, stock movements."
+toc: true
+edit_on_github: true
+prev:
+  url: /project-scenarios-crm/
+  title: "Project Scenarios: CRM"
+next:
+  url: /project-scenarios-hris/
+  title: "Project Scenarios: HRIS"
+---
 # Tips & Trick BangronDB: Skenario Project SCM dengan Flight PHP
 
 > Panduan praktis implementasi BangronDB pada modul SCM (Supply Chain Management) — mencakup purchase orders, goods receipt, shipments, supplier management, demand forecasting, dan inventory movement antar-warehouse. Stack: Flight PHP.

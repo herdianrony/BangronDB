@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Schema & Metadata"
+description: "Schema format, validasi, type aliases."
+toc: true
+edit_on_github: true
+prev:
+  url: /query-operators/
+  title: "Query Operators"
+next:
+  url: /hook-patterns/
+  title: "Hook Patterns"
+---
 # Schema Metadata Guide
 
 BangronDB schema mendukung dua kategori properti: **validasi aktif** yang diperiksa otomatis saat insert/update, dan **metadata** yang disimpan sebagai informasi tambahan untuk digunakan oleh aplikasi di atas BangronDB.

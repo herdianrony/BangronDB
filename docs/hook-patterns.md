@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Hook Patterns"
+description: "8 pola praktis hook."
+toc: true
+edit_on_github: true
+prev:
+  url: /schema-metadata-guide/
+  title: "Schema & Metadata"
+next:
+  url: /security/
+  title: "Security"
+---
 # Pola Penggunaan Hook
 
 Panduan praktis untuk berbagai pola penggunaan hook system BangronDB dalam aplikasi nyata.

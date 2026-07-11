@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Modular Architecture"
+description: "Integrasi multi-modul dengan cross-database."
+toc: true
+edit_on_github: true
+prev:
+  url: /project-scenarios-auth-acl/
+  title: "Auth & ACL"
+next:
+  url: /roadmap/
+  title: "Roadmap"
+---
 # Arsitektur Modular BangronDB: Integrasi ERP + CRM + SCM + HRIS + POS
 
 > Dokumen ini menjelaskan strategi modular dan cross-database di BangronDB untuk membangun sistem otomasi bisnis terintegrasi: **ERP** (operasional bisnis), **CRM** (pelanggan), **SCM** (rantai pasok), **HRIS** (SDM), dan **POS** (kasir). Cocok untuk PHP developer yang membangun aplikasi multi-modul dengan Flight PHP.

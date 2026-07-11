@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Project Scenarios: CRM"
+description: "Leads, opportunities, sales pipeline."
+toc: true
+edit_on_github: true
+prev:
+  url: /project-scenarios-erp/
+  title: "Project Scenarios: ERP"
+next:
+  url: /project-scenarios-scm/
+  title: "Project Scenarios: SCM"
+---
 # Tips & Trick BangronDB: Skenario Project CRM dengan Flight PHP
 
 > Dokumen ini berisi panduan praktis memakai BangronDB pada project CRM (Customer Relationship Management) menggunakan framework **Flight PHP**. Fokus pada pengelolaan leads, opportunities, activities, sales pipeline, dan multi-channel communication. Ditujukan untuk PHP developer.

@@ -1,0 +1,89 @@
+# BangronDB Documentation — Jekyll Configuration
+# Used by GitHub Pages to render markdown docs with consistent dark theme
+
+title: BangronDB
+description: >-
+  Embedded document database for PHP. MongoDB-style API. SQLite backend.
+  Zero server. Zero config.
+url: "https://herdianrony.github.io"
+baseurl: "/BangronDB"
+repository: herdianrony/BangronDB
+
+# GitHub Pages safe plugins
+plugins:
+  - jekyll-relative-links
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-titles-from-headings
+  - jekyll-redirect-from
+
+# Markdown rendering
+markdown: kramdown
+kramdown:
+  input: GFM                    # GitHub Flavored Markdown
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+    span:
+      line_numbers: false
+    block:
+      line_numbers: false
+  parse_block_html: true
+  auto_ids: true                # auto-generate IDs on headings for TOC
+  toc_levels: "1..3"
+
+# Permalink style — clean URLs
+permalink: pretty               # /getting-started/ instead of /getting-started.html
+
+# Default front matter — applies to all markdown files
+defaults:
+  - scope:
+      path: ""                  # all files
+      type: "pages"
+    values:
+      layout: "doc"
+      toc: true
+      edit_on_github: true
+  - scope:
+      path: "index.html"
+      type: "pages"
+    values:
+      layout: "home"
+
+# Optional front matter (don't require front-matter on every file)
+optional_front_matter:
+  enabled: true
+
+# Titles from first H1
+titles_from_headings:
+  enabled: true
+  strip_title: true
+
+# SEO
+seo:
+  type: SoftwareSourceCode
+
+# Exclude these from build
+exclude:
+  - "*.bangron"
+  - "data/"
+  - "vendor/"
+  - "Gemfile"
+  - "Gemfile.lock"
+  - "node_modules/"
+
+# Include hidden files (dotfiles like .nojekyll are not needed)
+include:
+  - ".htaccess"
+
+# Liquid strictness
+liquid:
+  error_mode: warn
+  strict_filters: false
+  strict_variables: false
+
+# Sass/SCSS
+sass:
+  style: compressed

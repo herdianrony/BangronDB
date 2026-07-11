@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Framework Integration"
+description: "Integrasi dengan framework PHP."
+toc: true
+edit_on_github: true
+prev:
+  url: /security/
+  title: "Security"
+next:
+  url: /api-reference/
+  title: "API Reference"
+---
 # Integrasi Framework PHP
 
 Panduan praktis mengintegrasikan BangronDB ke berbagai framework PHP. Setiap bagian mencakup pola Service Provider / DI Container, konfigurasi, dan contoh controller yang lengkap.

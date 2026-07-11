@@ -1,3 +1,8 @@
+---
+layout: home
+title: BangronDB
+description: "MongoDB-style API. SQLite backend. Zero server. Zero config. An embedded document database for PHP built on SQLite."
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -190,7 +196,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
       <li><a href="#features">Features</a></li>
       <li><a href="#quickstart">Quick Start</a></li>
       <li><a href="#architecture">Architecture</a></li>
-      <li><a href="getting-started.md">Docs</a></li>
+      <li><a href="getting-started/">Docs</a></li>
       <li><a href="#frameworks">Integrations</a></li>
       <li><a href="https://github.com/herdianrony/BangronDB" class="cta" target="_blank" rel="noopener">GitHub</a></li>
     </ul>
@@ -448,77 +454,77 @@ $users->update(['_id' => $id], ['$set' => [...]]);</div>
       <p class="section-desc reveal">From quick start to production hardening. Everything documented.</p>
     </div>
     <div class="docs-grid reveal">
-      <a href="getting-started.md" class="doc-card">
+      <a href="getting-started/" class="doc-card">
         <div class="doc-step">01</div>
         <h3>Getting Started</h3>
         <p>Instalasi, hello world, dan konsep dasar Client, Database, Collection, Document.</p>
       </a>
-      <a href="features.md" class="doc-card">
+      <a href="features/" class="doc-card">
         <div class="doc-step">02</div>
         <h3>Fitur Lanjutan</h3>
         <p>Hooks, soft delete, TTL, enkripsi, aggregation pipeline, streaming, dan relasi.</p>
       </a>
-      <a href="query-operators.md" class="doc-card">
+      <a href="query-operators/" class="doc-card">
         <div class="doc-step">03</div>
         <h3>Query Operators</h3>
         <p>Daftar lengkap operator: perbandingan, logika, array, regex, fuzzy search.</p>
       </a>
-      <a href="schema-metadata-guide.md" class="doc-card">
+      <a href="schema-metadata-guide/" class="doc-card">
         <div class="doc-step">04</div>
         <h3>Schema & Metadata</h3>
         <p>Flat schema format, properti validasi aktif, type aliases, dan metadata UI.</p>
       </a>
-      <a href="hook-patterns.md" class="doc-card">
+      <a href="hook-patterns/" class="doc-card">
         <div class="doc-step">05</div>
         <h3>Hook Patterns</h3>
         <p>8 pola praktis: auto-timestamp, audit log, ACL dinamis, cascade delete, slug generation.</p>
       </a>
-      <a href="framework-integration.md" class="doc-card">
+      <a href="framework-integration/" class="doc-card">
         <div class="doc-step">06</div>
         <h3>Framework Integration</h3>
         <p>Laravel, Lumen, Slim, Flight, CodeIgniter 4, Symfony, Filament, dan lainnya.</p>
       </a>
-      <a href="security.md" class="doc-card">
+      <a href="security/" class="doc-card">
         <div class="doc-step">07</div>
         <h3>Security</h3>
         <p>Enkripsi, blind index, key rotation, dan langkah pengerasan keamanan.</p>
       </a>
-      <a href="api-reference.md" class="doc-card">
+      <a href="api-reference/" class="doc-card">
         <div class="doc-step">08</div>
         <h3>API Reference</h3>
         <p>Referensi lengkap method Client, Database, Collection, dan Cursor.</p>
       </a>
-      <a href="project-scenarios-erp.md" class="doc-card">
+      <a href="project-scenarios-erp/" class="doc-card">
         <div class="doc-step">09</div>
         <h3>Project Scenarios: ERP</h3>
         <p>Tips & trick implementasi ERP (inventory, sales, accounting) dengan Flight PHP.</p>
       </a>
-      <a href="project-scenarios-crm.md" class="doc-card">
+      <a href="project-scenarios-crm/" class="doc-card">
         <div class="doc-step">10</div>
         <h3>Project Scenarios: CRM</h3>
         <p>Leads, opportunities, sales pipeline, activities, multi-channel communication.</p>
       </a>
-      <a href="project-scenarios-scm.md" class="doc-card">
+      <a href="project-scenarios-scm/" class="doc-card">
         <div class="doc-step">11</div>
         <h3>Project Scenarios: SCM</h3>
         <p>Purchase orders, goods receipt, shipments, stock movements, supplier management.</p>
       </a>
-      <a href="project-scenarios-hris.md" class="doc-card">
+      <a href="project-scenarios-hris/" class="doc-card">
         <div class="doc-step">12</div>
         <h3>Project Scenarios: HRIS</h3>
         <p>Employees, attendance, leave, payroll, PII encryption, multi-level RBAC.</p>
       </a>
-      <a href="project-scenarios-pos.md" class="doc-card">
+      <a href="project-scenarios-pos/" class="doc-card">
         <div class="doc-step">13</div>
         <h3>Project Scenarios: POS</h3>
         <p>Cash drawer, transaction processing, multi-outlet sync, offline-first.</p>
       </a>
-      <a href="modular-architecture.md" class="doc-card">
+      <a href="modular-architecture/" class="doc-card">
         <div class="doc-step">14</div>
         <h3>Modular Architecture</h3>
         <p>Integrasi ERP + CRM + SCM + HRIS + POS dengan cross-database populate & event hooks.</p>
       </a>
-      <a href="project-scenarios-auth-acl.md" class="doc-card">
+      <a href="project-scenarios-auth-acl/" class="doc-card">
         <div class="doc-step">15</div>
         <h3>Auth & ACL</h3>
         <p>Modul otentikasi terpisah (login, register, reset password, JWT) + ACL dinamis per-collection via setCustomConfig.</p>
@@ -542,7 +548,7 @@ $users->update(['_id' => $id], ['$set' => [...]]);</div>
     <div class="footer-links">
       <a href="https://github.com/herdianrony/BangronDB" target="_blank" rel="noopener">GitHub</a>
       <a href="https://packagist.org/packages/herdianrony/bangrondb" target="_blank" rel="noopener">Packagist</a>
-      <a href="getting-started.md">Docs</a>
+      <a href="getting-started/">Docs</a>
       <a href="https://github.com/herdianrony/BangronDB/blob/master/LICENSE" target="_blank" rel="noopener">License</a>
     </div>
     <div class="footer-copy">Built with ❤️ by herdianrony</div>

@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Security"
+description: "Enkripsi, blind index, key rotation."
+toc: true
+edit_on_github: true
+prev:
+  url: /hook-patterns/
+  title: "Hook Patterns"
+next:
+  url: /framework-integration/
+  title: "Framework Integration"
+---
 # Keamanan
 
 Fitur keamanan BangronDB: enkripsi, searchable fields, key rotation, dan audit.

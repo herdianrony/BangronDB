@@ -1,3 +1,13 @@
+---
+layout: doc
+title: "Roadmap"
+description: "Roadmap pengembangan BangronDB."
+toc: true
+edit_on_github: true
+prev:
+  url: /modular-architecture/
+  title: "Modular Architecture"
+---
 # BangronDB Roadmap
 
 > **BangronDB akan selalu memilih kesederhanaan daripada kompleksitas. Setiap fitur baru harus memperkuat kemampuannya sebagai Embedded Document Database, bukan mengubahnya menjadi ORM atau Framework.**

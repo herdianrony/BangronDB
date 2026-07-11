@@ -1,3 +1,16 @@
+---
+layout: doc
+title: "Auth & ACL"
+description: "Auth & ACL dengan setCustomConfig."
+toc: true
+edit_on_github: true
+prev:
+  url: /project-scenarios-pos/
+  title: "Project Scenarios: POS"
+next:
+  url: /modular-architecture/
+  title: "Modular Architecture"
+---
 # Tips & Trick BangronDB: Modul Auth & ACL dengan Custom Config
 
 > Dokumen ini menjawab dua pertanyaan: (1) Di mana menaruh fitur otentikasi (login, register, lupa password) pada arsitektur modular BangronDB? (2) Bagaimana implementasi ACL per-collection menggunakan `setCustomConfig()`?
