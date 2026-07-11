@@ -46,8 +46,12 @@ defaults:
       layout: "doc"
       toc: true
       edit_on_github: true
-      # Clean URL structure: /BangronDB/docs/getting-started/
-      # :name is the filename without extension (e.g. getting-started)
+  # Doc pages live in pages/ subfolder. Permalink rewrites them to /docs/:name/
+  # so the URL is /BangronDB/docs/getting-started/ (not /BangronDB/pages/getting-started/)
+  - scope:
+      path: "pages"
+      type: "pages"
+    values:
       permalink: /docs/:name/
   - scope:
       path: "index.html"

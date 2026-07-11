@@ -42,7 +42,7 @@
         <span>{{ page.title | default: "Documentation" }}</span>
       </div>
       {% if page.edit_on_github != false %}
-      <a class="doc-edit-link" href="https://github.com/{{ site.repository }}/edit/master/docs/{{ page.path | replace: '.html', '.md' }}" target="_blank" rel="noopener">
+      <a class="doc-edit-link" href="https://github.com/{{ site.repository }}/edit/master/docs/pages/{{ page.name }}" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Edit this page
       </a>
