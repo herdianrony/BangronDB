@@ -194,29 +194,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
 
 /* ===== LEFT SIDEBAR (doc navigation) ===== */
 .doc-sidebar {
-  position: sticky;
-  top: 88px;
-  align-self: start;
+  /* Sidebar is a normal grid item (default stretch). Sticky behavior
+     is delegated to the inner <nav> below to avoid the grid+sticky
+     height-collapse bug where align-self:start + overflow collapses
+     the container to its first child. */
   padding-right: 8px;
 }
 
-/* Move overflow + max-height to inner <nav> instead of .doc-sidebar.
-   Reason: in CSS Grid, an item with `align-self: start` + `overflow-y: auto`
-   + `max-height` collapses its height to the first visible child only
-   (the title), making the nav list invisible. By keeping the sticky
-   container free of overflow and moving scroll behavior to the nav,
-   the sidebar takes its natural content height while the nav remains
-   independently scrollable when it exceeds the viewport. */
-.doc-sidebar nav {
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-}
-
-.doc-sidebar nav::-webkit-scrollbar { width: 6px; }
-.doc-sidebar nav::-webkit-scrollbar-track { background: transparent; }
-.doc-sidebar nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
 .doc-sidebar-title {
+  /* Title sits above the sticky nav. It scrolls away naturally. */
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -225,6 +211,20 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   margin-bottom: 12px;
   padding-left: 8px;
 }
+
+.doc-sidebar nav {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  /* Prevent the nav from overflowing its grid cell width-wise. */
+  min-width: 0;
+  width: 100%;
+}
+
+.doc-sidebar nav::-webkit-scrollbar { width: 6px; }
+.doc-sidebar nav::-webkit-scrollbar-track { background: transparent; }
+.doc-sidebar nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 .doc-sidebar nav ul {
   list-style: none;
@@ -608,17 +608,18 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
 
 /* ===== RIGHT SIDEBAR (TOC on-page) ===== */
 .doc-toc-right {
-  position: sticky;
-  top: 88px;
-  align-self: start;
+  /* Same pattern as .doc-sidebar: container is a normal grid item,
+     sticky behavior is on the inner <nav>. */
   padding-left: 8px;
 }
 
-/* Same pattern as .doc-sidebar: keep overflow on inner <nav> to avoid
-   the grid-item height-collapse bug. */
 .doc-toc-right nav {
+  position: sticky;
+  top: 88px;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
+  min-width: 0;
+  width: 100%;
 }
 
 .doc-toc-right nav::-webkit-scrollbar { width: 4px; }
