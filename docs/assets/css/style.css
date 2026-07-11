@@ -29,8 +29,9 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 .reveal.visible{opacity:1;transform:translateY(0)}
 
 /* ===== NAVBAR ===== */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(10,10,15,.75);border-bottom:1px solid var(--border);transition:box-shadow .3s}
-nav.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.4)}
+/* Navbar — pakai #navbar ID agar tidak konflik dengan <nav class="doc-nav"> */
+nav#navbar{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(10,10,15,.75);border-bottom:1px solid var(--border);transition:box-shadow .3s}
+nav#navbar.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.4)}
 .nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:700;font-size:1.15rem;letter-spacing:-.02em}
 .nav-logo svg{color:var(--accent)}
