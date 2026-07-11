@@ -209,11 +209,21 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   padding-left: 8px;
 }
 
-.doc-sidebar nav {
+.doc-sidebar-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.doc-sidebar-title a:hover {
+  color: var(--accent);
+}
+
+.doc-sidebar-nav {
   position: sticky;
   top: 88px;
   max-height: calc(100vh - 120px);
@@ -223,23 +233,54 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   width: 100%;
 }
 
-.doc-sidebar nav::-webkit-scrollbar { width: 6px; }
-.doc-sidebar nav::-webkit-scrollbar-track { background: transparent; }
-.doc-sidebar nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.doc-sidebar-nav::-webkit-scrollbar { width: 6px; }
+.doc-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.doc-sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-.doc-sidebar nav ul {
+/* ===== Sidebar sections (grouped navigation) ===== */
+.sidebar-section {
+  margin-bottom: 20px;
+}
+
+.sidebar-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  padding-left: 12px;
+}
+
+/* Section title yang bisa di-click (link ke index category) */
+.sidebar-section-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s;
+  display: block;
+}
+
+.sidebar-section-title a:hover {
+  color: var(--text);
+}
+
+.sidebar-section-title a.active-parent {
+  color: var(--accent);
+}
+
+.sidebar-section ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.doc-sidebar nav li {
+.sidebar-section li {
   margin: 0;
 }
 
-.doc-sidebar nav a {
+.sidebar-section a {
   display: block;
-  padding: 6px 12px;
+  padding: 5px 12px;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.82rem;
@@ -249,21 +290,16 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   transition: all 0.2s;
 }
 
-.doc-sidebar nav a:hover {
+.sidebar-section a:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.03);
 }
 
-.doc-sidebar nav a.active {
+.sidebar-section a.active {
   color: var(--accent);
   border-left-color: var(--accent);
   background: var(--accent-dim);
-}
-
-.doc-sidebar nav a.section-heading {
-  font-weight: 600;
-  color: var(--text);
-  margin-top: 8px;
+  font-weight: 500;
 }
 
 /* ===== MAIN CONTENT (markdown render) ===== */
