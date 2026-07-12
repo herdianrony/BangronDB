@@ -21,20 +21,20 @@ Jadi di sini saya cuma bahas 4 micro-framework yang menurut saya cocok dengan fi
 
 {% assign integration_pages = site.pages | where: "category", "integrations" | sort: "title" %}
 
-<table>
-<thead>
-<tr><th>Framework</th><th>Deskripsi</th><th>Link</th></tr>
-</thead>
-<tbody>
+<div class="doc-list">
 {% for p in integration_pages %}
-  <tr>
-    <td><strong>{{ p.title }}</strong></td>
-    <td>{{ p.description | default: "—" }}</td>
-    <td><a href="{{ p.url | relative_url }}">{{ p.url }}</a></td>
-  </tr>
+  <a href="{{ p.url | relative_url }}" class="doc-list-card">
+    <h3>
+      <span class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </span>
+      {{ p.title }}
+    </h3>
+    <div class="card-desc">{{ p.description | default: "—" }}</div>
+    <span class="card-link">{{ p.url }}</span>
+  </a>
 {% endfor %}
-</tbody>
-</table>
+</div>
 
 ## Penjelasan Singkat
 

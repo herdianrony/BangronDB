@@ -893,6 +893,111 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
   visibility: visible;
 }
 
+/* ===== Doc list cards (untuk halaman index /docs/, /docs/integrations/, /docs/scenarios/) ===== */
+.doc-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 24px 0 32px;
+}
+
+.doc-list-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--text);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 120px;
+}
+
+.doc-list-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  opacity: 0;
+  transition: opacity 0.25s;
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 30px -10px var(--accent-glow);
+  pointer-events: none;
+}
+
+.doc-list-card:hover {
+  transform: translateY(-3px);
+  background: var(--bg-surface);
+  border-color: var(--accent);
+}
+
+.doc-list-card:hover::before {
+  opacity: 1;
+}
+
+.doc-list-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-list-card h3 .card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.doc-list-card h3 .card-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.doc-list-card .card-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  flex: 1;
+  margin-bottom: 12px;
+}
+
+.doc-list-card .card-link {
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.doc-list-card .card-link::after {
+  content: '→';
+  transition: transform 0.2s;
+}
+
+.doc-list-card:hover .card-link::after {
+  transform: translateX(3px);
+}
+
+@media (max-width: 600px) {
+  .doc-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== Print styles ===== */
 @media print {
   nav, footer, .doc-sidebar, .doc-toc-right, .doc-nav, .doc-edit-link, .copy-code-btn {
