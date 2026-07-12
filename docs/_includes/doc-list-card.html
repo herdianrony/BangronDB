@@ -1,0 +1,32 @@
+{% comment %}
+  Reusable doc-list-card component.
+  Usage:
+    {% assign cat_pages = doc_pages | where: "category", "dasar" %}
+    <div class="doc-list">
+      {% for p in cat_pages %}
+        {% include doc-list-card.html p=p icon="book" %}
+      {% endfor %}
+    </div>
+{% endcomment %}
+<a href="{{ include.p.url | relative_url }}" class="doc-list-card">
+  <h3>
+    <span class="card-icon">
+      {% if include.icon == "book" %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      {% elsif include.icon == "shield" %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      {% elsif include.icon == "lightning" %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      {% elsif include.icon == "book-open" %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      {% elsif include.icon == "building" %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+      {% else %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      {% endif %}
+    </span>
+    {{ include.p.title }}
+  </h3>
+  <div class="card-desc">{{ include.p.description | default: "—" }}</div>
+  <span class="card-link">{{ include.p.url }}</span>
+</a>

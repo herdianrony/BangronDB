@@ -20,18 +20,7 @@ Setiap skenario membahas: schema design, query patterns, hooks untuk business lo
 {% assign scenario_pages = site.pages | where: "category", "scenarios" | sort: "title" %}
 
 <div class="doc-list">
-{% for p in scenario_pages %}
-  <a href="{{ p.url | relative_url }}" class="doc-list-card">
-    <h3>
-      <span class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-      </span>
-      {{ p.title }}
-    </h3>
-    <div class="card-desc">{{ p.description | default: "—" }}</div>
-    <span class="card-link">{{ p.url }}</span>
-  </a>
-{% endfor %}
+{% for p in scenario_pages %}{% include doc-list-card.html p=p icon="book-open" %}{% endfor %}
 </div>
 
 ## Pola Umum di Semua Skenario

@@ -24,148 +24,54 @@ Dokumentasi di bawah ini saya tulis dari pengalaman actual pakai BangronDB di pr
 Dokumen fundamental — mulai dari sini kalau baru kenal BangronDB.
 
 {% assign cat_pages = doc_pages | where: "category", "dasar" %}
-{% if cat_pages.size > 0 %}
 <div class="doc-list">
-{% for p in cat_pages %}
-  <a href="{{ p.url | relative_url }}" class="doc-list-card">
-    <h3>
-      <span class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      </span>
-      {{ p.title }}
-    </h3>
-    <div class="card-desc">{{ p.description | default: "—" }}</div>
-    <span class="card-link">{{ p.url }}</span>
-  </a>
-{% endfor %}
+{% for p in cat_pages %}{% include doc-list-card.html p=p icon="book" %}{% endfor %}
 </div>
-{% else %}
-<p style="color:var(--text-muted);font-style:italic">Belum ada dokumen di kategori ini.</p>
-{% endif %}
 
 ### Keamanan & API
 
 Security, encryption, dan referensi API lengkap.
 
 {% assign cat_pages = doc_pages | where: "category", "keamanan-api" %}
-{% if cat_pages.size > 0 %}
 <div class="doc-list">
-{% for p in cat_pages %}
-  <a href="{{ p.url | relative_url }}" class="doc-list-card">
-    <h3>
-      <span class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      </span>
-      {{ p.title }}
-    </h3>
-    <div class="card-desc">{{ p.description | default: "—" }}</div>
-    <span class="card-link">{{ p.url }}</span>
-  </a>
-{% endfor %}
+{% for p in cat_pages %}{% include doc-list-card.html p=p icon="shield" %}{% endfor %}
 </div>
-{% else %}
-<p style="color:var(--text-muted);font-style:italic">Belum ada dokumen di kategori ini.</p>
-{% endif %}
 
 ### Integrasi
 
-Micro-framework yang cocok untuk BangronDB.
-
-Lihat halaman index: [/docs/integrations/](/docs/integrations/)
+Micro-framework yang cocok untuk BangronDB. Lihat halaman index: [/docs/integrations/](/docs/integrations/)
 
 {% assign cat_pages = doc_pages | where: "category", "integrations" %}
-{% if cat_pages.size > 0 %}
 <div class="doc-list">
-{% for p in cat_pages %}
-  <a href="{{ p.url | relative_url }}" class="doc-list-card">
-    <h3>
-      <span class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      </span>
-      {{ p.title }}
-    </h3>
-    <div class="card-desc">{{ p.description | default: "—" }}</div>
-    <span class="card-link">{{ p.url }}</span>
-  </a>
-{% endfor %}
+{% for p in cat_pages %}{% include doc-list-card.html p=p icon="lightning" %}{% endfor %}
 </div>
-{% else %}
-<p style="color:var(--text-muted);font-style:italic">Belum ada dokumen di kategori ini.</p>
-{% endif %}
 
 ### Skenario Project
 
-Implementasi di project nyata: ERP, CRM, SCM, HRIS, POS.
-
-Lihat halaman index: [/docs/scenarios/](/docs/scenarios/)
+Implementasi di project nyata: ERP, CRM, SCM, HRIS, POS. Lihat halaman index: [/docs/scenarios/](/docs/scenarios/)
 
 {% assign cat_pages = doc_pages | where: "category", "scenarios" %}
-{% if cat_pages.size > 0 %}
 <div class="doc-list">
-{% for p in cat_pages %}
-  <a href="{{ p.url | relative_url }}" class="doc-list-card">
-    <h3>
-      <span class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-      </span>
-      {{ p.title }}
-    </h3>
-    <div class="card-desc">{{ p.description | default: "—" }}</div>
-    <span class="card-link">{{ p.url }}</span>
-  </a>
-{% endfor %}
+{% for p in cat_pages %}{% include doc-list-card.html p=p icon="book-open" %}{% endfor %}
 </div>
-{% else %}
-<p style="color:var(--text-muted);font-style:italic">Belum ada dokumen di kategori ini.</p>
-{% endif %}
 
 ### Arsitektur
 
 Strategi multi-database dan modular architecture.
 
 {% assign cat_pages = doc_pages | where: "category", "arsitektur" %}
-{% if cat_pages.size > 0 %}
 <div class="doc-list">
-{% for p in cat_pages %}
-  <a href="{{ p.url | relative_url }}" class="doc-list-card">
-    <h3>
-      <span class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
-      </span>
-      {{ p.title }}
-    </h3>
-    <div class="card-desc">{{ p.description | default: "—" }}</div>
-    <span class="card-link">{{ p.url }}</span>
-  </a>
-{% endfor %}
+{% for p in cat_pages %}{% include doc-list-card.html p=p icon="building" %}{% endfor %}
 </div>
-{% else %}
-<p style="color:var(--text-muted);font-style:italic">Belum ada dokumen di kategori ini.</p>
-{% endif %}
 
 ### Lainnya
 
 Roadmap dan dokumen tambahan.
 
 {% assign cat_pages = doc_pages | where: "category", "lainnya" %}
-{% if cat_pages.size > 0 %}
 <div class="doc-list">
-{% for p in cat_pages %}
-  <a href="{{ p.url | relative_url }}" class="doc-list-card">
-    <h3>
-      <span class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </span>
-      {{ p.title }}
-    </h3>
-    <div class="card-desc">{{ p.description | default: "—" }}</div>
-    <span class="card-link">{{ p.url }}</span>
-  </a>
-{% endfor %}
+{% for p in cat_pages %}{% include doc-list-card.html p=p icon="arrow" %}{% endfor %}
 </div>
-{% else %}
-<p style="color:var(--text-muted);font-style:italic">Belum ada dokumen di kategori ini.</p>
-{% endif %}
 
 ## Mulai Dari Mana?
 
