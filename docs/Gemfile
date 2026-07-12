@@ -1,0 +1,22 @@
+source "https://rubygems.org"
+
+# Jekyll untuk GitHub Pages (versi sama dengan yang dipakai GitHub)
+gem "github-pages", group: :jekyll_plugins
+
+# Plugins yang dipakai di _config.yml
+group :jekyll_plugins do
+  gem "jekyll-relative-links"
+  gem "jekyll-seo-tag"
+  gem "jekyll-sitemap"
+  gem "jekyll-optional-front-matter"
+  gem "jekyll-readme-index"
+  gem "jekyll-titles-from-headings"
+  gem "jekyll-redirect-from"
+end
+
+# Windows support
+gem "tzinfo", platforms: [:mingw, :mswin, :x64_mingw]
+gem "tzinfo-data", platforms: [:mingw, :mswin, :x64_mingw]
+
+# Performance
+gem "wdm", "~> 0.1.1", :platforms => [:mingw, :mswin, :x64_mingw]
