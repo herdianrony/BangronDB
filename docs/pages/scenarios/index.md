@@ -9,7 +9,9 @@ edit_on_github: true
 
 # Project Scenarios
 
-Dokumen ini berisi panduan praktis implementasi BangronDB pada berbagai skenario project nyata. Setiap skenario membahas schema design, query patterns, hooks, performance, security, dan anti-pattern khusus untuk domain tersebut.
+Saya tulis docs skenario ini dari pengalaman actual — bukan teori. Setiap skenario (ERP, CRM, SCM, HRIS, POS, Auth) saya tulis berdasarkan project yang pernah saya kerjakan. Termasuk jebakan-jebakan yang pernah saya jatuhin, supaya Anda tidak perlu repeat.
+
+Setiap skenario membahas: schema design, query patterns, hooks untuk business logic, performance tips, security, dan anti-pattern yang harus dihindari. Plus bagian Transaction Safety yang saya tambahkan setelah sadar banyak operasi multi-step yang WAJIB atomic — ini pelajaran mahal dari production bug.
 
 ## Daftar Skenario
 
@@ -71,13 +73,15 @@ Untuk panduan integrasi multi-modul, lihat [Modular Architecture](/docs/modular-
 
 ## Pilih Skenario Mana?
 
-- **Sedang bangun aplikasi bisnis terintegrasi**: mulai dari [ERP](/docs/scenarios/erp/).
-- **Fokus ke sales & marketing**: [CRM](/docs/scenarios/crm/).
-- **Manajemen rantai pasok & logistics**: [SCM](/docs/scenarios/scm/).
-- **Aplikasi HR & payroll**: [HRIS](/docs/scenarios/hris/).
-- **Retail / F&B dengan multi-outlet**: [POS](/docs/scenarios/pos/).
-- **Setup otentikasi & authorization**: [Auth & ACL](/docs/scenarios/auth-acl/).
-- **Sudah punya multiple modul & mau integrasikan**: [Modular Architecture](/docs/modular-architecture/).
+Tergantung project apa yang sedang Anda bangun:
+
+- **Bangun aplikasi bisnis terintegrasi**: mulai dari [ERP](/docs/scenarios/erp/). Ini paling lengkap, jadi foundation-nya bagus.
+- **Fokus ke sales & marketing**: [CRM](/docs/scenarios/crm/). Leads, opportunities, sales pipeline.
+- **Manajemen rantai pasok & logistics**: [SCM](/docs/scenarios/scm/). Purchase orders, goods receipt, stock movements.
+- **Aplikasi HR & payroll**: [HRIS](/docs/scenarios/hris/). Paling banyak encryption stuff (gaji, KTP, NPWP wajib encrypt).
+- **Retail / F&B dengan multi-outlet**: [POS](/docs/scenarios/pos/). Offline-first, sync ke central.
+- **Setup otentikasi & authorization**: [Auth & ACL](/docs/scenarios/auth-acl/). Modul terpisah, pakai setCustomConfig untuk ACL.
+- **Sudah punya multiple modul & mau integrasikan**: [Modular Architecture](/docs/modular-architecture/). Strategi cross-database + hooks.
 
 ## Lihat Juga
 

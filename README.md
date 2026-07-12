@@ -1,6 +1,8 @@
 # BangronDB
 
-BangronDB adalah database dokumen berbasis SQLite untuk PHP dengan API bergaya MongoDB. Library ini cocok untuk aplikasi kecil hingga menengah yang membutuhkan penyimpanan lokal, query fleksibel, enkripsi, hooks, schema validation, dan relasi sederhana tanpa harus menjalankan server database terpisah.
+Saya bikin BangronDB karena di project-project saya (ERP, CRM, POS, HRIS) saya berulang kali butuh hal yang sama: database dokumen yang fleksibel, bisa di-deploy tanpa setup server, dan punya API yang enak dipakai. MongoDB-style API di atas SQLite adalah jawaban saya.
+
+Library ini cocok untuk aplikasi yang di-deploy per-customer (appliance model), embedded di sistem existing, atau project SMB yang tidak butuh PostgreSQL/MySQL. Bukan untuk SaaS multi-tenant skala besar — gunakan PostgreSQL + RLS untuk itu.
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/php-%3E%3D%208.1-blue.svg)](https://www.php.net)

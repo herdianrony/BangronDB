@@ -9,9 +9,11 @@ edit_on_github: true
 
 # Dokumentasi BangronDB
 
-Selamat datang di dokumentasi BangronDB — embedded document database untuk PHP. MongoDB-style API, SQLite backend, zero server, zero config.
+Halo, saya Rony — author BangronDB. Saya bikin database ini karena di project-project saya (ERP, CRM, POS, dll) saya berulang kali butuh hal yang sama: penyimpanan dokumen yang fleksibel, bisa di-deploy tanpa setup database server, dan punya API yang enak dipakai. MongoDB-style API di atas SQLite adalah jawaban saya.
 
-> Halaman ini di-generate otomatis dari front-matter setiap file `.md`. Tambah file baru dengan `category` di front-matter, dan halaman ini akan otomatis ter-update.
+Dokumentasi di bawah ini saya tulis dari pengalaman actual pakai BangronDB di production. Bukan teori — semua pattern, anti-pattern, dan tips sudah diuji di project nyata.
+
+> Halaman ini auto-generate dari front-matter setiap file `.md`. Kalau saya tambah docs baru dengan `category` di front-matter, list di bawah otomatis update.
 
 ## Daftar Lengkap Dokumentasi
 
@@ -145,23 +147,25 @@ Lihat halaman index: [/docs/scenarios/](/docs/scenarios/)
 
 ### Pemula
 
-1. Baca [Getting Started](/docs/getting-started/) — instalasi dan konsep dasar.
-2. Lihat [Features](/docs/features/) — gambaran kemampuan BangronDB.
-3. Coba [Query Operators](/docs/query-operators/) — operator query mirip MongoDB.
+Kalau baru kenal BangronDB, saya sarankan mulai dari sini:
 
-### Sudah paham dasar & mau implementasi
+1. [Getting Started](/docs/getting-started/) — instalasi dan konsep dasar. 10 menit baca, langsung bisa cobain.
+2. [Features](/docs/features/) — gambaran kemampuan. Skip kalau sudah excited mau cobain.
+3. [Query Operators](/docs/query-operators/) — operator query mirip MongoDB. Cek kalau butuh query kompleks.
 
-1. Pilih [skenario project](/docs/scenarios/) yang sesuai (ERP, CRM, dll).
-2. Pilih [micro-framework](/docs/integrations/) untuk integrasi.
-3. Baca [Modular Architecture](/docs/modular-architecture/) kalau butuh multi-modul.
+### Sudah paham dasar, mau implementasi
 
-### Production deployment
+1. Pilih [skenario project](/docs/scenarios/) yang mirip dengan yang Anda bangun (ERP, CRM, SCM, dll). Saya tulis dari pengalaman actual.
+2. Pilih [micro-framework](/docs/integrations/) untuk integrasi. Saya pakai Flight PHP di docs, tapi Slim/Lumen juga cocok.
+3. Baca [Modular Architecture](/docs/modular-architecture/) kalau aplikasi Anda butuh multi-modul (mis. ERP + CRM + POS).
 
-1. Baca [Security](/docs/security/) — encryption, key rotation, audit.
-2. Setup [Hook Patterns](/docs/hook-patterns/) untuk business logic.
-3. Pelajari [API Reference](/docs/api-reference/) untuk method lengkap.
+### Mau deploy ke production
 
-## Stack yang Direkomendasikan
+1. [Security](/docs/security/) — baca dulu sebelum simpan data sensitif. Encryption, blind index, key rotation.
+2. [Hook Patterns](/docs/hook-patterns/) — pattern hook untuk business logic (audit log, auto-timestamp, ACL).
+3. [API Reference](/docs/api-reference/) — referensi method lengkap kalau butuh lookup cepat.
+
+## Stack yang Saya Pakai
 
 ```
 BangronDB (embedded database)
@@ -171,11 +175,11 @@ Flight PHP (micro-framework)
 PHP 8.1+
 ```
 
-Kombinasi ini memberikan:
-- **Embedded** — tidak butuh server database atau web server tambahan
-- **Ringan** — total footprint < 5MB (BangronDB + Flight + dependencies)
-- **Zero config** — deploy dengan copy folder
-- **Production-ready** — schema validation, encryption, hooks, transactions
+Saya pakai kombinasi ini di project-project saya. Alasannya:
+- **Embedded** — tidak butuh server database atau web server tambahan. Cukup PHP + folder data.
+- **Ringan** — total footprint < 5MB (BangronDB + Flight + dependencies).
+- **Zero config** — deploy dengan copy folder, jalan.
+- **Production-ready** — schema validation, encryption, hooks, transactions. Bukan toy project.
 
 ## Lihat Juga
 

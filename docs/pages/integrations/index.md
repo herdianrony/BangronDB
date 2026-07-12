@@ -9,9 +9,11 @@ edit_on_github: true
 
 # Integrasi Micro-Framework PHP
 
-BangronDB dirancang sebagai **embedded document database** — ringan, tanpa server, tanpa konfigurasi. Maka integrasinya pun sebaiknya dengan framework yang memiliki filosofi yang sama: **micro-framework**.
+Saya sengaja cuma dukung micro-framework di dokumentasi ini. Bukan karena tidak bisa dipakai dengan Laravel/Symfony — teknisnya bisa saja. Tapi filosofinya beda.
 
-> **Kenapa micro-framework?** BangronDB tujuannya adalah kesederhanaan. Menggabungkannya dengan full-stack framework (Laravel, Symfony, dll) justru menghilangkan keunggulan "ringan & embedded". Micro-framework memberi struktur minimal (routing + middleware) tanpa memaksakan ORM, queue, atau service container yang berat.
+BangronDB itu embedded dan ringan. Kalau saya pair dengan full-stack framework yang udah bawa ORM sendiri, queue system, service container, dan ratusan MB dependency — saya udah menghilangkan alasan utama pakai BangronDB di tempat pertama. Mending langsung pakai PostgreSQL + Eloquent kan?
+
+Jadi di sini saya cuma bahas 4 micro-framework yang menurut saya cocok dengan filosofi BangronDB: ringan, embedded, no opinionated structure. Saya pakai Flight PHP di semua skenario docs karena paling minimal. Slim, Lumen, dan Vanilla PHP juga saya bahas kalau Anda lebih familiar dengan salah satunya.
 
 ## Daftar Micro-Framework
 
@@ -150,10 +152,12 @@ Lihat [Modular Architecture](/docs/modular-architecture/) untuk panduan lengkap.
 
 ## Pilih Micro-Framework Mana?
 
-- **Pemula / ingin cepat jalan**: [Flight PHP](/docs/integrations/flight/) — paling sederhana.
-- **API-only service**: [Slim](/docs/integrations/slim/) — PSR-7/15 standards.
-- **Sudah pakai Laravel ecosystem**: [Lumen](/docs/integrations/lumen/) — familiar Artisan.
-- **Tidak butuh framework**: [Vanilla PHP](/docs/integrations/vanilla-php/) — paling minimal.
+Saya pakai Flight PHP di semua docs skenario karena paling cocok sama saya — paling minimal, paling cepat jalan. Tapi tergantung situasi Anda:
+
+- **Cepat jalan / pemula**: [Flight PHP](/docs/integrations/flight/) — saya pakai ini di semua docs skenario. Routing + middleware, selesai.
+- **API service / microservice**: [Slim](/docs/integrations/slim/) — kalau Anda familiar dengan PSR-7/15 standards.
+- **Sudah pakai Laravel ecosystem**: [Lumen](/docs/integrations/lumen/) — Artisan CLI familiar. Catatan: Lumen udah deprecated, tapi masih relevan untuk project existing.
+- **Tidak butuh framework sama sekali**: [Vanilla PHP](/docs/integrations/vanilla-php/) — untuk scripts, CLI tools, cron jobs. Paling minimal.
 
 ## Lihat Juga
 
