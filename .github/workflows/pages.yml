@@ -33,19 +33,13 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
-          bundler-cache: false
-
-      - name: Install Jekyll
-        run: |
-          gem install jekyll
-          gem install jekyll-relative-links jekyll-seo-tag jekyll-sitemap \
-            jekyll-optional-front-matter jekyll-readme-index \
-            jekyll-titles-from-headings jekyll-redirect-from
+          bundler-cache: true
+          working-directory: docs
 
       - name: Build with Jekyll
         working-directory: docs
         run: |
-          jekyll build \
+          bundle exec jekyll build \
             --baseurl "/BangronDB" \
             --destination ../_site
 
