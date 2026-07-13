@@ -18,8 +18,8 @@ composer.lock
 .phpunit.result.cache
 phpunit.phar
 
-# Database files
-data/
+# Database files (root-level only, jangan match docs/src/data/)
+/data/
 *.bangron
 *.sqlite
 *.db
