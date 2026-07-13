@@ -3023,7 +3023,7 @@ Array
 )
 \`\`\`
 
-> Lihat [SECURITY_USAGE_GUIDE.md](https://github.com/herdianrony/BangronDB/blob/master/SECURITY_USAGE_GUIDE.md) untuk panduan lengkap.
+> Lihat [SECURITY_USAGE_GUIDE.md](#/docs/security) untuk panduan lengkap.
 `,
 },
 
@@ -3124,15 +3124,15 @@ Pending Orders Summary:
 
 | Dokumen | Deskripsi |
 |---------|-----------|
-| [Getting Started](https://github.com/herdianrony/BangronDB/blob/master/docs/getting-started.md) | Panduan cepat |
-| [Fitur Lanjutan](https://github.com/herdianrony/BangronDB/blob/master/docs/features.md) | Hooks, soft delete, TTL, dll |
-| [Query Operators](https://github.com/herdianrony/BangronDB/blob/master/docs/query-operators.md) | Operator query lengkap |
-| [Schema & Metadata](https://github.com/herdianrony/BangronDB/blob/master/docs/schema-metadata-guide.md) | Schema guide |
-| [Hook Patterns](https://github.com/herdianrony/BangronDB/blob/master/docs/hook-patterns.md) | 8 pola hook |
-| [Framework Integration](https://github.com/herdianrony/BangronDB/blob/master/docs/framework-integration.md) | Laravel, Slim, dll |
-| [API Reference](https://github.com/herdianrony/BangronDB/blob/master/docs/api-reference.md) | API lengkap |
-| [Security](https://github.com/herdianrony/BangronDB/blob/master/docs/security.md) | Keamanan |
-| [Roadmap](https://github.com/herdianrony/BangronDB/blob/master/docs/roadmap.md) | Rencana fitur |
+| [Getting Started](#/docs/getting-started) | Panduan cepat |
+| [Encryption](#/docs/encryption) | Hooks, soft delete, TTL, dll |
+| [Query Operators](#/docs/query-operators) | Operator query lengkap |
+| [Schema Validation](#/docs/schema) | Schema guide |
+| [Hooks](#/docs/hooks) | 8 pola hook |
+| [Examples](#/docs/examples) | Laravel, Slim, dll |
+| [Client API](#/docs/api-client) | API lengkap |
+| [Security](#/docs/security) | Keamanan |
+| [Configuration](#/docs/configuration) | Rencana fitur |
 `,
 },
 

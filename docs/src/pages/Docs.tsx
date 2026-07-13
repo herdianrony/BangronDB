@@ -43,7 +43,14 @@ function parseBody(md: string) {
       } else if (match[3]) {
         parts.push(<code key={`c${match.index}`} className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-gray-100 text-brand-700 dark:bg-gray-800 dark:text-brand-400">{match[4]}</code>);
       } else if (match[5]) {
-        parts.push(<a key={`a${match.index}`} href={match[7]} target="_blank" rel="noopener noreferrer" className="text-brand-600 dark:text-brand-400 hover:underline">{match[6]}</a>);
+        const href = match[7];
+        // Internal links (#/docs/xxx) — navigate within SPA, no new tab
+        if (href.startsWith('#/')) {
+          parts.push(<a key={`a${match.index}`} href={href} className="text-brand-600 dark:text-brand-400 hover:underline">{match[6]}</a>);
+        } else {
+          // External links — open in new tab
+          parts.push(<a key={`a${match.index}`} href={href} target="_blank" rel="noopener noreferrer" className="text-brand-600 dark:text-brand-400 hover:underline">{match[6]}</a>);
+        }
       }
       lastIndex = match.index + match[0].length;
     }
