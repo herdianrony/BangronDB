@@ -9,6 +9,8 @@ Library ini cocok untuk aplikasi yang di-deploy per-customer (appliance model), 
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%206-brightgreen.svg)](phpstan.neon)
 [![CI](https://github.com/herdianrony/BangronDB/actions/workflows/ci.yml/badge.svg)](https://github.com/herdianrony/BangronDB/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-376%20passed-brightgreen.svg)](tests)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/herdianrony/BangronDB/releases)
+[![Packagist](https://img.shields.io/packagist/v/herdianrony/bangrondb.svg)](https://packagist.org/packages/herdianrony/bangrondb)
 
 ## Sorotan Fitur
 

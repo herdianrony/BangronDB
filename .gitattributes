@@ -1,0 +1,37 @@
+# .gitattributes
+# Kontrol apa yang di-include saat Packagist buat distribution archive.
+# File/folder di-mark 'export-ignore' akan di-exclude dari zip yang
+# didownload user saat 'composer require herdianrony/bangrondb'.
+#
+# Hanya folder inti (src/) yang didistribusikan. Documentation,
+# examples, tests, CI config, dan file development lain di-exclude
+# untuk减小 ukuran package.
+
+# ── Exclude: Documentation ──
+/docs                export-ignore
+/CONTRIBUTING.md     export-ignore
+/BACKWARD_COMPATIBILITY_NOTES.md export-ignore
+/SECURITY_USAGE_GUIDE.md         export-ignore
+
+# ── Exclude: Examples (1.7MB, tidak perlu di production) ──
+/examples            export-ignore
+
+# ── Exclude: Tests (268KB, tidak perlu di production) ──
+/tests               export-ignore
+
+# ── Exclude: CI/CD config ──
+/.github             export-ignore
+/phpstan.neon        export-ignore
+/phpstan-baseline.neon export-ignore
+/phpunit.xml.dist   export-ignore
+
+# ── Exclude: Development files ──
+/.gitignore          export-ignore
+/.gitattributes      export-ignore
+/worklog.md          export-ignore
+
+# ── Keep: Core library files ──
+# src/               (keep — ini yang didistribusikan)
+# composer.json      (keep — wajib untuk Packagist)
+# README.md          (keep — Packagist display)
+# LICENSE            (keep — legal requirement)
