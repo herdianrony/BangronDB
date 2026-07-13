@@ -241,3 +241,47 @@ function copyInstall() {
     }
   });
 }
+
+// ===== Theme toggle (dark/light) =====
+(function () {
+  const STORAGE_KEY = 'bangrondb-theme';
+
+  // Apply theme ASAP to prevent flash of wrong theme
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }
+
+  // Get initial theme: localStorage → prefers-color-scheme → light
+  function getInitialTheme() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  // Apply immediately (before any render)
+  applyTheme(getInitialTheme());
+
+  // Setup toggle button (after DOM ready)
+  function setupToggle() {
+    const btn = document.getElementById('themeBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      const current = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem(STORAGE_KEY, next);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupToggle);
+  } else {
+    setupToggle();
+  }
+})();

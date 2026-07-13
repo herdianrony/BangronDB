@@ -1,25 +1,15 @@
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0a0f;--bg-card:#111118;--bg-code:#0d0d14;--bg-surface:#16161f;
-  --text:#e4e4e7;--text-muted:#71717a;--text-dim:#3f3f46;
-  --accent:#10b981;--accent-dim:rgba(16,185,129,.12);--accent-glow:rgba(16,185,129,.25);
-  --border:#1e1e2a;--border-hover:#2a2a3a;
-  --purple:#c084fc;--pink:#f472b6;--blue:#93c5fd;--green:#86efac;--gray:#52525b;--orange:#fdba74;--cyan:#67e8f9;
-  --font-body:'Inter',system-ui,-apple-system,sans-serif;
-  --font-mono:'JetBrains Mono',ui-monospace,monospace;
-  --radius:12px;--radius-sm:8px;
-  --max-w:1120px;
-}
-html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+/* ════════════════════════════════════════════════════
+   BangronDB Documentation — Stylesheet
+   Palette: purple-blue (Just the Docs inspired)
+   Mode: light default + dark via .dark class
+   ════════════════════════════════════════════════════ */
 
-/* Noise overlay */
-body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.035;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:128px 128px}
+/* Theme variables (light default + dark mode via .dark class) */
+@import url("_theme.css");
 
 /* Dot pattern */
-.dot-bg{background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:32px 32px}
+.dot-bg{background-image:radial-gradient(circle,rgba(124,58,237,.04) 1px,transparent 1px);background-size:32px 32px}
+.dark .dot-bg{background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:32px 32px}
 
 /* Gradient orb */
 .orb{position:absolute;border-radius:50%;filter:blur(100px);pointer-events:none;opacity:.3}
@@ -30,20 +20,33 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 
 /* ===== NAVBAR ===== */
 /* Navbar — pakai #navbar ID agar tidak konflik dengan <nav class="doc-nav"> */
-nav#navbar{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(10,10,15,.75);border-bottom:1px solid var(--border);transition:box-shadow .3s}
-nav#navbar.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.4)}
+nav#navbar{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(255,255,255,.8);border-bottom:1px solid var(--border);transition:box-shadow .3s,background-color .25s}
+.dark nav#navbar{background:rgba(10,10,15,.75)}
+nav#navbar.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.08)}
+.dark nav#navbar.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.4)}
 .nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:700;font-size:1.15rem;letter-spacing:-.02em}
 .nav-logo svg{color:var(--accent)}
 .nav-links{display:flex;align-items:center;gap:8px;list-style:none}
 .nav-links a{color:var(--text-muted);text-decoration:none;font-size:.875rem;font-weight:500;padding:6px 14px;border-radius:var(--radius-sm);transition:color .2s,background .2s}
-.nav-links a:hover,.nav-links a:focus-visible{color:var(--text);background:rgba(255,255,255,.05)}
-.nav-links .cta{background:var(--accent);color:#0a0a0f;font-weight:600}
-.nav-links .cta:hover{background:#34d399}
+.nav-links a:hover,.nav-links a:focus-visible{color:var(--text);background:rgba(124,58,237,.06)}
+.dark .nav-links a:hover,.dark .nav-links a:focus-visible{background:rgba(255,255,255,.05)}
+.nav-links .cta{background:var(--accent);color:var(--accent-text);font-weight:600}
+.nav-links .cta:hover{background:var(--accent-hover)}
 .mobile-toggle{display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:8px}
 
+/* Theme toggle (dark/light) */
+.theme-toggle{width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg-surface);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.theme-toggle:hover{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+.theme-toggle svg{width:16px;height:16px}
+.theme-toggle .sun-icon{display:none}
+.theme-toggle .moon-icon{display:block}
+.dark .theme-toggle .sun-icon{display:block}
+.dark .theme-toggle .moon-icon{display:none}
+
 @media(max-width:768px){
-  .nav-links{position:fixed;top:64px;left:0;right:0;flex-direction:column;gap:0;background:rgba(10,10,15,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:8px;transform:translateY(-120%);transition:transform .3s ease}
+  .nav-links{position:fixed;top:64px;left:0;right:0;flex-direction:column;gap:0;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:8px;transform:translateY(-120%);transition:transform .3s ease}
+  .dark .nav-links{background:rgba(10,10,15,.95)}
   .nav-links.open{transform:translateY(0)}
   .nav-links a{display:block;padding:12px 16px;border-radius:var(--radius-sm)}
   .mobile-toggle{display:block}
@@ -59,12 +62,13 @@ nav#navbar.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.4)}
 .hero p.sub{font-size:clamp(1.05rem,2vw,1.3rem);color:var(--text-muted);max-width:560px;line-height:1.6;margin-bottom:32px}
 .hero-btns{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:40px}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:var(--radius);font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;cursor:pointer;border:none;font-family:var(--font-body)}
-.btn-primary{background:var(--accent);color:#0a0a0f}
-.btn-primary:hover{background:#34d399;box-shadow:0 0 30px var(--accent-glow)}
+.btn-primary{background:var(--accent);color:var(--accent-text)}
+.btn-primary:hover{background:var(--accent-hover);box-shadow:0 0 30px var(--accent-glow)}
 .btn-secondary{background:var(--bg-surface);color:var(--text);border:1px solid var(--border)}
 .btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
 .badges{display:flex;flex-wrap:wrap;gap:8px}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;font-size:.8rem;font-weight:500;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(16,185,129,.15)}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;font-size:.8rem;font-weight:500;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(124,58,237,.15)}
+.dark .badge{border-color:rgba(167,139,250,.2)}
 .badge svg{width:14px;height:14px}
 
 /* Floating code bg */

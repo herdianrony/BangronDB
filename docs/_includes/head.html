@@ -7,5 +7,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
 <link rel="icon" type="image/svg+xml" href="{{ '/assets/favicon.svg' | relative_url }}">
+<script>
+// Apply theme before CSS to prevent FOUC (flash of unstyled content)
+(function(){
+  var t = localStorage.getItem('bangrondb-theme');
+  if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  if (t === 'dark') document.documentElement.classList.add('dark');
+})();
+</script>
 {% if page.robots %}<meta name="robots" content="{{ page.robots }}">{% endif %}
 {% seo %}
